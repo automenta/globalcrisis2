@@ -1,6 +1,7 @@
 # ThreatForge Game Engine Model
 
 ## 1. Core Architecture
+
 ### Modular Structure
 ```mermaid
 graph TD
@@ -27,6 +28,7 @@ graph TD
   - Narrative branches
 
 ## 2. Game State Representation
+
 ### World State
 ```typescript
 interface WorldState {
@@ -169,9 +171,9 @@ interface Satellite {
   mass: number;                 // kg
   abilities: UnitAbility[];     // Faction-specific special abilities
 }
-```
 
 ## 3. Threat Mechanics
+
 ### Threat Representation
 ```typescript
 interface Threat {
@@ -251,16 +253,9 @@ interface ThreatEffect {
     persistence: number; // Duration of effect
   };
 }
-```
-
-### Threat Lifecycle
-1. **Generation**: Procedural creation based on domain parameters
-2. **Deployment**: Faction-initiated through action system
-3. **Evolution**: Mutation through cross-domain interactions
-4. **Investigation**: For unknown threats - requires faction resources
-5. **Resolution**: Mitigation (for real), exposure (for fake), or escalation
 
 ## 4. Action System
+
 ### Action Types
 ```mermaid
 flowchart LR
@@ -302,16 +297,8 @@ interface Action {
   requiredCapabilities: (keyof Faction['capabilities'])[];
 }
 
-### Action Execution Flow
-1. Player selects action and target
-2. System calculates resource costs
-3. Probabilistic success determination (based on successProbability)
-4. Apply effects to game state
-5. Trigger narrative events
-6. Update faction standing
-7. Apply cooldown
-
 ## 5. Cross-Domain Interactions
+
 ### Interaction Matrix
 Domain Pair | Interaction Effect | Example |
 |-------------|-------------------|---------|
@@ -330,7 +317,7 @@ Domain Pair | Interaction Effect | Example |
 | Robot + Bio | 3.0x horror | Robotic organ harvesting operations |
 
 ### Interaction Algorithm
-```
+```typescript
 function calculateCrossImpact(threatA, threatB) {
   // Base effect from threat severities
   const baseEffect = threatA.severity * threatB.severity;
@@ -351,6 +338,7 @@ function calculateCrossImpact(threatA, threatB) {
 ```
 
 ## 6. Narrative Engine
+
 ### Event Chaining
 ```mermaid
 sequenceDiagram
@@ -388,7 +376,7 @@ sequenceDiagram
     resolution: "POSITIVE" | "NEGATIVE" | "NEUTRAL";
     duration: number; // turns
   }
-
+  
   // Example:
   const exampleChain: NarrativeChain = {
     // Cyber-Climate war example
@@ -431,7 +419,7 @@ sequenceDiagram
     resolution: "POSITIVE",
     duration: 6
   }
-
+  
   // Quantum computing threat example
   const quantumChain: NarrativeChain = {
     id: "chain-2045",
@@ -487,10 +475,10 @@ sequenceDiagram
     resolution: "NEGATIVE",
     duration: 8
   }
-  ```
-  
-- **Event Weighting**:
-  ```typescript
+```
+
+### Event Weighting
+```typescript
 interface Event {
   id: string;
   title: string;
@@ -513,19 +501,10 @@ function calculateEventWeight(event: Event) {
          (event.crossDomainImpacts.length * 0.3) +
          (event.factionsInvolved.length * 0.1);
 }
-  ```
-  
-### Multiplayer Integration
-- **Synchronization**: Deterministic lockstep model with WebRTC/WebSockets
-- **Matchmaking**: Lobby system with faction selection and role assignment
-- **Session Types**:
-  - Cooperative (faction alliances against AI threats)
-  - Competitive (asymmetric objectives: e.g., Technocrats vs Mitigators)
-  - Free-for-all (emergent diplomacy and betrayals)
-- **Cross-Platform**: Browser/desktop/mobile support via PWA
-- **Persistent Worlds**: Cloud-saved games with versioned histories
+```
 
 ## 7. Data Visualization System
+
 ### UI Components
 1. **World Map View**:
    - Heatmap layers for threat concentrations
@@ -779,8 +758,8 @@ function getFactionView(factionType: FactionType): VisualizationProfile {
         threatVisibility: 'HIDDEN_SOURCES',
         economicIndicators: ['BLACK_MARKET']
       };
-    }
-    
+  }
+  
 // Unit Ability Definitions
 type UnitAbility =
   | { type: "STEALTH", effectiveness: number }      // Reduced detection
@@ -794,7 +773,6 @@ type UnitAbility =
   | { type: "SWARM", unitCount: number }            // Robotic swarm control
   | { type: "AUTONOMY", level: number }             // Autonomous operation level
   | { type: "DECEPTION", effectiveness: number };   // Disinformation spread
-}
 
 // 3D Terrain Rendering
 function renderTerrain(region: Region, ctx: WebGLRenderingContext) {
@@ -806,7 +784,6 @@ function renderTerrain(region: Region, ctx: WebGLRenderingContext) {
   // Add dynamic elements (rivers, roads)
   renderDynamicFeatures(ctx, region.features);
 }
-```
 
 ### Economic Data Rendering
 ```typescript
@@ -851,7 +828,6 @@ function renderEconomicFlow(region: Region, ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = `rgba(255, ${255 * (1-intensity)}, 0, 0.4)`;
   ctx.fillRect(region.boundary);
 }
-```
 
 ## 11. Integration with Game Systems
 
@@ -882,6 +858,7 @@ sequenceDiagram
 | Economic collapse | Region stability < 20% | Faction resource penalty |
 
 ## 12. Technical Specifications
+
 ### Implementation Details
 - **Frontend**: HTML5/JavaScript PWA using:
   - Phaser for core game logic
@@ -1077,8 +1054,8 @@ graph LR
 - **Customizable Controls**: Remap all keyboard and mouse inputs
 - **Difficulty Scaling**: Adjustable challenge levels without changing core mechanics
 
+## 18. Implementation Details
 
-### Implementation Details
 - **Frontend**: HTML5/JavaScript PWA using:
   - Phaser for core game logic
   - Three.js for 3D visualization
