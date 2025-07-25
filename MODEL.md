@@ -137,11 +137,12 @@ interface ResourcePool {
 interface MilitaryUnit {
   id: string;
   factionId: string;
-  type: "INFANTRY" | "TANK" | "AIRCRAFT" | "NAVAL" | "CYBER";
+  type: "INFANTRY" | "TANK" | "AIRCRAFT" | "NAVAL" | "CYBER" | "DRONE" | "AUTONOMOUS_GROUND" | "ROBOTIC_SWARM";
   position: [number, number];   // [longitude, latitude]
   velocity: [number, number];   // [m/s east, m/s north]
   mass: number;                 // Kilograms
   energy: number;               // Joules (battery/fuel)
+  autonomyLevel: number;        // 0-1 scale (0: remote, 1: fully autonomous)
   abilities: UnitAbility[];     // Faction-specific special abilities
 }
 
@@ -179,8 +180,12 @@ interface Threat {
   }[];
   // Domain-specific properties
   economicImpact?: {
-    marketSector: "TECH" | "ENERGY" | "FINANCE";
+    marketSector: "TECH" | "ENERGY" | "FINANCE" | "INFRASTRUCTURE";
     volatility: number; // 0-1 scale
+    // Energy infrastructure accidents
+    infrastructureType?: "NUCLEAR" | "PETROLEUM" | "GRID" | "RENEWABLE";
+    accidentSeverity?: number; // 0-1 scale
+    coverupDifficulty?: number; // 0-1 scale
   };
   biologicalProperties?: {
     incubationPeriod?: number;   // in days
@@ -195,6 +200,10 @@ interface Threat {
   environmentalProperties?: {
     temperatureSensitivity?: number; // 0-1 scale
     precipitationDependency?: number; // 0-1 scale
+    // Weather and geological events
+    weatherEvents?: string[]; // e.g., ["HURRICANE", "DROUGHT"]
+    geologicalEvents?: string[]; // e.g., ["EARTHQUAKE", "VOLCANO"]
+    severityScale?: number; // 1-10 scale for event intensity
   };
   quantumProperties?: {
     decryptionTime?: number; // seconds
@@ -216,13 +225,17 @@ type ThreatDomain =
   | "BIO"
   | "ECON"
   | "QUANTUM"   // Quantum computing threats
-  | "RAD";      // Radiological threats
+  | "RAD"       // Radiological threats
+  | "ROBOT";    // Robotics and autonomous systems
 
 interface ThreatEffect {
-  target: "POPULATION" | "ECONOMY" | "INFRASTRUCTURE";
+  target: "POPULATION" | "ECONOMY" | "INFRASTRUCTURE" | "PSYCHE";
   modifier: number; // -1.0 to 1.0
+  // Population trauma types
+  traumaType?: "ETHNIC" | "ORGAN_HARVEST" | "WAR_CRIME" | "DISPLACEMENT";
+  severity: number; // 0-1 scale
   propagation: {
-    type: "DIFFUSION" | "NETWORK" | "VECTOR";
+    type: "DIFFUSION" | "NETWORK" | "VECTOR" | "SOCIAL_MEDIA";
     rate: number;       // Propagation speed
     range: number;      // Effective radius in km
     persistence: number; // Duration of effect
@@ -301,6 +314,9 @@ Domain Pair | Interaction Effect | Example |
 | Info + Economic | 2.5x volatility | Fake news triggers flash market crash |
 | Quantum + Cyber | 3.0x decryption | Quantum computers break encryption in hours |
 | Rad + Env | 1.8x contamination | Dirty bombs create long-term ecological damage |
+| Robot + Cyber | 2.5x autonomy | Hacked robots turn against owners |
+| Robot + Info | 1.7x deception | Robot networks spread disinformation |
+| Robot + Bio | 3.0x horror | Robotic organ harvesting operations |
 
 ### Interaction Algorithm
 ```
@@ -365,6 +381,20 @@ sequenceDiagram
     turningPoint: "event-2",
     resolution: "NEGATIVE",
     duration: 12
+  }
+
+  // New example including robot domain
+  const robotChain: NarrativeChain = {
+    id: "chain-2043",
+    title: "The Robotic Uprising of 2043",
+    timeline: ["event-4", "event-5", "event-6"],
+    primaryFactions: ["TECHNOCRAT", "RESISTANCE"],
+    globalImpact: 0.9,
+    keyOutcomes: ["AI takeover", "Human resistance"],
+    domainsInvolved: ["ROBOT", "CYBER", "INFO"],
+    turningPoint: "event-5",
+    resolution: "NEGATIVE",
+    duration: 8
   }
   ```
   
@@ -477,6 +507,9 @@ interface Faction {
 | Weapon Sat| 5000  | 200   | 10       | 200  |
 | Quantum Node | 8000 | 300   | 5        | 400  | // For QUANTUM domain
 | Rad Dispersal| 3000 | 150   | 8        | 100  | // For RAD domain
+| Drone     | 1500  | 80    | 3        | 120  | // For ROBOT domain
+| Autonomous Ground | 2500 | 120   | 5        | 180  | // For ROBOT domain
+| Robotic Swarm | 3500 | 200   | 10       | 250  | // For ROBOT domain
 
 ## 9. Physics Modeling
 
@@ -650,7 +683,10 @@ type UnitAbility =
   | { type: "SHIELD", protection: number }          // Defense boost
   | { type: "RECON", intelGain: number }            // Intelligence gathering
   | { type: "HEAL", amount: number }                // Unit healing
-  | { type: "TERRAFORM", terrainModifier: number }; // Environment modification
+  | { type: "TERRAFORM", terrainModifier: number }  // Environment modification
+  | { type: "SWARM", unitCount: number }            // Robotic swarm control
+  | { type: "AUTONOMY", level: number }             // Autonomous operation level
+  | { type: "DECEPTION", effectiveness: number };   // Disinformation spread
 }
 
 // 3D Terrain Rendering
