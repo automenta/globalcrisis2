@@ -75,7 +75,10 @@ enum FactionType {
   TECHNOOCRAT = "Evil Technocrat",
   MITIGATOR = "Hero Mitigator",
   NATION_STATE = "Nation-State",
-  RESISTANCE = "Free Human Resistance"
+  RESISTANCE = "Free Human Resistance",
+  HERO_DOCTOR = "Hero Doctor/Scientist",
+  PHARMA = "Pharma Conglomerate",
+  CONTROLLED_OPPOSITION = "Controlled Opposition"
 }
 
 interface Faction {
@@ -99,6 +102,11 @@ interface Faction {
     cyberOperations: boolean;
     environmentalManipulation: boolean;
     spaceDominance: boolean;
+    // Faction-specific capabilities
+    aiAssistedDesign?: boolean;       // For TECHNOOCRAT and PHARMA
+    mediaPropaganda?: boolean;         // For CONTROLLED_OPPOSITION
+    whistleblowerNetworks?: boolean;   // For RESISTANCE and HERO_DOCTOR
+    diplomaticImmunity?: boolean;      // For NATION_STATE
   };
   // Spatial capabilities
   militaryUnits: MilitaryUnit[];
@@ -137,7 +145,7 @@ interface ResourcePool {
 interface MilitaryUnit {
   id: string;
   factionId: string;
-  type: "INFANTRY" | "TANK" | "AIRCRAFT" | "NAVAL" | "CYBER" | "DRONE" | "AUTONOMOUS_GROUND" | "ROBOTIC_SWARM";
+  type: "INFANTRY" | "TANK" | "AIRCRAFT" | "NAVAL" | "CYBER" | "DRONE" | "AUTONOMOUS_GROUND" | "ROBOTIC_SWARM" | "QUANTUM_NODE" | "RAD_DISPERSAL";
   position: [number, number];   // [longitude, latitude]
   velocity: [number, number];   // [m/s east, m/s north]
   mass: number;                 // Kilograms
@@ -169,7 +177,9 @@ interface Satellite {
 interface Threat {
   id: string;
   domain: ThreatDomain;
-  type: "REAL" | "FAKE" | "UNKNOWN";
+  type: "REAL" | "FAKE" | "UNKNOWN";  // Fake threats cause psych damage, unknown require investigation
+  detectionRisk: number;               // 0-1 probability of being discovered
+  investigationProgress: number;       // 0-100, only for unknown threats
   severity: number;
   visibility: number;
   spreadRate: number;
@@ -247,7 +257,8 @@ interface ThreatEffect {
 1. **Generation**: Procedural creation based on domain parameters
 2. **Deployment**: Faction-initiated through action system
 3. **Evolution**: Mutation through cross-domain interactions
-4. **Resolution**: Mitigation, escalation, or natural conclusion
+4. **Investigation**: For unknown threats - requires faction resources
+5. **Resolution**: Mitigation (for real), exposure (for fake), or escalation
 
 ## 4. Action System
 ### Action Types
@@ -382,6 +393,34 @@ sequenceDiagram
     resolution: "NEGATIVE",
     duration: 12
   }
+  
+  // Pharma faction example
+  const pharmaChain: NarrativeChain = {
+    id: "chain-2043a",
+    title: "The Cure Monopoly Crisis",
+    timeline: ["event-7", "event-8", "event-9"],
+    primaryFactions: ["PHARMA", "NATION_STATE"],
+    globalImpact: 0.65,
+    keyOutcomes: ["Vaccine apartheid", "Black market cures"],
+    domainsInvolved: ["BIO", "ECON", "INFO"],
+    turningPoint: "event-8",
+    resolution: "NEGATIVE",
+    duration: 18
+  }
+  
+  // Hero Doctor faction example
+  const heroChain: NarrativeChain = {
+    id: "chain-2044",
+    title: "The Whistleblower Protocol",
+    timeline: ["event-10", "event-11", "event-12"],
+    primaryFactions: ["HERO_DOCTOR", "RESISTANCE"],
+    globalImpact: 0.55,
+    keyOutcomes: ["Lab leak exposed", "Research shutdown"],
+    domainsInvolved: ["BIO", "INFO", "CYBER"],
+    turningPoint: "event-11",
+    resolution: "POSITIVE",
+    duration: 6
+  }
 
   // New example including robot domain
   const robotChain: NarrativeChain = {
@@ -497,19 +536,21 @@ interface Faction {
 ```
 
 ### Unit Deployment Costs
-| Unit Type | Funds | Intel | Manpower | Tech |
-|-----------|-------|-------|----------|------|
-| Infantry  | 100   | 10    | 50       | 5    |
-| Tank      | 500   | 30    | 20       | 20   |
-| Aircraft  | 1000  | 50    | 10       | 50   |
-| Naval     | 800   | 40    | 15       | 30   |
-| Comms Sat | 2000  | 100   | 5        | 100  |
-| Weapon Sat| 5000  | 200   | 10       | 200  |
-| Quantum Node | 8000 | 300   | 5        | 400  | // For QUANTUM domain
-| Rad Dispersal| 3000 | 150   | 8        | 100  | // For RAD domain
-| Drone     | 1500  | 80    | 3        | 120  | // For ROBOT domain
-| Autonomous Ground | 2500 | 120   | 5        | 180  | // For ROBOT domain
-| Robotic Swarm | 3500 | 200   | 10       | 250  | // For ROBOT domain
+| Unit Type | Funds | Intel | Manpower | Tech | Domain |
+|-----------|-------|-------|----------|------|--------|
+| Infantry  | 100   | 10    | 50       | 5    | MIL    |
+| Tank      | 500   | 30    | 20       | 20   | MIL    |
+| Aircraft  | 1000  | 50    | 10       | 50   | MIL    |
+| Naval     | 800   | 40    | 15       | 30   | MIL    |
+| Comms Sat | 2000  | 100   | 5        | 100  | SPACE  |
+| Weapon Sat| 5000  | 200   | 10       | 200  | SPACE  |
+| Quantum Node | 8000 | 300   | 5        | 400  | QUANTUM|
+| Rad Dispersal| 3000 | 150   | 8        | 100  | RAD    |
+| Drone     | 1500  | 80    | 3        | 120  | ROBOT  |
+| Autonomous Ground | 2500 | 120   | 5        | 180  | ROBOT  |
+| Robotic Swarm | 3500 | 200   | 10       | 250  | ROBOT  |
+| Bio Lab   | 4000  | 200   | 20       | 150  | BIO    | // New unit
+| Info Hub  | 1500  | 300   | 10       | 100  | INFO   | // New unit
 
 ## 9. Physics Modeling
 
