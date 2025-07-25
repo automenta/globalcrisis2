@@ -332,12 +332,21 @@ Domain Pair | Interaction Effect | Example |
 ### Interaction Algorithm
 ```
 function calculateCrossImpact(threatA, threatB) {
+  // Base effect from threat severities
   const baseEffect = threatA.severity * threatB.severity;
   const domainMultiplier = DOMAIN_MATRIX[threatA.domain][threatB.domain];
+  // Domain-specific synergy multipliers
   const synergy = threatA.crossDomainImpacts
     .find(i => i.domain === threatB.domain)?.multiplier || 1.0;
   
-  return baseEffect * domainMultiplier * synergy;
+  // Environmental modifiers based on region attributes
+  const regionModifier = calculateRegionModifier(threatA.region, threatB.region);
+  
+  // Temporal decay factor for long-term threats
+  const timeFactor = Math.exp(-0.1 * Math.abs(threatA.age - threatB.age));
+    .find(i => i.domain === threatB.domain)?.multiplier || 1.0;
+  
+  return baseEffect * domainMultiplier * synergy * regionModifier * timeFactor;
 }
 ```
 
@@ -382,6 +391,7 @@ sequenceDiagram
 
   // Example:
   const exampleChain: NarrativeChain = {
+    // Cyber-Climate war example
     id: "chain-2042",
     title: "The 2042 Cyber-Climate War",
     timeline: ["event-1", "event-2", "event-3"],
@@ -422,7 +432,49 @@ sequenceDiagram
     duration: 6
   }
 
-  // New example including robot domain
+  // Quantum computing threat example
+  const quantumChain: NarrativeChain = {
+    id: "chain-2045",
+    title: "The Quantum Decryption Crisis",
+    timeline: ["event-13", "event-14", "event-15"],
+    primaryFactions: ["TECHNOCRAT", "MITIGATOR"],
+    globalImpact: 0.85,
+    keyOutcomes: ["Encryption collapse", "Data sovereignty war"],
+    domainsInvolved: ["QUANTUM", "CYBER", "INFO"],
+    turningPoint: "event-14",
+    resolution: "NEGATIVE",
+    duration: 10
+  };
+  
+  // EMP warfare example
+  const empChain: NarrativeChain = {
+    id: "chain-2046",
+    title: "The Great Electronic Blackout",
+    timeline: ["event-16", "event-17", "event-18"],
+    primaryFactions: ["RESISTANCE", "NATION_STATE"],
+    globalImpact: 0.78,
+    keyOutcomes: ["Grid collapse", "Analog resurgence"],
+    domainsInvolved: ["CYBER", "MIL", "ECON"],
+    turningPoint: "event-17",
+    resolution: "NEUTRAL",
+    duration: 14
+  };
+  
+  // Environmental bio-weapon example
+  const bioChain: NarrativeChain = {
+    id: "chain-2047",
+    title: "The Bioremediation Disaster",
+    timeline: ["event-19", "event-20", "event-21"],
+    primaryFactions: ["PHARMA", "ENVIRONMENTAL"],
+    globalImpact: 0.68,
+    keyOutcomes: ["Ecosystem collapse", "Regulatory overhaul"],
+    domainsInvolved: ["BIO", "ENV", "INFO"],
+    turningPoint: "event-20",
+    resolution: "NEGATIVE",
+    duration: 9
+  };
+  
+  // Updated robot domain example
   const robotChain: NarrativeChain = {
     id: "chain-2043",
     title: "The Robotic Uprising of 2043",
@@ -549,8 +601,10 @@ interface Faction {
 | Drone     | 1500  | 80    | 3        | 120  | ROBOT  |
 | Autonomous Ground | 2500 | 120   | 5        | 180  | ROBOT  |
 | Robotic Swarm | 3500 | 200   | 10       | 250  | ROBOT  |
-| Bio Lab   | 4000  | 200   | 20       | 150  | BIO    | // New unit
-| Info Hub  | 1500  | 300   | 10       | 100  | INFO   | // New unit
+| Bio Lab   | 4000  | 200   | 20       | 150  | BIO    | // Research and containment facility
+| Info Hub  | 1500  | 300   | 10       | 100  | INFO   | // Propaganda and intelligence center
+| Quantum Lab | 6000 | 400  | 15       | 300  | QUANTUM| // Quantum threat research
+| EMP Drone | 2000  | 150   | 5        | 200  | CYBER  | // Electronic warfare unit
 
 ## 9. Physics Modeling
 
@@ -638,6 +692,18 @@ function updateOrbit(satellite: Satellite, dt: number) {
 
 ### Energy Systems
 ```typescript
+// Military unit energy consumption modifiers
+const UNIT_ENERGY_MODIFIERS = {
+  "INFANTRY": 1.0,
+  "TANK": 1.8,
+  "AIRCRAFT": 3.0,
+  "NAVAL": 2.5,
+  "CYBER": 0.5,
+  "DRONE": 1.2,
+  "QUANTUM_NODE": 5.0,
+  "RAD_DISPERSAL": 2.0
+};
+
 interface EnergySystem {
   capacity: number;       // Max energy storage (Joules)
   current: number;        // Current energy
@@ -744,7 +810,31 @@ function renderTerrain(region: Region, ctx: WebGLRenderingContext) {
 
 ### Economic Data Rendering
 ```typescript
+// Economic flow visualization enhancements
 function renderEconomicFlow(region: Region, ctx: CanvasRenderingContext2D) {
+  // Dynamic flow animation parameters
+  const flowAnimation = {
+    speed: 0.5,  // Pixels per frame
+    pulse: Math.sin(Date.now() / 1000) * 0.2 + 0.8  // Pulsing effect
+  };
+  
+  // Render resource flow arrows with animation
+  resources.imports.forEach(imp => {
+    const fromPos = getRegionCenter(imp.fromRegionId);
+    const toPos = getRegionCenter(region.id);
+    const intensity = imp.volume * flowAnimation.pulse;
+    
+    drawAnimatedArrow(
+      ctx,
+      fromPos,
+      toPos,
+      `rgba(0, 255, 0, ${0.3 + intensity})`,
+      imp.resourceType,
+      flowAnimation.speed
+    );
+  });
+  
+  // Render economic status heatmap with pulsing effect
   const { resources, economicStatus } = region;
   
   // Render resource flow arrows
@@ -792,6 +882,201 @@ sequenceDiagram
 | Economic collapse | Region stability < 20% | Faction resource penalty |
 
 ## 12. Technical Specifications
+### Implementation Details
+- **Frontend**: HTML5/JavaScript PWA using:
+  - Phaser for core game logic
+  - Three.js for 3D visualization
+  - D3.js for data dashboards
+  - CesiumJS for geospatial visualization
+- **Backend**: Client-side only with:
+  - IndexedDB for persistent saves
+  - Web Workers for physics simulations
+  - WebAssembly for performance-critical calculations
+- **Performance**:
+  - LOD (Level of Detail) rendering with 4 quality levels
+  - Spatial partitioning for entity management (quadtree for 2D, octree for 3D)
+  - WebGPU acceleration for visualization rendering
+  - Frame budget: 16ms (60 FPS target) with dynamic quality scaling
+- **Ethics**:
+  - Content warnings for sensitive scenarios (configurable)
+  - Educational mode with real-world parallels and historical references
+  - Inclusive design with color-blind modes and text alternatives
+  - Privacy-preserving analytics with opt-in consent
+
+## 13. Game Progression Systems
+
+### Victory Conditions
+- **Technocrat Victory**:
+  - Achieve 75% global control
+  - Maintain 90% economic dominance for 10 turns
+  - Successfully deploy 5+ existential threats
+
+- **Mitigator Victory**:
+  - Reduce global threat level below 20%
+  - Maintain 80%+ population stability for 15 turns
+  - Expose 10+ conspiracies
+
+- **Nation-State Victory**:
+  - Control 50%+ of regions
+  - Form 3+ strategic alliances
+  - Maintain diplomatic immunity for 20 turns
+
+- **Resistance Victory**:
+  - Create 10+ whistleblower networks
+  - Disrupt 5+ major operations
+  - Achieve 70%+ population trust
+
+### Player Progression
+```mermaid
+graph TD
+    A[New Player] --> B[Basic Training]
+    B --> C[Specialization Path]
+    C --> D[Threat Deployment]
+    C --> E[Investigation]
+    C --> F[Strategic Planning]
+    D --> G[Advanced Threat Systems]
+    E --> H[Forensic Analysis]
+    F --> I[Alliance Management]
+    G --> J[Quantum Threats]
+    H --> K[Deep Cover Ops]
+    I --> L[Global Strategy]
+    J --> M[Threat Architect]
+    K --> N[Master Investigator]
+    L --> O[Grand Strategist]
+```
+
+### Tutorial System
+- **Interactive Tutorials**: Context-sensitive guidance based on player actions
+- **Scenario-Based Learning**: Progressive challenges teaching core mechanics
+- **Faction-Specific Training**: Unique tutorials for each faction type
+- **Physics Sandbox**: Safe environment to experiment with unit movement and interactions
+- **Narrative Examples**: Interactive walkthroughs of historical event chains
+
+## 14. Multiplayer Enhancements
+
+### Matchmaking System
+- **Skill-Based Matching**: ELO rating system for competitive play
+- **Role Specialization**: Team roles in cooperative matches
+- **Dynamic Difficulty**: AI adjustment based on player skill levels
+- **Cross-Progression**: Cloud-saved progress across devices
+
+### Competitive Play
+- **Asymmetric Objectives**: Different win conditions for opposing factions
+- **Resource Wars**: Control key regions for strategic advantages
+- **Espionage Mode**: Steal and counter intelligence operations
+- **Alliance Politics**: Diplomatic negotiations and betrayals
+
+### Cooperative Play
+- **Shared Objectives**: Global challenges requiring coordination
+- **Specialized Roles**: Complementary faction abilities
+- **Distributed Threats**: Geographically separated threats requiring teamwork
+- **Collective Narratives**: Shared story arcs with branching outcomes
+
+## 15. Environmental Systems
+
+### Dynamic Weather System
+```typescript
+interface WeatherSystem {
+  currentConditions: {
+    type: "CLEAR" | "RAIN" | "SNOW" | "STORM" | "DUST_STORM" | "FLOOD";
+    intensity: number; // 0-1 scale
+    duration: number; // turns remaining
+  };
+  effects: {
+    visibilityModifier: number; // -1.0 to 1.0
+    movementPenalty: number; // 0-1 scale
+    threatAmplification: {
+      domain: ThreatDomain;
+      multiplier: number;
+    }[];
+  };
+  forecast: WeatherForecast[];
+}
+
+function applyWeatherEffects(unit: MilitaryUnit, weather: WeatherSystem) {
+  // Visibility reduction
+  unit.sensorRange *= (1 - weather.effects.visibilityModifier);
+  
+  // Movement speed penalty
+  unit.movementSpeed *= (1 - weather.effects.movementPenalty);
+  
+  // Threat amplification
+  threat.crossDomainImpacts.push(
+    ...weather.effects.threatAmplification
+  );
+}
+```
+
+### Terrain Modification
+- **Dynamic Terrain**: Units with terraforming capabilities can modify elevation
+- **Environmental Hazards**: Create or mitigate natural disaster zones
+- **Resource Depletion**: Over-exploitation reduces resource yields
+- **Climate Change**: Long-term environmental effects from industrial activity
+
+### Ecosystem Simulation
+- **Food Chain Interactions**: Biological threats affect ecosystem balance
+- **Pollution Effects**: Environmental contamination impacts population health
+- **Resource Renewal**: Natural regeneration rates for sustainable management
+- **Biodiversity Index**: Measure of ecological health affecting threat evolution
+
+## 16. Advanced Threat Mechanics
+
+### Threat Mutation System
+```mermaid
+graph LR
+    A[Base Threat] --> B[Mutation Event]
+    B --> C{Mutation Type}
+    C -->|Domain Shift| D[Change threat domain]
+    C -->|Amplification| E[Increase severity]
+    C -->|New Properties| F[Add domain-specific properties]
+    C -->|Hybridization| G[Combine with other threats]
+    D --> H[Domain-Specific Adaptation]
+    E --> I[Escalation Event]
+    F --> J[New Threat Variant]
+    G --> K[Hybrid Threat]
+    H --> L[Threat Evolution Tree]
+```
+
+### Threat Containment
+- **Containment Zones**: Specialized units to isolate threats
+- **Quarantine Protocols**: Restrict population and unit movement
+- **Vaccination Programs**: Reduce biological threat impact
+- **Cyber Firewalls**: Block digital threat propagation
+- **Radiation Shielding**: Mitigate radiological contamination
+
+### Threat Synergy Effects
+| Synergy Type | Effect | Example |
+|--------------|--------|---------|
+| Bio-Cyber | 2.0x data theft | Neural implants hacked through biological vectors |
+| Quantum-Info | 3.0x disinformation | Quantum-generated deepfakes |
+| Space-Env | 1.8x climate impact | Satellite weather manipulation |
+| WMD-Bio | 2.5x casualties | Radiological dispersion of pathogens |
+| Robot-Env | 1.7x ecological damage | Autonomous mining operations |
+| Economic-Quantum | 3.0x market disruption | Quantum trading algorithms |
+
+## 17. Player Interface Enhancements
+
+### Adaptive UI System
+- **Context-Sensitive Controls**: Interface changes based on current situation
+- **Threat Prioritization**: Dynamic threat ranking and alerts
+- **Decision Support**: AI-assisted recommendations with risk analysis
+- **Historical Comparison**: Show past similar scenarios and outcomes
+- **Multi-Faction View**: Simultaneous view of multiple faction perspectives
+
+### Augmented Reality Mode
+- **Geospatial Visualization**: Real-world map overlay
+- **Threat Projections**: AR threat simulations
+- **Unit Control**: AR-based unit deployment
+- **Data Layering**: Toggle between different information layers
+- **Collaborative Mode**: Shared AR workspace for team strategy
+
+### Accessibility Features
+- **Color Mode Switching**: 6+ color schemes for different needs
+- **Text-to-Speech**: Full narration of game events
+- **Keyboard Navigation**: Full control without mouse
+- **Customizable Controls**: Remap all keyboard and mouse inputs
+- **Difficulty Scaling**: Adjustable challenge levels without changing core mechanics
+
 
 ### Implementation Details
 - **Frontend**: HTML5/JavaScript PWA using:
