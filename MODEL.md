@@ -118,6 +118,7 @@ interface MilitaryUnit {
   velocity: [number, number];   // [m/s east, m/s north]
   mass: number;                 // Kilograms
   energy: number;               // Joules (battery/fuel)
+  abilities: UnitAbility[];     // Faction-specific special abilities
 }
 
 interface Satellite {
@@ -133,6 +134,7 @@ interface Satellite {
   position: [number, number, number]; // ECEF coordinates [x, y, z] in km
   velocity: [number, number, number]; // km/s
   mass: number;                 // kg
+  abilities: UnitAbility[];     // Faction-specific special abilities
 }
 ```
 
@@ -166,11 +168,19 @@ type ThreatDomain =
   | "SPACE"
   | "WMD"
   | "BIO"
-  | "ECON";
+  | "ECON"
+  | "QUANTUM"   // Quantum computing threats
+  | "RAD";      // Radiological threats
 
 interface ThreatEffect {
   target: "POPULATION" | "ECONOMY" | "INFRASTRUCTURE";
   modifier: number; // -1.0 to 1.0
+  propagation: {
+    type: "DIFFUSION" | "NETWORK" | "VECTOR";
+    rate: number;       // Propagation speed
+    range: number;      // Effective radius in km
+    persistence: number; // Duration of effect
+  };
 }
 ```
 
@@ -226,6 +236,8 @@ Domain Pair | Interaction Effect | Example |
 | Geo + Space | 1.8x escalation | Anti-satellite test sparks diplomatic crisis |
 | Bio + Economic | 1.7x market panic | Lab leak causes biotech stock crash |
 | Info + Economic | 2.5x volatility | Fake news triggers flash market crash |
+| Quantum + Cyber | 3.0x decryption | Quantum computers break encryption in hours |
+| Rad + Env | 1.8x contamination | Dirty bombs create long-term ecological damage |
 
 ### Interaction Algorithm
 ```
@@ -270,7 +282,18 @@ sequenceDiagram
     "timeline": [/* event IDs */],
     "primaryFactions": ["TECHNOCRAT", "RESISTANCE"],
     "globalImpact": 0.75,
-    "keyOutcomes": ["Economic collapse", "Regime change"]
+    "keyOutcomes": ["Economic collapse", "Regime change"],
+    "domainsInvolved": ["CYBER", "ENV", "ECON"],
+    "turningPoint": "EventID-4578" // Most impactful event
+  }
+  ```
+  
+- **Event Weighting**:
+  ```typescript
+  function calculateEventWeight(event) {
+    return (event.severity * 0.6) +
+           (event.crossDomainImpacts.length * 0.3) +
+           (event.factionsInvolved.length * 0.1);
   }
   ```
   
@@ -290,9 +313,10 @@ sequenceDiagram
    - Heatmap layers for threat concentrations
    - Faction control regions with dynamic borders
    - Resource flow vectors (animated)
-   - Military unit positions and movement trails
-   - Satellite orbits and ground tracks
-   - 3D terrain with elevation data
+   - Military unit positions and movement trails (with velocity vectors)
+   - Satellite orbits and ground tracks (real-time orbital mechanics)
+   - 3D terrain with elevation data and dynamic lighting
+   - Threat propagation vectors (animated flow fields)
 
 2. **Domain Dashboards**:
    - Threat evolution trees
@@ -337,6 +361,11 @@ interface Faction {
   satellites: Satellite[];
   sensorRange: number; // km
   movementSpeed: number; // multiplier
+  deploymentConstraints: {
+    maxUnits: number;     // Max units per region
+    cooldown: number;     // Turns between deployments
+    zoneRestrictions: string[]; // Allowed deployment zones
+  };
 }
 ```
 
@@ -349,6 +378,8 @@ interface Faction {
 | Naval     | 800   | 40    | 15       | 30   |
 | Comms Sat | 2000  | 100   | 5        | 100  |
 | Weapon Sat| 5000  | 200   | 10       | 200  |
+| Quantum Node | 8000 | 300   | 5        | 400  | // For QUANTUM domain
+| Rad Dispersal| 3000 | 150   | 8        | 100  | // For RAD domain
 
 ## 9. Physics Modeling
 
@@ -511,7 +542,26 @@ function getFactionView(factionType: FactionType): VisualizationProfile {
         threatVisibility: 'HIDDEN_SOURCES',
         economicIndicators: ['BLACK_MARKET']
       };
-  }
+    }
+    
+// Unit Ability Definitions
+type UnitAbility =
+  | { type: "STEALTH", effectiveness: number }      // Reduced detection
+  | { type: "SABOTAGE", damage: number }            // Infrastructure damage
+  | { type: "DECRYPT", successRate: number }        // Code breaking
+  | { type: "JAMMING", radius: number }             // Signal disruption
+  | { type: "SHIELD", protection: number };         // Defense boost
+}
+
+// 3D Terrain Rendering
+function renderTerrain(region: Region, ctx: WebGLRenderingContext) {
+  const { elevation, climate } = region;
+  // Generate heightmap from elevation data
+  const heightMap = generateHeightMap(elevation);
+  // Apply climate-based textures
+  applyClimateTexture(ctx, heightMap, climate);
+  // Add dynamic elements (rivers, roads)
+  renderDynamicFeatures(ctx, region.features);
 }
 ```
 
@@ -563,5 +613,24 @@ sequenceDiagram
 | Threat detection | Threat in sensor range | Visibility increased |
 | Orbital strike | Weapon sat in position | Regional damage |
 | Economic collapse | Region stability < 20% | Faction resource penalty |
+
+## 12. Technical Specifications
+
+### Implementation Details
+- **Frontend**: HTML5/JavaScript PWA using:
+  - Phaser for core game logic
+  - Three.js for 3D visualization
+  - D3.js for data dashboards
+- **Backend**: Client-side only with:
+  - IndexedDB for persistent saves
+  - Web Workers for physics simulations
+- **Performance**:
+  - LOD (Level of Detail) rendering
+  - Spatial partitioning for entity management
+  - Frame budget: 16ms (60 FPS target)
+- **Ethics**:
+  - Content warnings for sensitive scenarios
+  - Educational mode with real-world parallels
+  - Inclusive design with color-blind modes
 
 This model provides the foundational architecture and mechanics for ThreatForge, enabling the emergent gameplay and extensibility described in the specifications. All physical elements now have spatial representations that can be modeled geometrically and physically, and rendered in map displays.
