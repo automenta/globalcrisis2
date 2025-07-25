@@ -409,7 +409,7 @@ function updateEnergy(system: EnergySystem, isActive: boolean, dt: number) {
 }
 ```
 
-## 9. Rendering System
+## 10. Rendering System
 
 ### Spatial Rendering Pipeline
 ```mermaid
@@ -439,4 +439,29 @@ function projectToMap(
 }
 ```
 
-This model provides the foundational architecture and mechanics for ThreatForge, enabling the emergent gameplay and extensibility described in the specifications.
+## 11. Integration with Game Systems
+
+### Physics in Game Loop
+```mermaid
+sequenceDiagram
+  participant G as Game Loop
+  participant P as Physics Engine
+  participant V as Visualization
+  participant E as Event Bus
+  
+  G->>P: Update positions (dt)
+  P->>V: Send spatial data
+  V->>V: Render frame
+  P->>E: Emit collision events
+  E->>G: Trigger game effects
+```
+
+### Spatial Event Examples
+| Event Type | Condition | Effect |
+|------------|-----------|--------|
+| Satellite pass | Satellite over region | +Intel gathering |
+| Unit collision | Military units in same cell | Combat initiated |
+| Threat detection | Threat in sensor range | Visibility increased |
+| Orbital strike | Weapon sat in position | Regional damage |
+
+This model provides the foundational architecture and mechanics for ThreatForge, enabling the emergent gameplay and extensibility described in the specifications. All physical elements now have spatial representations that can be modeled geometrically and physically, and rendered in map displays.
