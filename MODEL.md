@@ -220,10 +220,24 @@ interface Threat {
   quantumProperties?: {
     decryptionTime?: number; // seconds
     qubitCount?: number;
+    entanglementLevel?: number; // 0-1 scale
+    coherenceTime?: number; // seconds before decoherence
+    quantumEffects?: QuantumEffect[]; // NEW
   };
   radiologicalProperties?: {
     halfLife?: number; // days
     contaminationRadius?: number; // km
+    radiationType?: "ALPHA" | "BETA" | "GAMMA" | "NEUTRON";
+    shieldingRequirements?: { // NEW
+      material: string;
+      thickness: number; // cm
+    }[];
+  };
+  roboticProperties?: { // NEW
+    autonomyLevel?: number; // 0-1 scale
+    swarmIntelligence?: number; // 0-1 scale
+    learningRate?: number; // 0-1 scale
+    failureModes?: string[]; // e.g., ["SENSOR_FAILURE", "NAVIGATION_ERROR"]
   };
 }
 
@@ -240,18 +254,72 @@ type ThreatDomain =
   | "RAD"       // Radiological threats
   | "ROBOT";    // Robotics and autonomous systems
 
+// NEW: Quantum-specific effects
+type QuantumEffect =
+  | "ENTANGLEMENT_DISRUPTION"  // Disrupts quantum communications
+  | "SUPERPOSITION_EXPLOIT"    // Exploits quantum superposition for attacks
+  | "QUANTUM_TUNNELING"        // Bypasses physical security
+  | "DECOHERENCE_CASCADE";     // Causes widespread quantum system failures
+
 interface ThreatEffect {
-  target: "POPULATION" | "ECONOMY" | "INFRASTRUCTURE" | "PSYCHE";
+  target: "POPULATION" | "ECONOMY" | "INFRASTRUCTURE" | "PSYCHE" | "QUANTUM" | "ROBOTIC"; // UPDATED
   modifier: number; // -1.0 to 1.0
   // Population trauma types
-  traumaType?: "ETHNIC" | "ORGAN_HARVEST" | "WAR_CRIME" | "DISPLACEMENT";
+  traumaType?: "ETHNIC" | "ORGAN_HARVEST" | "WAR_CRIME" | "DISPLACEMENT" | "RADIATION_SICKNESS"; // UPDATED
   severity: number; // 0-1 scale
   propagation: {
-    type: "DIFFUSION" | "NETWORK" | "VECTOR" | "SOCIAL_MEDIA";
+    type: "DIFFUSION" | "NETWORK" | "VECTOR" | "SOCIAL_MEDIA" | "QUANTUM_ENTANGLEMENT" | "SWARM_INTELLIGENCE"; // UPDATED
     rate: number;       // Propagation speed
     range: number;      // Effective radius in km
     persistence: number; // Duration of effect
   };
+}
+
+// NEW: Radiological decay model
+function calculateRadiationDecay(threat: Threat, elapsedDays: number): number {
+  if (threat.domain !== "RAD" || !threat.radiologicalProperties) return 0;
+  
+  const { halfLife } = threat.radiologicalProperties;
+  const decayConstant = Math.LN2 / halfLife;
+  return Math.exp(-decayConstant * elapsedDays);
+}
+
+// NEW: Quantum coherence model
+function updateQuantumCoherence(threat: Threat, dt: number): void {
+  if (threat.domain !== "QUANTUM" || !threat.quantumProperties) return;
+  
+  const props = threat.quantumProperties;
+  if (props.coherenceTime === undefined) return;
+  
+  // Decoherence increases with time and threat severity
+  const decoherenceRate = 0.01 * threat.severity;
+  props.coherenceTime -= dt * decoherenceRate;
+  
+  // When coherence drops too low, quantum effects diminish
+  if (props.coherenceTime < 1) {
+    threat.severity *= 0.5;
+    threat.visibility *= 0.8;
+  }
+}
+
+// NEW: Robotic swarm evolution
+function evolveSwarmIntelligence(threat: Threat, dt: number): void {
+  if (threat.domain !== "ROBOT" || !threat.roboticProperties) return;
+  
+  const props = threat.roboticProperties;
+  if (props.swarmIntelligence === undefined || props.learningRate === undefined) return;
+  
+  // Swarm intelligence grows over time but risks emergent behaviors
+  props.swarmIntelligence = Math.min(1, props.swarmIntelligence + props.learningRate * dt);
+  
+  // Chance of developing failure modes as intelligence increases
+  if (Math.random() < props.swarmIntelligence * 0.01) {
+    const newFailure = ["SENSOR_FAILURE", "NAVIGATION_ERROR", "TARGETING_ERROR"][Math.floor(Math.random()*3)];
+    if (!props.failureModes) props.failureModes = [];
+    if (!props.failureModes.includes(newFailure)) {
+      props.failureModes.push(newFailure);
+    }
+  }
 }
 
 ## 4. Action System
@@ -263,39 +331,118 @@ flowchart LR
   A --> C[Influence Actions]
   A --> D[Investigation Actions]
   A --> E[Economic Actions]
+  A --> F[Quantum Actions]      // NEW
+  A --> G[Radiological Actions] // NEW
+  A --> H[Robotic Actions]      // NEW
   
-  B --> F[Deploy Threat]
-  B --> G[Amplify Threat]
-  B --> H[Modify Threat]
+  B --> I[Deploy Threat]
+  B --> J[Amplify Threat]
+  B --> K[Modify Threat]
   
-  C --> I[Lobby Faction]
-  C --> J[Spread Disinformation]
-  C --> K[Form Alliance]
+  C --> L[Lobby Faction]
+  C --> M[Spread Disinformation]
+  C --> N[Form Alliance]
   
-  D --> L[Investigate Threat]
-  D --> M[Uncover Truth]
-  D --> N[Counter Propaganda]
+  D --> O[Investigate Threat]
+  D --> P[Uncover Truth]
+  D --> Q[Counter Propaganda]
   
-  E --> O[Sanction Region]
-  E --> P[Invest in Infrastructure]
-  E --> Q[Manipulate Markets]
+  E --> R[Sanction Region]
+  E --> S[Invest in Infrastructure]
+  E --> T[Manipulate Markets]
+  
+  F --> U[Entangle Systems]     // NEW
+  F --> V[Quantum Decrypt]      // NEW
+  F --> W[Induce Decoherence]   // NEW
+  
+  G --> X[Deploy Contamination] // NEW
+  G --> Y[Contain Radiation]    // NEW
+  G --> Z[Amplify Half-Life]    // NEW
+  
+  H --> AA[Swarm Command]       // NEW
+  H --> AB[Autonomy Override]   // NEW
+  H --> AC[Robotic Sabotage]    // NEW
 ```
 
 interface Action {
   id: string;
-  type: "THREAT" | "INFLUENCE" | "INVESTIGATION" | "ECONOMIC";
+  type: "THREAT" | "INFLUENCE" | "INVESTIGATION" | "ECONOMIC" | "QUANTUM" | "RADIOLOGICAL" | "ROBOTIC"; // UPDATED
   name: string;
   description: string;
   resourceCost: ResourcePool;
   successProbability: number; // 0-1
   effects: {
-    target: "REGION" | "FACTION" | "THREAT";
+    target: "REGION" | "FACTION" | "THREAT" | "QUANTUM_SYSTEM" | "ROBOTIC_NETWORK"; // UPDATED
     modifier: number; // -1.0 to 1.0
     duration: number; // turns
   }[];
   cooldown: number; // turns
   requiredCapabilities: (keyof Faction['capabilities'])[];
 }
+
+// NEW: Quantum-specific actions
+const QuantumActions: Action[] = [
+  {
+    id: "quantum_entangle",
+    type: "QUANTUM",
+    name: "Entangle Systems",
+    description: "Create quantum entanglement between systems for coordinated attacks",
+    resourceCost: { funds: 500, intel: 300, tech: 400 },
+    successProbability: 0.7,
+    effects: [
+      { target: "QUANTUM_SYSTEM", modifier: 0.3, duration: 5 }
+    ],
+    cooldown: 3,
+    requiredCapabilities: ["quantumOperations"]
+  },
+  {
+    id: "quantum_decrypt",
+    type: "QUANTUM",
+    name: "Quantum Decryption",
+    description: "Break encryption using quantum computing power",
+    resourceCost: { funds: 800, intel: 500, tech: 700 },
+    successProbability: 0.6,
+    effects: [
+      { target: "CYBER", modifier: -0.4, duration: 3 }
+    ],
+    cooldown: 5,
+    requiredCapabilities: ["quantumOperations"]
+  }
+];
+
+// NEW: Radiological-specific actions
+const RadiologicalActions: Action[] = [
+  {
+    id: "rad_contain",
+    type: "RADIOLOGICAL",
+    name: "Contain Radiation",
+    description: "Deploy shielding to contain radiological contamination",
+    resourceCost: { funds: 300, manpower: 200, tech: 100 },
+    successProbability: 0.8,
+    effects: [
+      { target: "RAD", modifier: -0.5, duration: 4 }
+    ],
+    cooldown: 2,
+    requiredCapabilities: ["radiologicalContainment"]
+  }
+];
+
+// NEW: Robotic-specific actions
+const RoboticActions: Action[] = [
+  {
+    id: "swarm_command",
+    type: "ROBOTIC",
+    name: "Swarm Command",
+    description: "Issue coordinated commands to robotic swarms",
+    resourceCost: { funds: 400, intel: 300, tech: 200 },
+    successProbability: 0.75,
+    effects: [
+      { target: "ROBOTIC_NETWORK", modifier: 0.4, duration: 4 }
+    ],
+    cooldown: 3,
+    requiredCapabilities: ["roboticOperations"]
+  }
+];
 
 ## 5. Cross-Domain Interactions
 
@@ -375,13 +522,19 @@ sequenceDiagram
     turningPoint: string; // Event ID of most impactful event
     resolution: "POSITIVE" | "NEGATIVE" | "NEUTRAL";
     duration: number; // turns
+    // NEW: Quantum entanglement level
+    quantumEntanglement?: number; // 0-1 scale
+    // NEW: Radiological contamination index
+    radContamination?: number; // 0-1 scale
+    // NEW: Robotic autonomy index
+    roboticAutonomy?: number; // 0-1 scale
   }
   
   // Example:
   const exampleChain: NarrativeChain = {
     // Cyber-Climate war example
     id: "chain-2042",
-    title: "The 2042 Cyber-Climate War",
+    title: "The 2024 Cyber-Climate War",
     timeline: ["event-1", "event-2", "event-3"],
     primaryFactions: ["TECHNOCRAT", "RESISTANCE"],
     globalImpact: 0.75,
@@ -431,7 +584,8 @@ sequenceDiagram
     domainsInvolved: ["QUANTUM", "CYBER", "INFO"],
     turningPoint: "event-14",
     resolution: "NEGATIVE",
-    duration: 10
+    duration: 10,
+    quantumEntanglement: 0.92  // NEW
   };
   
   // EMP warfare example
@@ -462,7 +616,7 @@ sequenceDiagram
     duration: 9
   };
   
-  // Updated robot domain example
+  // Robotic uprising example
   const robotChain: NarrativeChain = {
     id: "chain-2043",
     title: "The Robotic Uprising of 2043",
@@ -473,7 +627,23 @@ sequenceDiagram
     domainsInvolved: ["ROBOT", "CYBER", "INFO"],
     turningPoint: "event-5",
     resolution: "NEGATIVE",
-    duration: 8
+    duration: 8,
+    roboticAutonomy: 0.95  // NEW
+  }
+  
+  // NEW: Radiological disaster example
+  const radChain: NarrativeChain = {
+    id: "chain-2048",
+    title: "The Chernobyl Echo",
+    timeline: ["event-22", "event-23", "event-24"],
+    primaryFactions: ["NATION_STATE", "MITIGATOR"],
+    globalImpact: 0.82,
+    keyOutcomes: ["Continent-wide contamination", "Nuclear disarmament"],
+    domainsInvolved: ["RAD", "ENV", "GEO"],
+    turningPoint: "event-23",
+    resolution: "NEGATIVE",
+    duration: 15,
+    radContamination: 0.87  // NEW
   }
 ```
 
@@ -494,12 +664,31 @@ interface Event {
   radius?: number; // km
   duration: number; // turns
   chainId?: string; // ID of event chain
+  // NEW: Quantum coherence factor
+  quantumCoherence?: number; // 0-1 scale
+  // NEW: Radiological half-life
+  radHalfLife?: number; // days
+  // NEW: Robotic autonomy level
+  roboticAutonomy?: number; // 0-1 scale
 }
 
 function calculateEventWeight(event: Event) {
-  return (event.severity * 0.6) +
-         (event.crossDomainImpacts.length * 0.3) +
-         (event.factionsInvolved.length * 0.1);
+  let weight = (event.severity * 0.6) +
+               (event.crossDomainImpacts.length * 0.3) +
+               (event.factionsInvolved.length * 0.1);
+  
+  // NEW: Domain-specific weight modifiers
+  if (event.domainsInvolved.includes("QUANTUM") && event.quantumCoherence) {
+    weight *= 1 + (event.quantumCoherence * 0.3);
+  }
+  if (event.domainsInvolved.includes("RAD") && event.radHalfLife) {
+    weight *= 1 + (1 - Math.exp(-0.01 * event.radHalfLife));
+  }
+  if (event.domainsInvolved.includes("ROBOT") && event.roboticAutonomy) {
+    weight *= 1 + (event.roboticAutonomy * 0.4);
+  }
+  
+  return Math.min(1.0, weight); // Cap at 1.0
 }
 ```
 
@@ -608,6 +797,41 @@ function updateTankMovement(tank: MilitaryUnit, terrainResistance: number, dt: n
 }
 ```
 
+**Robotic Swarm Movement:**
+```typescript
+function updateSwarmMovement(swarm: MilitaryUnit, cohesion: number, dt: number) {
+  // Cohesion: 0-1, how much the swarm stays together
+  // Simple swarm movement: each unit in the swarm is influenced by neighbors
+  // For simplicity, we treat the swarm as a single unit in this example
+
+  // Calculate average velocity of nearby swarm units (if we had individual units, we'd iterate)
+  // Instead, we simulate as a single entity with internal forces
+
+  // Attraction to center of mass
+  const center = swarm.centerOfMass; // [x, y] - calculated from swarm units
+  const directionToCenter = [center[0] - swarm.position[0], center[1] - swarm.position[1]];
+  const distanceToCenter = Math.hypot(...directionToCenter);
+
+  // Normalize and scale by cohesion
+  if (distanceToCenter > 0) {
+    const normalizedDir = [directionToCenter[0]/distanceToCenter, directionToCenter[1]/distanceToCenter];
+    const attractionForce = 100 * cohesion; // Newtons
+
+    // Update velocity
+    swarm.velocity[0] += attractionForce * normalizedDir[0] / swarm.mass * dt;
+    swarm.velocity[1] += attractionForce * normalizedDir[1] / swarm.mass * dt;
+  }
+
+  // Damping to prevent infinite acceleration
+  swarm.velocity[0] *= 0.99;
+  swarm.velocity[1] *= 0.99;
+
+  // Update position
+  swarm.position[0] += swarm.velocity[0] * dt;
+  swarm.position[1] += swarm.velocity[1] * dt;
+}
+```
+
 **Satellite Orbital Adjustment:**
 ```typescript
 function adjustSatelliteOrbit(sat: Satellite, targetAltitude: number, dt: number) {
@@ -669,6 +893,46 @@ function updateOrbit(satellite: Satellite, dt: number) {
 }
 ```
 
+### Quantum Physics Modeling
+```typescript
+// Quantum state representation
+interface QuantumState {
+  qubits: number;
+  entanglement: number; // 0-1 entanglement level
+  coherenceTime: number; // ms
+}
+
+// Quantum decoherence effects
+function applyQuantumDecoherence(state: QuantumState, environmentNoise: number, dt: number) {
+  // Decoherence increases with noise and time
+  const decoherenceRate = environmentNoise * 0.01; // % per ms
+  state.coherenceTime -= dt * decoherenceRate;
+  
+  // When coherence time drops below threshold, quantum effects diminish
+  if (state.coherenceTime < 100) {
+    state.entanglement *= 0.9; // Rapid loss of entanglement
+  }
+}
+
+// Quantum computing threat effects
+function applyQuantumThreat(threat: Threat, dt: number) {
+  if (threat.domain === "QUANTUM") {
+    const quantumProps = threat.quantumProperties;
+    if (quantumProps) {
+      // Increase decryption capability over time
+      quantumProps.decryptionTime = Math.max(1, quantumProps.decryptionTime * (1 - 0.01 * dt));
+      
+      // Entanglement with other quantum systems
+      threat.crossDomainImpacts.forEach(impact => {
+        if (impact.domain === "CYBER") {
+          impact.multiplier += 0.1 * dt;
+        }
+      });
+    }
+  }
+}
+```
+
 ### Energy Systems
 ```typescript
 // Military unit energy consumption modifiers
@@ -680,7 +944,9 @@ const UNIT_ENERGY_MODIFIERS = {
   "CYBER": 0.5,
   "DRONE": 1.2,
   "QUANTUM_NODE": 5.0,
-  "RAD_DISPERSAL": 2.0
+  "RAD_DISPERSAL": 2.0,
+  "ROBOTIC_SWARM": 1.5,  // NEW
+  "AUTONOMOUS_GROUND": 2.2  // NEW
 };
 
 interface EnergySystem {
@@ -688,17 +954,32 @@ interface EnergySystem {
   current: number;        // Current energy
   rechargeRate: number;   // Joules per second
   consumptionRate: number;// Joules per second during operation
+  // NEW: Robotic energy systems
+  autonomyMode?: "SOLAR" | "BATTERY" | "NUCLEAR";
+  rechargeEfficiency?: number; // 0-1
 }
 
 function updateEnergy(system: EnergySystem, isActive: boolean, dt: number) {
   if (isActive) {
     system.current -= system.consumptionRate * dt;
   } else {
+    // NEW: Different recharge behaviors
+    let effectiveRate = system.rechargeRate;
+    if (system.autonomyMode === "SOLAR") {
+      effectiveRate *= getSolarEfficiency();
+    }
     system.current = Math.min(
       system.capacity,
-      system.current + system.rechargeRate * dt
+      system.current + effectiveRate * dt * (system.rechargeEfficiency || 1)
     );
   }
+}
+
+// NEW: Radiological energy systems
+function updateRadiationEnergy(system: EnergySystem, halfLife: number, dt: number) {
+  // Radioactive decay energy generation
+  const decayEnergy = 0.001 * system.capacity * (1 - Math.exp(-0.693 * dt / halfLife));
+  system.current = Math.min(system.capacity, system.current + decayEnergy);
 }
 ```
 
@@ -723,6 +1004,8 @@ flowchart LR
     L --> U[Unit Markers]
     L --> S[Satellite Orbits]
     L --> E[Economic Flow]
+    L --> Q[Quantum Field Effects]  // NEW
+    L --> W[Weather Systems]        // NEW
   end
 ```
 
@@ -733,28 +1016,28 @@ function getFactionView(factionType: FactionType): VisualizationProfile {
     case FactionType.TECHNOCRAT:
       return {
         primaryLayer: 'THREAT_DEPLOYMENT',
-        secondaryLayers: ['RESOURCE_FLOW', 'POPULATION_DENSITY'],
+        secondaryLayers: ['RESOURCE_FLOW', 'POPULATION_DENSITY', 'QUANTUM_FIELDS'],  // UPDATED
         threatVisibility: 'ALL',
         economicIndicators: ['PROFIT_POTENTIAL']
       };
     case FactionType.MITIGATOR:
       return {
         primaryLayer: 'THREAT_IMPACT',
-        secondaryLayers: ['INVESTIGATION_ZONES', 'POPULATION_VULNERABILITY'],
+        secondaryLayers: ['INVESTIGATION_ZONES', 'POPULATION_VULNERABILITY', 'RADIOLOGICAL_HOTSPOTS'],  // UPDATED
         threatVisibility: 'DETECTED_ONLY',
         economicIndicators: ['RECOVERY_COST']
       };
     case FactionType.NATION_STATE:
       return {
         primaryLayer: 'TERRITORIAL_CONTROL',
-        secondaryLayers: ['MILITARY_DEPLOYMENTS', 'DIPLOMATIC_RELATIONS'],
+        secondaryLayers: ['MILITARY_DEPLOYMENTS', 'DIPLOMATIC_RELATIONS', 'WEATHER_PATTERNS'],  // UPDATED
         threatVisibility: 'DOMESTIC_ONLY',
         economicIndicators: ['GDP_TREND']
       };
     case FactionType.RESISTANCE:
       return {
         primaryLayer: 'INFORMATION_FLOW',
-        secondaryLayers: ['UNDERGROUND_NETWORKS', 'AUTHORITY_WEAKNESS'],
+        secondaryLayers: ['UNDERGROUND_NETWORKS', 'AUTHORITY_WEAKNESS', 'ROBOTIC_NETWORKS'],  // UPDATED
         threatVisibility: 'HIDDEN_SOURCES',
         economicIndicators: ['BLACK_MARKET']
       };
@@ -772,18 +1055,93 @@ type UnitAbility =
   | { type: "TERRAFORM", terrainModifier: number }  // Environment modification
   | { type: "SWARM", unitCount: number }            // Robotic swarm control
   | { type: "AUTONOMY", level: number }             // Autonomous operation level
-  | { type: "DECEPTION", effectiveness: number };   // Disinformation spread
+  | { type: "DECEPTION", effectiveness: number }    // Disinformation spread
+  | { type: "QUANTUM_DECOHERENCE", radius: number } // NEW: Disrupt quantum systems
+  | { type: "RAD_DECONTAM", area: number };         // NEW: Radiological cleanup
 
 // 3D Terrain Rendering
 function renderTerrain(region: Region, ctx: WebGLRenderingContext) {
-  const { elevation, climate } = region;
+  const { elevation, climate, weather } = region;  // UPDATED
   // Generate heightmap from elevation data
   const heightMap = generateHeightMap(elevation);
   // Apply climate-based textures
   applyClimateTexture(ctx, heightMap, climate);
+  // Apply weather effects (rain, snow, fog)
+  applyWeatherEffects(ctx, heightMap, weather);  // NEW
   // Add dynamic elements (rivers, roads)
   renderDynamicFeatures(ctx, region.features);
 }
+
+### Quantum Field Visualization
+```typescript
+function renderQuantumFields(ctx: WebGLRenderingContext, quantumNodes: QuantumNode[]) {
+  // Visualize quantum entanglement and decoherence
+  quantumNodes.forEach(node => {
+    const position = node.position;
+    const intensity = node.quantumState.entanglementLevel;
+    
+    // Draw quantum field with pulsating effect
+    drawQuantumField(
+      ctx,
+      position,
+      intensity,
+      `rgba(100, 50, 200, ${0.4 + intensity * 0.6})`
+    );
+    
+    // Draw entanglement links
+    node.entangledNodes.forEach(linkedNode => {
+      drawEntanglementLink(ctx, position, linkedNode.position);
+    });
+  });
+}
+```
+
+### Robotic Network Visualization
+```typescript
+function renderRoboticNetworks(ctx: CanvasRenderingContext2D, units: MilitaryUnit[]) {
+  // Visualize robotic swarm networks and AI coordination
+  const roboticUnits = units.filter(u =>
+    u.type === "DRONE" ||
+    u.type === "AUTONOMOUS_GROUND" ||
+    u.type === "ROBOTIC_SWARM"
+  );
+  
+  roboticUnits.forEach(unit => {
+    // Draw communication links between swarm units
+    if (unit.swarmId) {
+      const swarmUnits = roboticUnits.filter(u => u.swarmId === unit.swarmId);
+      swarmUnits.forEach(other => {
+        if (unit.id !== other.id) {
+          drawSwarmLink(ctx, unit.position, other.position);
+        }
+      });
+    }
+    
+    // Draw autonomy level indicator
+    drawAutonomyIndicator(ctx, unit.position, unit.autonomyLevel);
+  });
+}
+```
+
+### Radiological Contamination Visualization
+```typescript
+function renderRadiation(ctx: CanvasRenderingContext2D, threats: Threat[]) {
+  // Visualize radiological contamination zones
+  threats
+    .filter(t => t.domain === "RAD")
+    .forEach(threat => {
+      const radProps = threat.radiologicalProperties;
+      if (radProps) {
+        drawRadiationZone(
+          ctx,
+          threat.position,
+          radProps.contaminationRadius,
+          radProps.halfLife
+        );
+      }
+    });
+}
+```
 
 ### Economic Data Rendering
 ```typescript
@@ -813,20 +1171,14 @@ function renderEconomicFlow(region: Region, ctx: CanvasRenderingContext2D) {
   
   // Render economic status heatmap with pulsing effect
   const { resources, economicStatus } = region;
-  
-  // Render resource flow arrows
-  resources.imports.forEach(imp => {
-    const fromPos = getRegionCenter(imp.fromRegionId);
-    const toPos = getRegionCenter(region.id);
-    drawArrow(ctx, fromPos, toPos,
-              `rgba(0, 255, 0, ${0.3 + imp.volume * 0.7})`,
-              imp.resourceType);
-  });
-  
-  // Render economic status heatmap
   const intensity = economicStatus.stability * 0.8 + economicStatus.growth * 0.2;
   ctx.fillStyle = `rgba(255, ${255 * (1-intensity)}, 0, 0.4)`;
   ctx.fillRect(region.boundary);
+  
+  // NEW: Render quantum economic impacts
+  if (region.quantumEconomicImpact) {
+    drawQuantumEconomicEffects(ctx, region.quantumEconomicImpact);
+  }
 }
 
 ## 11. Integration with Game Systems
@@ -865,20 +1217,24 @@ sequenceDiagram
   - Three.js for 3D visualization
   - D3.js for data dashboards
   - CesiumJS for geospatial visualization
+  - TensorFlow.js for AI-driven narrative generation  // NEW
 - **Backend**: Client-side only with:
   - IndexedDB for persistent saves
   - Web Workers for physics simulations
   - WebAssembly for performance-critical calculations
+  - Quantum simulation libraries (e.g., QuSim.js)  // NEW
 - **Performance**:
   - LOD (Level of Detail) rendering with 4 quality levels
   - Spatial partitioning for entity management (quadtree for 2D, octree for 3D)
   - WebGPU acceleration for visualization rendering
   - Frame budget: 16ms (60 FPS target) with dynamic quality scaling
+  - Dedicated physics threads for robotic swarm simulations  // NEW
 - **Ethics**:
   - Content warnings for sensitive scenarios (configurable)
   - Educational mode with real-world parallels and historical references
   - Inclusive design with color-blind modes and text alternatives
   - Privacy-preserving analytics with opt-in consent
+  - Quantum ethics guidelines for responsible simulation  // NEW
 
 ## 13. Game Progression Systems
 
@@ -936,18 +1292,68 @@ graph TD
 - **Role Specialization**: Team roles in cooperative matches
 - **Dynamic Difficulty**: AI adjustment based on player skill levels
 - **Cross-Progression**: Cloud-saved progress across devices
+- **Quantum-Secure Networking**: End-to-end encryption using quantum key distribution  // NEW
+- **Latency Compensation**: Physics-aware netcode for real-time interactions  // NEW
 
 ### Competitive Play
 - **Asymmetric Objectives**: Different win conditions for opposing factions
 - **Resource Wars**: Control key regions for strategic advantages
 - **Espionage Mode**: Steal and counter intelligence operations
 - **Alliance Politics**: Diplomatic negotiations and betrayals
+- **Quantum Computing Races**: Compete to achieve quantum supremacy first  // NEW
+- **Robotic Warfare Arenas**: Dedicated PvP zones for autonomous systems combat  // NEW
 
 ### Cooperative Play
 - **Shared Objectives**: Global challenges requiring coordination
 - **Specialized Roles**: Complementary faction abilities
 - **Distributed Threats**: Geographically separated threats requiring teamwork
 - **Collective Narratives**: Shared story arcs with branching outcomes
+- **Cross-Domain Synergy**: Combine faction abilities for amplified effects  // NEW
+- **Quantum Entanglement Coordination**: Shared quantum states for real-time coordination  // NEW
+
+### Multiplayer Event System
+```typescript
+interface MultiplayerEvent {
+  id: string;
+  type: "THREAT" | "DIPLOMACY" | "DISASTER" | "TECH_BREAKTHROUGH";
+  participants: string[]; // Player IDs
+  requiredRoles: FactionType[];
+  timeLimit: number; // Turns to complete
+  successConditions: {
+    threshold: number;
+    metrics: ("DAMAGE" | "CONTROL" | "KNOWLEDGE")[];
+  };
+  rewards: {
+    factionResources: Record<FactionType, ResourcePool>;
+    unlockables: string[];
+  };
+}
+
+// NEW: Quantum-entangled multiplayer events
+function generateEntangledEvent(players: Player[]): MultiplayerEvent {
+  // Create events that require quantum coordination
+  const factions = players.map(p => p.faction);
+  return {
+    id: `quantum-event-${Date.now()}`,
+    type: "TECH_BREAKTHROUGH",
+    participants: players.map(p => p.id),
+    requiredRoles: factions,
+    timeLimit: 5,
+    successConditions: {
+      threshold: 0.8,
+      metrics: ["KNOWLEDGE"]
+    },
+    rewards: {
+      factionResources: {
+        [FactionType.TECHNOCRAT]: { intel: 500, tech: 300 },
+        [FactionType.MITIGATOR]: { intel: 400, manpower: 200 },
+        // ... other factions
+      },
+      unlockables: ["QUANTUM_COMMUNICATION"]
+    }
+  };
+}
+```
 
 ## 15. Environmental Systems
 
@@ -955,7 +1361,7 @@ graph TD
 ```typescript
 interface WeatherSystem {
   currentConditions: {
-    type: "CLEAR" | "RAIN" | "SNOW" | "STORM" | "DUST_STORM" | "FLOOD";
+    type: "CLEAR" | "RAIN" | "SNOW" | "STORM" | "DUST_STORM" | "FLOOD" | "ACID_RAIN" | "RADIOLOGICAL_FALLOUT";  // UPDATED
     intensity: number; // 0-1 scale
     duration: number; // turns remaining
   };
@@ -966,6 +1372,10 @@ interface WeatherSystem {
       domain: ThreatDomain;
       multiplier: number;
     }[];
+    // NEW: Domain-specific weather effects
+    cyberDisruption?: number;    // Signal interference
+    radiologicalSpread?: number; // Contamination dispersion
+    roboticMalfunction?: number; // Sensor/actuator failure rates
   };
   forecast: WeatherForecast[];
 }
@@ -981,6 +1391,41 @@ function applyWeatherEffects(unit: MilitaryUnit, weather: WeatherSystem) {
   threat.crossDomainImpacts.push(
     ...weather.effects.threatAmplification
   );
+  
+  // NEW: Robotic unit effects
+  if (unit.type.includes("ROBOT") || unit.type === "DRONE") {
+    unit.errorRate += weather.effects.roboticMalfunction || 0;
+  }
+  
+  // NEW: Cyber disruption
+  if (unit.capabilities.includes("CYBER_OPS")) {
+    unit.effectiveness *= (1 - (weather.effects.cyberDisruption || 0));
+  }
+}
+
+// NEW: Weather generation algorithm
+function generateWeather(region: Region, globalClimate: number): WeatherSystem {
+  // Based on region climate, elevation, and global climate index
+  const weatherTypes = ["CLEAR", "RAIN", "STORM", "SNOW"];
+  if (region.attributes.climateVulnerability > 0.7) {
+    weatherTypes.push("ACID_RAIN", "DUST_STORM");
+  }
+  if (region.threats.some(t => t.domain === "RAD")) {
+    weatherTypes.push("RADIOLOGICAL_FALLOUT");
+  }
+  
+  const weatherType = weatherTypes[Math.floor(Math.random() * weatherTypes.length)];
+  const intensity = Math.min(1, region.attributes.climateVulnerability * globalClimate);
+  
+  return {
+    currentConditions: {
+      type: weatherType,
+      intensity,
+      duration: Math.floor(3 + Math.random() * 10) // 3-12 turns
+    },
+    effects: calculateWeatherEffects(weatherType, intensity),
+    forecast: generateForecast(region, globalClimate)
+  };
 }
 ```
 
@@ -989,12 +1434,16 @@ function applyWeatherEffects(unit: MilitaryUnit, weather: WeatherSystem) {
 - **Environmental Hazards**: Create or mitigate natural disaster zones
 - **Resource Depletion**: Over-exploitation reduces resource yields
 - **Climate Change**: Long-term environmental effects from industrial activity
+- **Radiological Contamination**: Persistent environmental effects from radiological events
+- **Robotic Terraforming**: Autonomous systems reshaping terrain for strategic advantage
 
 ### Ecosystem Simulation
 - **Food Chain Interactions**: Biological threats affect ecosystem balance
 - **Pollution Effects**: Environmental contamination impacts population health
 - **Resource Renewal**: Natural regeneration rates for sustainable management
 - **Biodiversity Index**: Measure of ecological health affecting threat evolution
+- **Quantum Ecosystem Effects**: Entanglement in biological systems
+- **Robotic Ecosystem Impact**: Autonomous systems affecting wildlife behavior
 
 ## 16. Advanced Threat Mechanics
 
@@ -1007,11 +1456,15 @@ graph LR
     C -->|Amplification| E[Increase severity]
     C -->|New Properties| F[Add domain-specific properties]
     C -->|Hybridization| G[Combine with other threats]
-    D --> H[Domain-Specific Adaptation]
-    E --> I[Escalation Event]
-    F --> J[New Threat Variant]
-    G --> K[Hybrid Threat]
-    H --> L[Threat Evolution Tree]
+    C -->|Quantum Entanglement| H[Link with quantum systems]  // NEW
+    C -->|Robotic Adaptation| I[Gain autonomous behaviors]  // NEW
+    D --> J[Domain-Specific Adaptation]
+    E --> K[Escalation Event]
+    F --> L[New Threat Variant]
+    G --> M[Hybrid Threat]
+    H --> N[Quantum-Threat Hybrid]  // NEW
+    I --> O[Self-Evolving Threat]  // NEW
+    J --> P[Threat Evolution Tree]
 ```
 
 ### Threat Containment
@@ -1020,6 +1473,8 @@ graph LR
 - **Vaccination Programs**: Reduce biological threat impact
 - **Cyber Firewalls**: Block digital threat propagation
 - **Radiation Shielding**: Mitigate radiological contamination
+- **Quantum Isolation Fields**: Contain quantum threats  // NEW
+- **Robotic Kill Switches**: Disable autonomous threats  // NEW
 
 ### Threat Synergy Effects
 | Synergy Type | Effect | Example |
@@ -1030,6 +1485,8 @@ graph LR
 | WMD-Bio | 2.5x casualties | Radiological dispersion of pathogens |
 | Robot-Env | 1.7x ecological damage | Autonomous mining operations |
 | Economic-Quantum | 3.0x market disruption | Quantum trading algorithms |
+| Quantum-Robotic | 2.8x autonomy | Quantum AI controlling robotic swarms |  // NEW
+| Rad-Cyber | 2.3x disruption | EMP attacks disabling cyber defenses |  // NEW
 
 ## 17. Player Interface Enhancements
 
