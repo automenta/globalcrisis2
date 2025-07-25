@@ -71,106 +71,18 @@ interface PopulationPyramid {
 }
 ```
 
-### Faction System
-```typescript
-enum FactionType {
-  TECHNOOCRAT = "Evil Technocrat",
-  MITIGATOR = "Hero Mitigator",
-  NATION_STATE = "Nation-State",
-  RESISTANCE = "Free Human Resistance",
-  HERO_DOCTOR = "Hero Doctor/Scientist",
-  PHARMA = "Pharma Conglomerate",
-  CONTROLLED_OPPOSITION = "Controlled Opposition"
-}
+### Construction and Resource Deployment
+#### Surface Construction
+- **Infrastructure**: Roads, bridges, buildings
+- **Resource Extraction**: Mining, drilling, harvesting
 
-interface Faction {
-  id: string;
-  type: FactionType;
-  resources: ResourcePool;
-  objectives: Objective[];
-  winConditions: {
-    dominationThreshold?: number;   // % of world to control (e.g., 60)
-    survivalThreshold?: number;     // Minimum stability level
-    exposureCount?: number;          // Number of conspiracies to expose
-    economicControlThreshold?: number; // % of resources to control
-    populationControlThreshold?: number; // % population reduction
-    allianceCount?: number;          // Number of alliances required
-  };
-  capabilities: {
-    threatDeployment: boolean;
-    investigation: boolean;
-    influence: boolean;
-    economicWarfare: boolean;
-    cyberOperations: boolean;
-    environmentalManipulation: boolean;
-    spaceDominance: boolean;
-    // Faction-specific capabilities
-    aiAssistedDesign?: boolean;       // For TECHNOOCRAT and PHARMA
-    mediaPropaganda?: boolean;         // For CONTROLLED_OPPOSITION
-    whistleblowerNetworks?: boolean;   // For RESISTANCE and HERO_DOCTOR
-    diplomaticImmunity?: boolean;      // For NATION_STATE
-  };
-  // Spatial capabilities
-  militaryUnits: MilitaryUnit[];
-  satellites: Satellite[];
-  sensorRange: number; // km
-  movementSpeed: number; // multiplier
-  // Deployment constraints
-  deploymentConstraints: {
-    maxUnits: number;     // Max units per region
-    cooldown: number;     // Turns between deployments
-    zoneRestrictions: string[]; // Allowed deployment zones
-  };
-}
+#### Underground Construction
+- **Tunnels**: Transportation, storage, hidden facilities
+- **Resource Extraction**: Mining, drilling
 
-interface Objective {
-  id: string;
-  type: "TERRITORIAL" | "ECONOMIC" | "INFLUENCE" | "THREAT_MITIGATION" | "THREAT_DEPLOYMENT";
-  target: string; // Region ID, Faction ID, or Threat ID
-  progress: number; // 0-100
-  requiredProgress: number;
-  rewards: {
-    resources?: ResourcePool;
-    reputation?: number;
-    unlock?: string; // Unlockable ability or unit
-  };
-}
-
-interface ResourcePool {
-  funds: number;
-  intel: number;
-  manpower: number;
-  tech: number;
-}
-
-// Spatial entity interfaces
-interface MilitaryUnit {
-  id: string;
-  factionId: string;
-  type: "INFANTRY" | "TANK" | "AIRCRAFT" | "NAVAL" | "CYBER" | "DRONE" | "AUTONOMOUS_GROUND" | "ROBOTIC_SWARM" | "QUANTUM_NODE" | "RAD_DISPERSAL";
-  position: [number, number];   // [longitude, latitude]
-  velocity: [number, number];   // [m/s east, m/s north]
-  mass: number;                 // Kilograms
-  energy: number;               // Joules (battery/fuel)
-  autonomyLevel: number;        // 0-1 scale (0: remote, 1: fully autonomous)
-  abilities: UnitAbility[];     // Faction-specific special abilities
-}
-
-interface Satellite {
-  id: string;
-  factionId: string;
-  type: "COMMS" | "RECON" | "WEAPON" | "NAVIGATION";
-  orbit: {
-    semiMajorAxis: number;      // km
-    eccentricity: number;
-    inclination: number;        // degrees
-    period: number;             // seconds
-  };
-  position: [number, number, number]; // ECEF coordinates [x, y, z] in km
-  velocity: [number, number, number]; // km/s
-  mass: number;                 // kg
-  abilities: UnitAbility[];     // Faction-specific special abilities
-}
+#### Orbit Construction
+- **Satellites**: Communication, surveillance, navigation
+- **Space Stations**: Research, manufacturing, habitation
 
 ## 3. Threat Mechanics
 
@@ -226,33 +138,7 @@ interface Threat {
     contaminationRadius?: number; // km
   };
 }
-
-type ThreatDomain =
-  | "CYBER"
-  | "GEO"
-  | "ENV"
-  | "INFO"
-  | "SPACE"
-  | "WMD"
-  | "BIO"
-  | "ECON"
-  | "QUANTUM"   // Quantum computing threats
-  | "RAD"       // Radiological threats
-  | "ROBOT";    // Robotics and autonomous systems
-
-interface ThreatEffect {
-  target: "POPULATION" | "ECONOMY" | "INFRASTRUCTURE" | "PSYCHE";
-  modifier: number; // -1.0 to 1.0
-  // Population trauma types
-  traumaType?: "ETHNIC" | "ORGAN_HARVEST" | "WAR_CRIME" | "DISPLACEMENT";
-  severity: number; // 0-1 scale
-  propagation: {
-    type: "DIFFUSION" | "NETWORK" | "VECTOR" | "SOCIAL_MEDIA";
-    rate: number;       // Propagation speed
-    range: number;      // Effective radius in km
-    persistence: number; // Duration of effect
-  };
-}
+```
 
 ## 4. Action System
 
@@ -263,44 +149,28 @@ flowchart LR
   A --> C[Influence Actions]
   A --> D[Investigation Actions]
   A --> E[Economic Actions]
-  
+
   B --> F[Deploy Threat]
   B --> G[Amplify Threat]
   B --> H[Modify Threat]
-  
+
   C --> I[Lobby Faction]
   C --> J[Spread Disinformation]
   C --> K[Form Alliance]
-  
+
   D --> L[Investigate Threat]
   D --> M[Uncover Truth]
   D --> N[Counter Propaganda]
-  
+
   E --> O[Sanction Region]
   E --> P[Invest in Infrastructure]
   E --> Q[Manipulate Markets]
 ```
 
-interface Action {
-  id: string;
-  type: "THREAT" | "INFLUENCE" | "INVESTIGATION" | "ECONOMIC";
-  name: string;
-  description: string;
-  resourceCost: ResourcePool;
-  successProbability: number; // 0-1
-  effects: {
-    target: "REGION" | "FACTION" | "THREAT";
-    modifier: number; // -1.0 to 1.0
-    duration: number; // turns
-  }[];
-  cooldown: number; // turns
-  requiredCapabilities: (keyof Faction['capabilities'])[];
-}
-
 ## 5. Cross-Domain Interactions
 
 ### Interaction Matrix
-Domain Pair | Interaction Effect | Example |
+| Domain Pair | Interaction Effect | Example |
 |-------------|-------------------|---------|
 | Cyber + Info | 1.5x disinformation spread | AI-generated deepfakes accelerate propaganda |
 | Env + Geo | 2.0x migration effects | Drought triggers border conflicts |
@@ -316,27 +186,6 @@ Domain Pair | Interaction Effect | Example |
 | Robot + Info | 1.7x deception | Robot networks spread disinformation |
 | Robot + Bio | 3.0x horror | Robotic organ harvesting operations |
 
-### Interaction Algorithm
-```typescript
-function calculateCrossImpact(threatA, threatB) {
-  // Base effect from threat severities
-  const baseEffect = threatA.severity * threatB.severity;
-  const domainMultiplier = DOMAIN_MATRIX[threatA.domain][threatB.domain];
-  // Domain-specific synergy multipliers
-  const synergy = threatA.crossDomainImpacts
-    .find(i => i.domain === threatB.domain)?.multiplier || 1.0;
-  
-  // Environmental modifiers based on region attributes
-  const regionModifier = calculateRegionModifier(threatA.region, threatB.region);
-  
-  // Temporal decay factor for long-term threats
-  const timeFactor = Math.exp(-0.1 * Math.abs(threatA.age - threatB.age));
-    .find(i => i.domain === threatB.domain)?.multiplier || 1.0;
-  
-  return baseEffect * domainMultiplier * synergy * regionModifier * timeFactor;
-}
-```
-
 ## 6. Narrative Engine
 
 ### Event Chaining
@@ -347,7 +196,7 @@ sequenceDiagram
   participant P as Population
   participant F as Faction
   participant N as Narrative Engine
-  
+
   T->>W: Triggers economic collapse
   W->>P: Unemployment rises 30%
   P->>F: Support drops for ruling faction
@@ -363,143 +212,18 @@ sequenceDiagram
   3. Generate title based on domains involved
   4. Create summary with faction outcomes
 - **Output**: NarrativeChain object
-  ```typescript
-  interface NarrativeChain {
-    id: string;
-    title: string;
-    timeline: string[]; // Event IDs
-    primaryFactions: FactionType[];
-    globalImpact: number; // 0-1 scale
-    keyOutcomes: string[];
-    domainsInvolved: ThreatDomain[];
-    turningPoint: string; // Event ID of most impactful event
-    resolution: "POSITIVE" | "NEGATIVE" | "NEUTRAL";
-    duration: number; // turns
-  }
-  
-  // Example:
-  const exampleChain: NarrativeChain = {
-    // Cyber-Climate war example
-    id: "chain-2042",
-    title: "The 2042 Cyber-Climate War",
-    timeline: ["event-1", "event-2", "event-3"],
-    primaryFactions: ["TECHNOCRAT", "RESISTANCE"],
-    globalImpact: 0.75,
-    keyOutcomes: ["Economic collapse", "Regime change"],
-    domainsInvolved: ["CYBER", "ENV", "ECON"],
-    turningPoint: "event-2",
-    resolution: "NEGATIVE",
-    duration: 12
-  }
-  
-  // Pharma faction example
-  const pharmaChain: NarrativeChain = {
-    id: "chain-2043a",
-    title: "The Cure Monopoly Crisis",
-    timeline: ["event-7", "event-8", "event-9"],
-    primaryFactions: ["PHARMA", "NATION_STATE"],
-    globalImpact: 0.65,
-    keyOutcomes: ["Vaccine apartheid", "Black market cures"],
-    domainsInvolved: ["BIO", "ECON", "INFO"],
-    turningPoint: "event-8",
-    resolution: "NEGATIVE",
-    duration: 18
-  }
-  
-  // Hero Doctor faction example
-  const heroChain: NarrativeChain = {
-    id: "chain-2044",
-    title: "The Whistleblower Protocol",
-    timeline: ["event-10", "event-11", "event-12"],
-    primaryFactions: ["HERO_DOCTOR", "RESISTANCE"],
-    globalImpact: 0.55,
-    keyOutcomes: ["Lab leak exposed", "Research shutdown"],
-    domainsInvolved: ["BIO", "INFO", "CYBER"],
-    turningPoint: "event-11",
-    resolution: "POSITIVE",
-    duration: 6
-  }
-  
-  // Quantum computing threat example
-  const quantumChain: NarrativeChain = {
-    id: "chain-2045",
-    title: "The Quantum Decryption Crisis",
-    timeline: ["event-13", "event-14", "event-15"],
-    primaryFactions: ["TECHNOCRAT", "MITIGATOR"],
-    globalImpact: 0.85,
-    keyOutcomes: ["Encryption collapse", "Data sovereignty war"],
-    domainsInvolved: ["QUANTUM", "CYBER", "INFO"],
-    turningPoint: "event-14",
-    resolution: "NEGATIVE",
-    duration: 10
-  };
-  
-  // EMP warfare example
-  const empChain: NarrativeChain = {
-    id: "chain-2046",
-    title: "The Great Electronic Blackout",
-    timeline: ["event-16", "event-17", "event-18"],
-    primaryFactions: ["RESISTANCE", "NATION_STATE"],
-    globalImpact: 0.78,
-    keyOutcomes: ["Grid collapse", "Analog resurgence"],
-    domainsInvolved: ["CYBER", "MIL", "ECON"],
-    turningPoint: "event-17",
-    resolution: "NEUTRAL",
-    duration: 14
-  };
-  
-  // Environmental bio-weapon example
-  const bioChain: NarrativeChain = {
-    id: "chain-2047",
-    title: "The Bioremediation Disaster",
-    timeline: ["event-19", "event-20", "event-21"],
-    primaryFactions: ["PHARMA", "ENVIRONMENTAL"],
-    globalImpact: 0.68,
-    keyOutcomes: ["Ecosystem collapse", "Regulatory overhaul"],
-    domainsInvolved: ["BIO", "ENV", "INFO"],
-    turningPoint: "event-20",
-    resolution: "NEGATIVE",
-    duration: 9
-  };
-  
-  // Updated robot domain example
-  const robotChain: NarrativeChain = {
-    id: "chain-2043",
-    title: "The Robotic Uprising of 2043",
-    timeline: ["event-4", "event-5", "event-6"],
-    primaryFactions: ["TECHNOCRAT", "RESISTANCE"],
-    globalImpact: 0.9,
-    keyOutcomes: ["AI takeover", "Human resistance"],
-    domainsInvolved: ["ROBOT", "CYBER", "INFO"],
-    turningPoint: "event-5",
-    resolution: "NEGATIVE",
-    duration: 8
-  }
-```
-
-### Event Weighting
 ```typescript
-interface Event {
+interface NarrativeChain {
   id: string;
   title: string;
-  description: string;
-  severity: number;
+  timeline: string[]; // Event IDs
+  primaryFactions: FactionType[];
+  globalImpact: number; // 0-1 scale
+  keyOutcomes: string[];
   domainsInvolved: ThreatDomain[];
-  factionsInvolved: FactionType[];
-  crossDomainImpacts: {
-    domain: ThreatDomain;
-    multiplier: number;
-  }[];
-  location?: [number, number]; // [longitude, latitude]
-  radius?: number; // km
+  turningPoint: string; // Event ID of most impactful event
+  resolution: "POSITIVE" | "NEGATIVE" | "NEUTRAL";
   duration: number; // turns
-  chainId?: string; // ID of event chain
-}
-
-function calculateEventWeight(event: Event) {
-  return (event.severity * 0.6) +
-         (event.crossDomainImpacts.length * 0.3) +
-         (event.factionsInvolved.length * 0.1);
 }
 ```
 
@@ -595,14 +319,14 @@ function updateTankMovement(tank: MilitaryUnit, terrainResistance: number, dt: n
   const engineForce = 50000; // N (typical main battle tank)
   const frictionForce = terrainResistance * tank.mass * 9.8;
   const netForce = engineForce - frictionForce;
-  
+
   // Update acceleration, velocity, position
   const acceleration = netForce / tank.mass;
   tank.velocity[0] += acceleration * dt * Math.cos(tank.heading);
   tank.velocity[1] += acceleration * dt * Math.sin(tank.heading);
   tank.position[0] += tank.velocity[0] * dt;
   tank.position[1] += tank.velocity[1] * dt;
-  
+
   // Update energy (fuel consumption)
   tank.energy -= engineForce * 0.0001 * dt; // 0.0001 J/N
 }
@@ -613,18 +337,18 @@ function updateTankMovement(tank: MilitaryUnit, terrainResistance: number, dt: n
 function adjustSatelliteOrbit(sat: Satellite, targetAltitude: number, dt: number) {
   const currentAlt = Math.sqrt(sat.position[0]**2 + sat.position[1]**2 + sat.position[2]**2);
   const deltaV = 0.1 * (targetAltitude - currentAlt); // Proportional control
-  
+
   // Apply thrust in velocity direction
   const velocityDir = [
     sat.velocity[0] / Math.hypot(...sat.velocity),
     sat.velocity[1] / Math.hypot(...sat.velocity),
     sat.velocity[2] / Math.hypot(...sat.velocity)
   ];
-  
+
   sat.velocity[0] += velocityDir[0] * deltaV;
   sat.velocity[1] += velocityDir[1] * deltaV;
   sat.velocity[2] += velocityDir[2] * deltaV;
-  
+
   // Update orbital parameters
   updateOrbit(sat, dt);
 }
@@ -642,27 +366,27 @@ function updateOrbit(satellite: Satellite, dt: number) {
     satellite.position[1]**2 +
     satellite.position[2]**2
   );
-  
+
   // Calculate gravitational force
   const Fg = G * EARTH_MASS * satellite.mass / r**2;
-  
+
   // Direction vector towards Earth
   const dir = [
     -satellite.position[0]/r,
     -satellite.position[1]/r,
     -satellite.position[2]/r
   ];
-  
+
   // Update velocity
   satellite.velocity[0] += dir[0] * Fg / satellite.mass * dt;
   satellite.velocity[1] += dir[1] * Fg / satellite.mass * dt;
   satellite.velocity[2] += dir[2] * Fg / satellite.mass * dt;
-  
+
   // Update position
   satellite.position[0] += satellite.velocity[0] * dt;
   satellite.position[1] += satellite.velocity[1] * dt;
   satellite.position[2] += satellite.velocity[2] * dt;
-  
+
   // Update orbital parameters
   satellite.orbit.semiMajorAxis = r;
   satellite.orbit.period = 2 * Math.PI * Math.sqrt(r**3 / (G * EARTH_MASS));
@@ -715,7 +439,7 @@ flowchart LR
   D --> R[Rasterization]
   R --> PP[Post-processing]
   PP --> O[Output Display]
-  
+
   subgraph Layering Engine
     L --> M[Map Layer]
     L --> T[Threat Heatmap]
@@ -759,7 +483,8 @@ function getFactionView(factionType: FactionType): VisualizationProfile {
         economicIndicators: ['BLACK_MARKET']
       };
   }
-  
+}
+
 // Unit Ability Definitions
 type UnitAbility =
   | { type: "STEALTH", effectiveness: number }      // Reduced detection
@@ -794,13 +519,13 @@ function renderEconomicFlow(region: Region, ctx: CanvasRenderingContext2D) {
     speed: 0.5,  // Pixels per frame
     pulse: Math.sin(Date.now() / 1000) * 0.2 + 0.8  // Pulsing effect
   };
-  
+
   // Render resource flow arrows with animation
   resources.imports.forEach(imp => {
     const fromPos = getRegionCenter(imp.fromRegionId);
     const toPos = getRegionCenter(region.id);
     const intensity = imp.volume * flowAnimation.pulse;
-    
+
     drawAnimatedArrow(
       ctx,
       fromPos,
@@ -810,10 +535,10 @@ function renderEconomicFlow(region: Region, ctx: CanvasRenderingContext2D) {
       flowAnimation.speed
     );
   });
-  
+
   // Render economic status heatmap with pulsing effect
   const { resources, economicStatus } = region;
-  
+
   // Render resource flow arrows
   resources.imports.forEach(imp => {
     const fromPos = getRegionCenter(imp.fromRegionId);
@@ -822,7 +547,7 @@ function renderEconomicFlow(region: Region, ctx: CanvasRenderingContext2D) {
               `rgba(0, 255, 0, ${0.3 + imp.volume * 0.7})`,
               imp.resourceType);
   });
-  
+
   // Render economic status heatmap
   const intensity = economicStatus.stability * 0.8 + economicStatus.growth * 0.2;
   ctx.fillStyle = `rgba(255, ${255 * (1-intensity)}, 0, 0.4)`;
@@ -839,7 +564,7 @@ sequenceDiagram
   participant V as Visualization
   participant E as Event Bus
   participant M as Multiplayer Sync
-  
+
   G->>P: Update positions (dt)
   P->>V: Send spatial data
   V->>V: Render frame
@@ -973,10 +698,10 @@ interface WeatherSystem {
 function applyWeatherEffects(unit: MilitaryUnit, weather: WeatherSystem) {
   // Visibility reduction
   unit.sensorRange *= (1 - weather.effects.visibilityModifier);
-  
+
   // Movement speed penalty
   unit.movementSpeed *= (1 - weather.effects.movementPenalty);
-  
+
   // Threat amplification
   threat.crossDomainImpacts.push(
     ...weather.effects.threatAmplification
