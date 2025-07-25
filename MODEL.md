@@ -84,22 +84,46 @@ interface Faction {
   resources: ResourcePool;
   objectives: Objective[];
   winConditions: {
-    domination: boolean;   // Control 60%+ of world
-    survival: boolean;     // Maintain stability above threshold
-    exposure: boolean;     // Reveal global conspiracy
-    economicControl: boolean; // Control 75%+ of resources
+    dominationThreshold?: number;   // % of world to control (e.g., 60)
+    survivalThreshold?: number;     // Minimum stability level
+    exposureCount?: number;          // Number of conspiracies to expose
+    economicControlThreshold?: number; // % of resources to control
+    populationControlThreshold?: number; // % population reduction
+    allianceCount?: number;          // Number of alliances required
   };
   capabilities: {
     threatDeployment: boolean;
     investigation: boolean;
     influence: boolean;
     economicWarfare: boolean;
+    cyberOperations: boolean;
+    environmentalManipulation: boolean;
+    spaceDominance: boolean;
   };
   // Spatial capabilities
   militaryUnits: MilitaryUnit[];
   satellites: Satellite[];
   sensorRange: number; // km
   movementSpeed: number; // multiplier
+  // Deployment constraints
+  deploymentConstraints: {
+    maxUnits: number;     // Max units per region
+    cooldown: number;     // Turns between deployments
+    zoneRestrictions: string[]; // Allowed deployment zones
+  };
+}
+
+interface Objective {
+  id: string;
+  type: "TERRITORIAL" | "ECONOMIC" | "INFLUENCE" | "THREAT_MITIGATION" | "THREAT_DEPLOYMENT";
+  target: string; // Region ID, Faction ID, or Threat ID
+  progress: number; // 0-100
+  requiredProgress: number;
+  rewards: {
+    resources?: ResourcePool;
+    reputation?: number;
+    unlock?: string; // Unlockable ability or unit
+  };
 }
 
 interface ResourcePool {
@@ -153,10 +177,32 @@ interface Threat {
     domain: ThreatDomain;
     multiplier: number;
   }[];
-  // Economic-specific properties
+  // Domain-specific properties
   economicImpact?: {
     marketSector: "TECH" | "ENERGY" | "FINANCE";
     volatility: number; // 0-1 scale
+  };
+  biologicalProperties?: {
+    incubationPeriod?: number;   // in days
+    mortalityRate?: number;      // 0-1
+    transmissionVectors?: string[]; // e.g., ["airborne", "waterborne"]
+  };
+  cyberProperties?: {
+    attackVector?: "NETWORK" | "PHYSICAL" | "SOCIAL";
+    exploitComplexity?: number; // 0-1 scale
+    zeroDay?: boolean;
+  };
+  environmentalProperties?: {
+    temperatureSensitivity?: number; // 0-1 scale
+    precipitationDependency?: number; // 0-1 scale
+  };
+  quantumProperties?: {
+    decryptionTime?: number; // seconds
+    qubitCount?: number;
+  };
+  radiologicalProperties?: {
+    halfLife?: number; // days
+    contaminationRadius?: number; // km
   };
 }
 
@@ -216,13 +262,30 @@ flowchart LR
   E --> Q[Manipulate Markets]
 ```
 
+interface Action {
+  id: string;
+  type: "THREAT" | "INFLUENCE" | "INVESTIGATION" | "ECONOMIC";
+  name: string;
+  description: string;
+  resourceCost: ResourcePool;
+  successProbability: number; // 0-1
+  effects: {
+    target: "REGION" | "FACTION" | "THREAT";
+    modifier: number; // -1.0 to 1.0
+    duration: number; // turns
+  }[];
+  cooldown: number; // turns
+  requiredCapabilities: (keyof Faction['capabilities'])[];
+}
+
 ### Action Execution Flow
 1. Player selects action and target
 2. System calculates resource costs
-3. Probabilistic success determination
+3. Probabilistic success determination (based on successProbability)
 4. Apply effects to game state
 5. Trigger narrative events
 6. Update faction standing
+7. Apply cooldown
 
 ## 5. Cross-Domain Interactions
 ### Interaction Matrix
@@ -275,26 +338,60 @@ sequenceDiagram
   2. Determine narrative archetype (Betrayal, Revolution, etc.)
   3. Generate title based on domains involved
   4. Create summary with faction outcomes
-- **Output**:
-  ```json
-  {
-    "title": "The 2042 Cyber-Climate War",
-    "timeline": [/* event IDs */],
-    "primaryFactions": ["TECHNOCRAT", "RESISTANCE"],
-    "globalImpact": 0.75,
-    "keyOutcomes": ["Economic collapse", "Regime change"],
-    "domainsInvolved": ["CYBER", "ENV", "ECON"],
-    "turningPoint": "EventID-4578" // Most impactful event
+- **Output**: NarrativeChain object
+  ```typescript
+  interface NarrativeChain {
+    id: string;
+    title: string;
+    timeline: string[]; // Event IDs
+    primaryFactions: FactionType[];
+    globalImpact: number; // 0-1 scale
+    keyOutcomes: string[];
+    domainsInvolved: ThreatDomain[];
+    turningPoint: string; // Event ID of most impactful event
+    resolution: "POSITIVE" | "NEGATIVE" | "NEUTRAL";
+    duration: number; // turns
+  }
+
+  // Example:
+  const exampleChain: NarrativeChain = {
+    id: "chain-2042",
+    title: "The 2042 Cyber-Climate War",
+    timeline: ["event-1", "event-2", "event-3"],
+    primaryFactions: ["TECHNOCRAT", "RESISTANCE"],
+    globalImpact: 0.75,
+    keyOutcomes: ["Economic collapse", "Regime change"],
+    domainsInvolved: ["CYBER", "ENV", "ECON"],
+    turningPoint: "event-2",
+    resolution: "NEGATIVE",
+    duration: 12
   }
   ```
   
 - **Event Weighting**:
   ```typescript
-  function calculateEventWeight(event) {
-    return (event.severity * 0.6) +
-           (event.crossDomainImpacts.length * 0.3) +
-           (event.factionsInvolved.length * 0.1);
-  }
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  severity: number;
+  domainsInvolved: ThreatDomain[];
+  factionsInvolved: FactionType[];
+  crossDomainImpacts: {
+    domain: ThreatDomain;
+    multiplier: number;
+  }[];
+  location?: [number, number]; // [longitude, latitude]
+  radius?: number; // km
+  duration: number; // turns
+  chainId?: string; // ID of event chain
+}
+
+function calculateEventWeight(event: Event) {
+  return (event.severity * 0.6) +
+         (event.crossDomainImpacts.length * 0.3) +
+         (event.factionsInvolved.length * 0.1);
+}
   ```
   
 ### Multiplayer Integration
@@ -550,7 +647,10 @@ type UnitAbility =
   | { type: "SABOTAGE", damage: number }            // Infrastructure damage
   | { type: "DECRYPT", successRate: number }        // Code breaking
   | { type: "JAMMING", radius: number }             // Signal disruption
-  | { type: "SHIELD", protection: number };         // Defense boost
+  | { type: "SHIELD", protection: number }          // Defense boost
+  | { type: "RECON", intelGain: number }            // Intelligence gathering
+  | { type: "HEAL", amount: number }                // Unit healing
+  | { type: "TERRAFORM", terrainModifier: number }; // Environment modification
 }
 
 // 3D Terrain Rendering
