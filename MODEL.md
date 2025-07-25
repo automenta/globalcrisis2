@@ -104,6 +104,9 @@ interface Faction {
     cyberOperations: boolean;
     environmentalManipulation: boolean;
     spaceDominance: boolean;
+    // NEW: Geoengineering and space weather capabilities
+    geoengineering?: boolean;          // For manipulating climate/geology
+    spaceWeatherControl?: boolean;     // For manipulating space weather
     // Faction-specific capabilities
     aiAssistedDesign?: boolean;       // For TECHNOOCRAT and PHARMA
     mediaPropaganda?: boolean;         // For CONTROLLED_OPPOSITION
@@ -213,9 +216,17 @@ interface Threat {
     temperatureSensitivity?: number; // 0-1 scale
     precipitationDependency?: number; // 0-1 scale
     // Weather and geological events
-    weatherEvents?: string[]; // e.g., ["HURRICANE", "DROUGHT"]
-    geologicalEvents?: string[]; // e.g., ["EARTHQUAKE", "VOLCANO"]
+    weatherEvents?: string[]; // e.g., ["HURRICANE", "DROUGHT", "ACID_RAIN"]
+    geologicalEvents?: string[]; // e.g., ["EARTHQUAKE", "VOLCANO", "SUBSIDENCE"]
     severityScale?: number; // 1-10 scale for event intensity
+    // Construction and deployment contexts
+    deploymentLocation?: "SURFACE" | "UNDERGROUND" | "OCEANIC" | "ATMOSPHERIC";
+    // Geoengineering and climate manipulation
+    geoengineeringProjects?: string[]; // e.g., ["CLOUD_SEEDING", "SOLAR_RADIATION_MANAGEMENT"]
+    climateManipulation?: {
+      targetTemperature?: number; // in degrees Celsius
+      areaOfEffect?: number; // km²
+    };
   };
   quantumProperties?: {
     decryptionTime?: number; // seconds
@@ -751,6 +762,8 @@ interface Faction {
     maxUnits: number;     // Max units per region
     cooldown: number;     // Turns between deployments
     zoneRestrictions: string[]; // Allowed deployment zones
+    // NEW: Deployment contexts
+    deploymentContexts: ("SURFACE" | "UNDERGROUND" | "ORBITAL" | "AQUATIC")[];
   };
 }
 ```
