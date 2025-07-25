@@ -83,11 +83,23 @@ interface Faction {
   type: FactionType;
   resources: ResourcePool;
   objectives: Objective[];
+  winConditions: {
+    domination: boolean;   // Control 60%+ of world
+    survival: boolean;     // Maintain stability above threshold
+    exposure: boolean;     // Reveal global conspiracy
+    economicControl: boolean; // Control 75%+ of resources
+  };
   capabilities: {
     threatDeployment: boolean;
     investigation: boolean;
     influence: boolean;
+    economicWarfare: boolean;
   };
+  // Spatial capabilities
+  militaryUnits: MilitaryUnit[];
+  satellites: Satellite[];
+  sensorRange: number; // km
+  movementSpeed: number; // multiplier
 }
 
 interface ResourcePool {
@@ -139,16 +151,22 @@ interface Threat {
     domain: ThreatDomain;
     multiplier: number;
   }[];
+  // Economic-specific properties
+  economicImpact?: {
+    marketSector: "TECH" | "ENERGY" | "FINANCE";
+    volatility: number; // 0-1 scale
+  };
 }
 
-type ThreatDomain = 
+type ThreatDomain =
   | "CYBER"
   | "GEO"
   | "ENV"
   | "INFO"
   | "SPACE"
   | "WMD"
-  | "BIO";
+  | "BIO"
+  | "ECON";
 
 interface ThreatEffect {
   target: "POPULATION" | "ECONOMY" | "INFRASTRUCTURE";
@@ -198,7 +216,7 @@ flowchart LR
 
 ## 5. Cross-Domain Interactions
 ### Interaction Matrix
-| Domain Pair | Interaction Effect | Example |
+Domain Pair | Interaction Effect | Example |
 |-------------|-------------------|---------|
 | Cyber + Info | 1.5x disinformation spread | AI-generated deepfakes accelerate propaganda |
 | Env + Geo | 2.0x migration effects | Drought triggers border conflicts |
@@ -206,6 +224,8 @@ flowchart LR
 | Economic + Cyber | 0.5x recovery time | Ransomware extends recession duration |
 | Space + Cyber | 2.2x disruption | Satellite hack disables global comms |
 | Geo + Space | 1.8x escalation | Anti-satellite test sparks diplomatic crisis |
+| Bio + Economic | 1.7x market panic | Lab leak causes biotech stock crash |
+| Info + Economic | 2.5x volatility | Fake news triggers flash market crash |
 
 ### Interaction Algorithm
 ```
@@ -238,12 +258,12 @@ sequenceDiagram
 
 ### Chronicle Generation
 - **Input**: Event chain with 3+ linked events
-- **Process**: 
+- **Process**:
   1. Classify event types
   2. Determine narrative archetype (Betrayal, Revolution, etc.)
   3. Generate title based on domains involved
   4. Create summary with faction outcomes
-- **Output**: 
+- **Output**:
   ```json
   {
     "title": "The 2042 Cyber-Climate War",
@@ -253,6 +273,16 @@ sequenceDiagram
     "keyOutcomes": ["Economic collapse", "Regime change"]
   }
   ```
+  
+### Multiplayer Integration
+- **Synchronization**: Deterministic lockstep model with WebRTC/WebSockets
+- **Matchmaking**: Lobby system with faction selection and role assignment
+- **Session Types**:
+  - Cooperative (faction alliances against AI threats)
+  - Competitive (asymmetric objectives: e.g., Technocrats vs Mitigators)
+  - Free-for-all (emergent diplomacy and betrayals)
+- **Cross-Platform**: Browser/desktop/mobile support via PWA
+- **Persistent Worlds**: Cloud-saved games with versioned histories
 
 ## 7. Data Visualization System
 ### UI Components
@@ -322,34 +352,46 @@ interface Faction {
 
 ## 9. Physics Modeling
 
-### Newtonian Mechanics
+### Newtonian Mechanics Examples
+**Military Unit Movement:**
 ```typescript
-interface PhysicalEntity {
-  id: string;
-  position: [number, number, number]; // [x, y, z] in meters
-  velocity: [number, number, number]; // [vx, vy, vz] in m/s
-  mass: number;                      // kg
-  forces: [number, number, number];  // [fx, fy, fz] in Newtons
+function updateTankMovement(tank: MilitaryUnit, terrainResistance: number, dt: number) {
+  // Calculate net force (engine power - friction)
+  const engineForce = 50000; // N (typical main battle tank)
+  const frictionForce = terrainResistance * tank.mass * 9.8;
+  const netForce = engineForce - frictionForce;
+  
+  // Update acceleration, velocity, position
+  const acceleration = netForce / tank.mass;
+  tank.velocity[0] += acceleration * dt * Math.cos(tank.heading);
+  tank.velocity[1] += acceleration * dt * Math.sin(tank.heading);
+  tank.position[0] += tank.velocity[0] * dt;
+  tank.position[1] += tank.velocity[1] * dt;
+  
+  // Update energy (fuel consumption)
+  tank.energy -= engineForce * 0.0001 * dt; // 0.0001 J/N
 }
+```
 
-function updatePhysics(entity: PhysicalEntity, dt: number) {
-  // Calculate acceleration: a = F/m
-  const ax = entity.forces[0] / entity.mass;
-  const ay = entity.forces[1] / entity.mass;
-  const az = entity.forces[2] / entity.mass;
+**Satellite Orbital Adjustment:**
+```typescript
+function adjustSatelliteOrbit(sat: Satellite, targetAltitude: number, dt: number) {
+  const currentAlt = Math.sqrt(sat.position[0]**2 + sat.position[1]**2 + sat.position[2]**2);
+  const deltaV = 0.1 * (targetAltitude - currentAlt); // Proportional control
   
-  // Update velocity: v = v0 + a*dt
-  entity.velocity[0] += ax * dt;
-  entity.velocity[1] += ay * dt;
-  entity.velocity[2] += az * dt;
+  // Apply thrust in velocity direction
+  const velocityDir = [
+    sat.velocity[0] / Math.hypot(...sat.velocity),
+    sat.velocity[1] / Math.hypot(...sat.velocity),
+    sat.velocity[2] / Math.hypot(...sat.velocity)
+  ];
   
-  // Update position: p = p0 + v*dt
-  entity.position[0] += entity.velocity[0] * dt;
-  entity.position[1] += entity.velocity[1] * dt;
-  entity.position[2] += entity.velocity[2] * dt;
+  sat.velocity[0] += velocityDir[0] * deltaV;
+  sat.velocity[1] += velocityDir[1] * deltaV;
+  sat.velocity[2] += velocityDir[2] * deltaV;
   
-  // Reset forces for next frame
-  entity.forces = [0, 0, 0];
+  // Update orbital parameters
+  updateOrbit(sat, dt);
 }
 ```
 
@@ -385,6 +427,10 @@ function updateOrbit(satellite: Satellite, dt: number) {
   satellite.position[0] += satellite.velocity[0] * dt;
   satellite.position[1] += satellite.velocity[1] * dt;
   satellite.position[2] += satellite.velocity[2] * dt;
+  
+  // Update orbital parameters
+  satellite.orbit.semiMajorAxis = r;
+  satellite.orbit.period = 2 * Math.PI * Math.sqrt(r**3 / (G * EARTH_MASS));
 }
 ```
 
@@ -411,31 +457,82 @@ function updateEnergy(system: EnergySystem, isActive: boolean, dt: number) {
 
 ## 10. Rendering System
 
-### Spatial Rendering Pipeline
+### Visualization Pipeline
 ```mermaid
 flowchart LR
   P[Physics Engine] --> G[Game State]
   G --> C[Camera System]
   C --> T[Transformation]
-  T --> R[Rasterization]
-  R --> L[Lighting]
-  L --> P[Post-processing]
-  P --> O[Output Display]
+  T --> L[Layering Engine]
+  L --> D[Data Binding]
+  D --> R[Rasterization]
+  R --> PP[Post-processing]
+  PP --> O[Output Display]
+  
+  subgraph Layering Engine
+    L --> M[Map Layer]
+    L --> T[Threat Heatmap]
+    L --> F[Faction Borders]
+    L --> U[Unit Markers]
+    L --> S[Satellite Orbits]
+    L --> E[Economic Flow]
+  end
 ```
 
-### Map Projection
+### Faction-Specific Visualization
 ```typescript
-function projectToMap(
-  position: [number, number, number],
-  mapCenter: [number, number],
-  zoom: number
-): [number, number] {
-  // Convert 3D position to 2D map coordinates
-  const [lon, lat, alt] = position;
-  const scale = Math.pow(2, zoom) * 256 / 360;
-  const x = (lon - mapCenter[0]) * scale;
-  const y = (lat - mapCenter[1]) * scale * Math.cos(lat * Math.PI/180);
-  return [x, y];
+function getFactionView(factionType: FactionType): VisualizationProfile {
+  switch(factionType) {
+    case FactionType.TECHNOCRAT:
+      return {
+        primaryLayer: 'THREAT_DEPLOYMENT',
+        secondaryLayers: ['RESOURCE_FLOW', 'POPULATION_DENSITY'],
+        threatVisibility: 'ALL',
+        economicIndicators: ['PROFIT_POTENTIAL']
+      };
+    case FactionType.MITIGATOR:
+      return {
+        primaryLayer: 'THREAT_IMPACT',
+        secondaryLayers: ['INVESTIGATION_ZONES', 'POPULATION_VULNERABILITY'],
+        threatVisibility: 'DETECTED_ONLY',
+        economicIndicators: ['RECOVERY_COST']
+      };
+    case FactionType.NATION_STATE:
+      return {
+        primaryLayer: 'TERRITORIAL_CONTROL',
+        secondaryLayers: ['MILITARY_DEPLOYMENTS', 'DIPLOMATIC_RELATIONS'],
+        threatVisibility: 'DOMESTIC_ONLY',
+        economicIndicators: ['GDP_TREND']
+      };
+    case FactionType.RESISTANCE:
+      return {
+        primaryLayer: 'INFORMATION_FLOW',
+        secondaryLayers: ['UNDERGROUND_NETWORKS', 'AUTHORITY_WEAKNESS'],
+        threatVisibility: 'HIDDEN_SOURCES',
+        economicIndicators: ['BLACK_MARKET']
+      };
+  }
+}
+```
+
+### Economic Data Rendering
+```typescript
+function renderEconomicFlow(region: Region, ctx: CanvasRenderingContext2D) {
+  const { resources, economicStatus } = region;
+  
+  // Render resource flow arrows
+  resources.imports.forEach(imp => {
+    const fromPos = getRegionCenter(imp.fromRegionId);
+    const toPos = getRegionCenter(region.id);
+    drawArrow(ctx, fromPos, toPos,
+              `rgba(0, 255, 0, ${0.3 + imp.volume * 0.7})`,
+              imp.resourceType);
+  });
+  
+  // Render economic status heatmap
+  const intensity = economicStatus.stability * 0.8 + economicStatus.growth * 0.2;
+  ctx.fillStyle = `rgba(255, ${255 * (1-intensity)}, 0, 0.4)`;
+  ctx.fillRect(region.boundary);
 }
 ```
 
@@ -448,12 +545,14 @@ sequenceDiagram
   participant P as Physics Engine
   participant V as Visualization
   participant E as Event Bus
+  participant M as Multiplayer Sync
   
   G->>P: Update positions (dt)
   P->>V: Send spatial data
   V->>V: Render frame
   P->>E: Emit collision events
   E->>G: Trigger game effects
+  G->>M: Broadcast state updates
 ```
 
 ### Spatial Event Examples
@@ -463,5 +562,6 @@ sequenceDiagram
 | Unit collision | Military units in same cell | Combat initiated |
 | Threat detection | Threat in sensor range | Visibility increased |
 | Orbital strike | Weapon sat in position | Regional damage |
+| Economic collapse | Region stability < 20% | Faction resource penalty |
 
 This model provides the foundational architecture and mechanics for ThreatForge, enabling the emergent gameplay and extensibility described in the specifications. All physical elements now have spatial representations that can be modeled geometrically and physically, and rendered in map displays.
