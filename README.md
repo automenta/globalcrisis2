@@ -1,22 +1,5 @@
 
-
 ThreatForge is a comprehensive, modular game engine designed for simulating modern global threats in an educational and entertaining strategy/simulation experience. The engine supports simulation of various threat domains including biowarfare, cyber, environmental, quantum, radiological, and robotic dangers.
-
-## Model Documentation
-
-The ThreatForge game engine model has been modularized for better clarity and maintainability. The complete model documentation is organized as follows:
-
-- [Core Architecture](engine_model/core/architecture.md)
-- [Game State Representation](engine_model/game_state/world_state.md)
-- [Threat Mechanics](engine_model/threats/threat_mechanics.md) and [Advanced Threats](engine_model/threats/advanced_threats.md)
-- [Action System](engine_model/actions/action_system.md)
-- [Systems](engine_model/systems) (Cross-Domain Interactions, Narrative Engine, Integration, etc.)
-- [Visualization](engine_model/visualization) (Data Visualization and Interface Enhancements)
-- [Physics Modeling](engine_model/physics/physics_modeling.md)
-
-For an overview of the entire model structure, see [MODEL.md](MODEL.md).
-
----
 
 ## Core Features
 
