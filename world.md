@@ -1,261 +1,275 @@
 # World State Representation
 
+This document describes the core data structures and systems used to represent the game world in ThreatForge. It covers the global `WorldState`, detailed `Region` and `Faction` interfaces, and the underlying physics and environmental models that drive the simulation.
+
 ## World State Interface
 ```typescript
 interface WorldState {
-  regions: Region[];
-  factions: Faction[];
-  currentTurn: number;
-  globalMetrics: {
-    stability: number;
-    economy: number;
-    trust: number;
+  regions: Region[]; // An array of all geographical regions in the game world.
+  factions: Faction[]; // An array of all active factions in the simulation.
+  currentTurn: number; // The current turn number in the simulation, advancing game time.
+  globalMetrics: { // Key performance indicators for the entire world.
+    stability: number; // Overall global stability (0-1 scale, higher is more stable).
+    economy: number; // Global economic health (0-1 scale, higher is stronger).
+    trust: number; // Global population trust in institutions (0-1 scale, higher is more trusting).
   };
 }
 
 interface Region {
-  id: string;
-  population: PopulationPyramid;
-  resources: ResourcePool;
-  threats: ActiveThreat[];
-  attributes: {
-    climateVulnerability: number;
-    techLevel: number;
+  id: string; // Unique identifier for the region.
+  population: PopulationPyramid; // Demographic and psychological data for the region's inhabitants.
+  resources: ResourcePool; // Available resources within the region (e.g., funds, manpower).
+  threats: ActiveThreat[]; // An array of active threats present in this region.
+  attributes: { // Intrinsic properties of the region.
+    climateVulnerability: number; // 0-1 scale, how susceptible the region is to climate-related threats.
+    techLevel: number; // 0-1 scale, the technological advancement level of the region.
   };
   // Spatial properties
-  boundary: [number, number][]; // Polygon coordinates [longitude, latitude]
-  centroid: [number, number];   // [longitude, latitude]
-  elevation: number;            // Meters above sea level
+  boundary: [number, number][]; // Polygon coordinates [longitude, latitude] defining the geographical shape of the region.
+  centroid: [number, number];   // [longitude, latitude] coordinates of the region's geographical center.
+  elevation: number;            // Meters above sea level, representing the average elevation of the region.
 }
 
 interface PopulationPyramid {
-  ageGroups: {
-    youth: number;
-    adults: number;
-    elderly: number;
+  ageGroups: { // Distribution of the population across different age demographics.
+    youth: number; // Percentage or count of youth.
+    adults: number; // Percentage or count of adults.
+    elderly: number; // Percentage or count of elderly.
   };
-  psychodynamics: {
-    trust: number;
-    fear: number;
-    compliance: number;
+  psychodynamics: { // Psychological state and societal dynamics of the population.
+    trust: number; // 0-1 scale, population's trust in authorities and institutions.
+    fear: number; // 0-1 scale, level of fear or anxiety within the population.
+    compliance: number; // 0-1 scale, willingness of the population to comply with directives.
     // Pharmaceutical warfare effects
-    addictionLevel?: number; // 0-1 scale
-    dependencyLevel?: number; // 0-1 scale
-    contaminationExposure?: number; // 0-1 scale
+    addictionLevel?: number; // 0-1 scale, level of addiction within the population due to biological/pharmaceutical threats.
+    dependencyLevel?: number; // 0-1 scale, how quickly dependency develops on a substance.
+    contaminationExposure?: number; // 0-1 scale, level of exposure to contaminants.
   };
 }
 ```
 
 ## Faction System
+
+The Faction System defines the various playable and non-playable entities within the ThreatForge simulation, each with distinct goals, capabilities, and win conditions. This system drives the asymmetric gameplay and allows for diverse strategic approaches.
+
 ```typescript
 enum FactionType {
-  TECHNOOCRAT = "Evil Technocrat",
-  MITIGATOR = "Hero Mitigator",
-  NATION_STATE = "Nation-State",
-  RESISTANCE = "Free Human Resistance",
-  HERO_DOCTOR = "Hero Doctor/Scientist",
-  PHARMA = "Pharma Conglomerate",
-  CONTROLLED_OPPOSITION = "Controlled Opposition"
+  TECHNOOCRAT = "Evil Technocrat", // Focuses on technological dominance and control.
+  MITIGATOR = "Hero Mitigator",     // Aims to neutralize threats and restore global stability.
+  NATION_STATE = "Nation-State",   // Represents traditional governmental powers with diplomatic and military capabilities.
+  RESISTANCE = "Free Human Resistance", // Works to expose hidden agendas and fight for human freedom.
+  HERO_DOCTOR = "Hero Doctor/Scientist", // Dedicated to scientific research, cures, and public health.
+  PHARMA = "Pharma Conglomerate",   // A corporate entity seeking to profit from global crises, particularly in the biological domain.
+  CONTROLLED_OPPOSITION = "Controlled Opposition" // A deceptive faction designed to sow confusion and serve hidden agendas.
 }
 
 interface Faction {
-  id: string;
-  type: FactionType;
-  resources: ResourcePool;
-  objectives: Objective[];
-  winConditions: {
-    dominationThreshold?: number;   // % of world to control
-    survivalThreshold?: number;     // Minimum stability level
-    exposureCount?: number;          // Number of conspiracies to expose
-    economicControlThreshold?: number; // % of resources to control
-    populationControlThreshold?: number; // % population reduction
-    allianceCount?: number;          // Number of alliances required
+  id: string; // Unique identifier for the faction.
+  type: FactionType; // The specific type of faction.
+  resources: ResourcePool; // The current pool of resources available to the faction.
+  objectives: Objective[]; // An array of current objectives the faction is pursuing.
+  winConditions: { // Specific criteria that, if met, lead to this faction's victory.
+    dominationThreshold?: number;   // % of world to control, percentage of global regions to control for victory.
+    survivalThreshold?: number;     // Minimum stability level, minimum global stability required for victory.
+    exposureCount?: number;          // Number of conspiracies to expose, number of hidden plots to reveal.
+    economicControlThreshold?: number; // % of resources to control, percentage of global economic resources to control.
+    populationControlThreshold?: number; // % population reduction, percentage of global population to reduce (for hostile factions).
+    allianceCount?: number;          // Number of alliances required, minimum number of strategic alliances to form.
   };
-  capabilities: {
-    threatDeployment: boolean;
-    investigation: boolean;
-    influence: boolean;
-    economicWarfare: boolean;
-    cyberOperations: boolean;
-    environmentalManipulation: boolean;
-    spaceDominance: boolean;
+  capabilities: { // Special abilities and operational strengths of the faction.
+    threatDeployment: boolean; // Can deploy new threats.
+    investigation: boolean; // Can conduct investigations to uncover hidden information.
+    influence: boolean; // Can exert influence over other factions or populations.
+    economicWarfare: boolean; // Can engage in economic manipulation and sanctions.
+    cyberOperations: boolean; // Can perform cyber attacks and defense.
+    environmentalManipulation: boolean; // Can manipulate environmental factors.
+    spaceDominance: boolean; // Can operate and exert control in space.
     // NEW: Geoengineering and space weather capabilities
-    geoengineering: boolean;          // For manipulating climate/geology
-    spaceWeatherControl: boolean;     // For manipulating space weather
+    geoengineering: boolean;          // For manipulating climate/geology on a large scale.
+    spaceWeatherControl: boolean;     // For manipulating space weather phenomena.
     // Faction-specific capabilities
-    aiAssistedDesign: boolean;       // For TECHNOOCRAT and PHARMA
-    mediaPropaganda: boolean;         // For CONTROLLED_OPPOSITION
-    whistleblowerNetworks: boolean;   // For RESISTANCE and HERO_DOCTOR
-    diplomaticImmunity: boolean;      // For NATION_STATE
+    aiAssistedDesign: boolean;       // For TECHNOOCRAT and PHARMA, ability to use AI for advanced design and research.
+    mediaPropaganda: boolean;         // For CONTROLLED_OPPOSITION, ability to spread propaganda through media.
+    whistleblowerNetworks: boolean;   // For RESISTANCE and HERO_DOCTOR, ability to establish and leverage whistleblower networks.
+    diplomaticImmunity: boolean;      // For NATION_STATE, protection from certain diplomatic repercussions.
   };
   // Spatial capabilities
-  militaryUnits: MilitaryUnit[];
-  satellites: Satellite[];
-  sensorRange: number; // km
-  movementSpeed: number; // multiplier
+  militaryUnits: MilitaryUnit[]; // An array of military units controlled by this faction.
+  satellites: Satellite[];       // An array of satellites deployed by this faction.
+  sensorRange: number; // km, the maximum distance at which this faction's units can detect threats or other entities.
+  movementSpeed: number; // multiplier, a factor applied to the base movement speed of this faction's units.
   // Deployment constraints
-  deploymentConstraints: {
-    maxUnits: number;     // Max units per region
-    cooldown: number;     // Turns between deployments
-    zoneRestrictions: string[]; // Allowed deployment zones
+  deploymentConstraints: { // Defines rules and limitations for deploying units.
+    maxUnits: number;     // Maximum number of units allowed per region.
+    cooldown: number;     // Number of turns that must pass between unit deployments.
+    zoneRestrictions: string[]; // A list of specific zones or regions where deployment is restricted or allowed.
     // NEW: Deployment contexts
-    deploymentContexts: ("SURFACE" | "UNDERGROUND" | "ORBITAL" | "AQUATIC")[];
+    deploymentContexts: ("SURFACE" | "UNDERGROUND" | "ORBITAL" | "AQUATIC")[]; // Specifies the environments where units can be deployed.
     // NEW: Unit type restrictions
-    unitTypeRestrictions?: MilitaryUnit['type'][];
+    unitTypeRestrictions?: MilitaryUnit['type'][]; // Optional: Restricts deployment to specific types of military units.
   };
 }
 
 interface Objective {
-  id: string;
-  type: "TERRITORIAL" | "ECONOMIC" | "INFLUENCE" | "THREAT_MITIGATION" | "THREAT_DEPLOYMENT";
-  target: string; // Region ID, Faction ID, or Threat ID
-  progress: number; // 0-100
-  requiredProgress: number;
-  rewards: {
-    resources?: ResourcePool;
-    reputation?: number;
-    unlock?: string; // Unlockable ability or unit
+  id: string; // Unique identifier for the objective.
+  type: "TERRITORIAL" | "ECONOMIC" | "INFLUENCE" | "THREAT_MITIGATION" | "THREAT_DEPLOYMENT"; // The category of the objective.
+  target: string; // Region ID, Faction ID, or Threat ID, the specific entity or goal of the objective.
+  progress: number; // 0-100, current progress towards completing the objective.
+  requiredProgress: number; // The progress value needed to complete the objective.
+  rewards: { // Benefits granted upon successful completion of the objective.
+    resources?: ResourcePool; // Optional: Resources awarded.
+    reputation?: number; // Optional: Reputation gain.
+    unlock?: string; // Optional: ID of an unlockable ability or unit.
   };
 }
 
 interface ResourcePool {
-  funds: number;
-  intel: number;
-  manpower: number;
-  tech: number;
+  funds: number; // Monetary resources.
+  intel: number; // Intelligence points, used for investigations and information gathering.
+  manpower: number; // Human resources, used for unit deployment and operations.
+  tech: number; // Technological resources, used for research and development.
 }
 
 // Spatial entity interfaces
 interface MilitaryUnit {
-  id: string;
-  factionId: string;
+  id: string; // Unique identifier for the military unit.
+  factionId: string; // The ID of the faction that owns this unit.
   type: "INFANTRY" | "TANK" | "AIRCRAFT" | "NAVAL" | "CYBER" | "DRONE" | 
         "AUTONOMOUS_GROUND" | "ROBOTIC_SWARM" | "QUANTUM_NODE" | 
-        "RAD_DISPERSAL" | "TUNNELER" | "SPACE_PLATFORM";
-  position: [number, number];   // [longitude, latitude]
-  velocity: [number, number];   // [m/s east, m/s north]
-  mass: number;                 // Kilograms
-  energy: number;               // Joules (battery/fuel)
-  autonomyLevel: number;        // 0-1 scale (0: remote, 1: fully autonomous)
-  abilities: UnitAbility[];     // Faction-specific special abilities
+        "RAD_DISPERSAL" | "TUNNELER" | "SPACE_PLATFORM"; // The type of military unit.
+  position: [number, number];   // [longitude, latitude] coordinates of the unit's current location.
+  velocity: [number, number];   // [m/s east, m/s north] current velocity vector of the unit.
+  mass: number;                 // Kilograms, the mass of the unit, affecting physics interactions.
+  energy: number;               // Joules (battery/fuel), current energy reserves of the unit.
+  autonomyLevel: number;        // 0-1 scale (0: remote, 1: fully autonomous), degree of self-governance.
+  abilities: UnitAbility[];     // An array of special abilities possessed by this unit.
 }
 
 interface Satellite {
-  id: string;
-  factionId: string;
-  type: "COMMS" | "RECON" | "WEAPON" | "NAVIGATION";
-  orbit: {
-    semiMajorAxis: number;      // km
-    eccentricity: number;
-    inclination: number;        // degrees
-    period: number;             // seconds
+  id: string; // Unique identifier for the satellite.
+  factionId: string; // The ID of the faction that owns this satellite.
+  type: "COMMS" | "RECON" | "WEAPON" | "NAVIGATION"; // The primary function of the satellite.
+  orbit: { // Orbital parameters defining the satellite's trajectory.
+    semiMajorAxis: number;      // km, the average distance from the center of the Earth.
+    eccentricity: number;       // Shape of the orbit (0 for circular, <1 for elliptical).
+    inclination: number;        // degrees, angle of the orbit relative to the Earth's equator.
+    period: number;             // seconds, time taken to complete one orbit.
   };
-  position: [number, number, number]; // ECEF coordinates [x, y, z] in km
-  velocity: [number, number, number]; // km/s
-  mass: number;                 // kg
-  abilities: UnitAbility[];     // Faction-specific special abilities
+  position: [number, number, number]; // ECEF coordinates [x, y, z] in km, current 3D position.
+  velocity: [number, number, number]; // km/s, current 3D velocity vector.
+  mass: number;                 // kg, the mass of the satellite.
+  abilities: UnitAbility[];     // An array of special abilities possessed by this satellite.
   // Space weather vulnerabilities
-  solarFlareVulnerability?: number; // 0-1 scale
-  radiationSensitivity?: number;    // 0-1 scale
-}
+  solarFlareVulnerability?: number; // 0-1 scale, how susceptible the satellite is to solar flares.
+  radiationSensitivity?: number;    // 0-1 scale, how susceptible the satellite is to radiation.
 ## Faction Details
 
+ThreatForge features a diverse set of factions, each with unique goals, abilities, and perspectives, contributing to the game's asymmetric gameplay. Understanding each faction's characteristics is crucial for strategic planning and anticipating their actions.
+
 ### Evil Technocrats
-- **Goal**: Depopulation/control
-- **Abilities**: Advanced threat deployment, AI-assisted design, media blackouts
-- **Perspective**: Cold, data-driven UI with profit dashboards
-- **Win Condition**: Achieve depopulation without detection
+*   **Goal**: To achieve global depopulation and absolute control through technological means, often by deploying advanced threats and manipulating systems.
+*   **Abilities**: Possess advanced threat deployment capabilities, leverage AI-assisted design for rapid innovation, and can implement media blackouts to control information flow.
+*   **Perspective**: Their user interface is cold and data-driven, featuring detailed profit dashboards and efficiency metrics, reflecting their utilitarian and calculating approach.
+*   **Win Condition**: Achieve a specified level of global depopulation without being detected or exposed, maintaining a facade of normalcy while executing their agenda.
 
 ### Hero Mitigators
-- **Goal**: Investigation, threat neutralization
-- **Abilities**: Investigation tools, threat neutralization
-- **Perspective**: Focused on threat analysis and countermeasures
-- **Win Condition**: Expose all threats
+*   **Goal**: To investigate and neutralize global threats, restore stability, and protect populations from harm.
+*   **Abilities**: Equipped with sophisticated investigation tools for uncovering hidden threats and effective countermeasures for threat neutralization.
+*   **Perspective**: Their interface is focused on threat analysis and countermeasure deployment, providing detailed insights into threat vectors and mitigation strategies.
+*   **Win Condition**: Successfully expose all major global threats and reduce the overall global threat level below a critical threshold.
 
 ### Nation-States
-- **Goal**: Diplomatic influence, military power
-- **Abilities**: Diplomatic influence, military power, economic sanctions
-- **Perspective**: Geopolitical strategy view
-- **Win Condition**: Maintain stability and control over territory
+*   **Goal**: To maintain diplomatic influence, project military power, and ensure the stability and control of their territories.
+*   **Abilities**: Possess strong diplomatic influence, significant military power for conventional warfare, and the ability to impose economic sanctions.
+*   **Perspective**: Their view is centered on geopolitical strategy, featuring maps of territorial control, alliance networks, and international relations.
+*   **Win Condition**: Maintain stability and control over a significant percentage of global territory while navigating complex diplomatic landscapes.
 
 ### Free Human Resistance
-- **Goal**: Expose/survive threats
-- **Abilities**: Whistleblower networks, grassroots organizing, hack networks
-- **Perspective**: Grassroots view with rumor maps
-- **Win Condition**: Expose all conspiracies and survive
+*   **Goal**: To expose hidden threats, survive oppressive regimes, and fight for human freedom and autonomy.
+*   **Abilities**: Excel at establishing whistleblower networks, organizing grassroots movements, and conducting cyber hacks to disrupt enemy operations.
+*   **Perspective**: Their interface provides a grassroots view, featuring rumor maps and networks of trust, reflecting their reliance on popular support and covert operations.
+*   **Win Condition**: Successfully expose all major conspiracies and ensure the survival and liberation of a significant portion of the global population.
 
 ### Pharma Conglomerates
-- **Goal**: Profit from crises, influence medical policies
-- **Abilities**: Profit from cures/threats, influence medical policies
-- **Perspective**: Profit-focused dashboards
-- **Win Condition**: Achieve economic dominance through crisis profiteering
+*   **Goal**: To maximize profit from global crises, particularly in the biological and health sectors, and influence medical policies to their advantage.
+*   **Abilities**: Can profit significantly from the development and distribution of cures or by exacerbating existing threats, and exert considerable influence over medical policies and research.
+*   **Perspective**: Their dashboards are heavily profit-focused, displaying market trends, revenue projections, and crisis-related profit opportunities.
+*   **Win Condition**: Achieve economic dominance through crisis profiteering, leveraging global events to secure vast financial gains.
 
 ### Hero Doctors/Scientists
-- **Goal**: Cure/investigate
-- **Abilities**: Rapid testing, whistleblower alliances, medical research
-- **Perspective**: Lab-focused UI with health metric overlays
-- **Win Condition**: Develop cures for all active threats
+*   **Goal**: To develop cures, conduct critical research, and investigate biological threats for the benefit of humanity.
+*   **Abilities**: Capable of rapid testing and diagnosis, forming alliances with whistleblowers, and conducting advanced medical research.
+*   **Perspective**: Their UI is lab-focused, featuring detailed health metric overlays, research progress trackers, and epidemiological data.
+*   **Win Condition**: Successfully develop cures or effective countermeasures for all active biological threats and ensure widespread distribution.
 
 ### Controlled Opposition
-- **Goal**: Sow confusion for hidden agendas
-- **Abilities**: Media manipulation, deception tactics, creating fake dissent groups
-- **Perspective**: Media influence networks
-- **Win Condition**: Maintain control through misinformation
+*   **Goal**: To sow confusion, manipulate public opinion, and serve hidden agendas by creating fake dissent groups and spreading misinformation.
+*   **Abilities**: Highly skilled in media manipulation, deception tactics, and the creation of fabricated opposition movements to control narratives.
+*   **Perspective**: Their interface focuses on media influence networks, propaganda dissemination channels, and public sentiment analysis.
+*   **Win Condition**: Maintain control over key narratives and public perception through misinformation and manipulation, ensuring their hidden agendas are advanced.
 
 ### Additional Notes:
-- Factions can switch mid-game via "betrayal events"
-- Multiplayer mode pits factions against each other
-- Modders can add new factions like "Eco-Terrorists" or "AI Overlords"
+*   **Faction Switching**: Factions can dynamically switch allegiances or roles mid-game through specific "betrayal events" or major narrative shifts, adding unpredictability.
+*   **Multiplayer Mode**: In multiplayer, factions are pitted against each other, creating competitive scenarios where players must outmaneuver and outwit their opponents.
+*   **Modding Support**: The engine supports modding, allowing the community to add entirely new factions (e.g., "Eco-Terrorists," "AI Overlords") with custom abilities, goals, and unique gameplay mechanics.
 
 # Environmental Systems
 
+This section details the environmental systems within ThreatForge, which simulate dynamic weather patterns, terrain modifications, and complex ecosystem interactions. These systems introduce environmental challenges and opportunities that influence threat propagation and faction strategies.
+
 ## Dynamic Weather System
+
+The Dynamic Weather System simulates realistic and evolving weather conditions across the globe, impacting unit movement, visibility, and the amplification of certain threats. Weather events can range from localized storms to widespread climate phenomena.
+
 ```typescript
 interface WeatherSystem {
-  currentConditions: {
-    type: "CLEAR" | "RAIN" | "SNOW" | "STORM" | "DUST_STORM" | "FLOOD" | "ACID_RAIN" | "RADIOLOGICAL_FALLOUT";  // UPDATED
-    intensity: number; // 0-1 scale
-    duration: number; // turns remaining
+  currentConditions: { // The current weather conditions in a specific region.
+    type: "CLEAR" | "RAIN" | "SNOW" | "STORM" | "DUST_STORM" | "FLOOD" | "ACID_RAIN" | "RADIOLOGICAL_FALLOUT";  // The type of weather event.
+    intensity: number; // 0-1 scale, the severity or strength of the weather event.
+    duration: number; // turns remaining, how long the current weather conditions are expected to last.
   };
-  effects: {
-    visibilityModifier: number; // -1.0 to 1.0
-    movementPenalty: number; // 0-1 scale
-    threatAmplification: {
+  effects: { // The direct impacts of the current weather conditions on gameplay.
+    visibilityModifier: number; // -1.0 to 1.0, modifies unit sensor range and overall visibility.
+    movementPenalty: number; // 0-1 scale, reduces the movement speed of units.
+    threatAmplification: { // Specifies how certain threats are amplified by the weather.
       domain: ThreatDomain;
       multiplier: number;
     }[];
     // NEW: Domain-specific weather effects
-    cyberDisruption?: number;    // Signal interference
-    radiologicalSpread?: number; // Contamination dispersion
-    roboticMalfunction?: number; // Sensor/actuator failure rates
+    cyberDisruption?: number;    // Signal interference, impacting cyber operations.
+    radiologicalSpread?: number; // Contamination dispersion, affecting radiological threats.
+    roboticMalfunction?: number; // Sensor/actuator failure rates, increasing malfunction probability for robotic units.
   };
-  forecast: WeatherForecast[];
+  forecast: WeatherForecast[]; // A projection of future weather conditions.
 }
 
 function applyWeatherEffects(unit: MilitaryUnit, weather: WeatherSystem) {
-  // Visibility reduction
+  // Visibility reduction: Reduces the unit's sensor range based on weather visibility modifier.
   unit.sensorRange *= (1 - weather.effects.visibilityModifier);
   
-  // Movement speed penalty
+  // Movement speed penalty: Applies a penalty to the unit's movement speed.
   unit.movementSpeed *= (1 - weather.effects.movementPenalty);
   
-  // Threat amplification
+  // Threat amplification: Adds weather-induced threat amplification to existing cross-domain impacts.
   threat.crossDomainImpacts.push(
     ...weather.effects.threatAmplification
   );
   
-  // NEW: Robotic unit effects
+  // NEW: Robotic unit effects: Increases the error rate for robotic units during adverse weather.
   if (unit.type.includes("ROBOT") || unit.type === "DRONE") {
     unit.errorRate += weather.effects.roboticMalfunction || 0;
   }
   
-  // NEW: Cyber disruption
+  // NEW: Cyber disruption: Reduces the effectiveness of cyber operations during signal interference.
   if (unit.capabilities.includes("CYBER_OPS")) {
     unit.effectiveness *= (1 - (weather.effects.cyberDisruption || 0));
   }
 }
 
 // Weather generation algorithm
+// This function generates new weather conditions for a given region, taking into account
+// the region's climate vulnerability and the global climate state. It can also introduce
+// domain-specific weather types like radiological fallout.
 function generateWeather(region: Region, globalClimate: number): WeatherSystem {
   const weatherTypes = ["CLEAR", "RAIN", "STORM", "SNOW"];
   if (region.attributes.climateVulnerability > 0.7) {
@@ -286,57 +300,79 @@ function generateWeather(region: Region, globalClimate: number): WeatherSystem {
 ```
 
 ## Terrain Modification
-- **Dynamic Terrain**: Units with terraforming capabilities can modify elevation
-- **Environmental Hazards**: Create or mitigate natural disaster zones
-- **Resource Depletion**: Over-exploitation reduces resource yields
-- **Climate Change**: Long-term environmental effects from industrial activity
-- **Radiological Contamination**: Persistent environmental effects from radiological events
-- **Robotic Terraforming**: Autonomous systems reshaping terrain for strategic advantage
+
+Terrain modification allows certain units or factions to alter the physical landscape of regions, creating strategic advantages or mitigating environmental threats. This system introduces dynamic changes to the world map based on player actions and environmental events.
+
+*   **Dynamic Terrain**: Units equipped with terraforming capabilities can dynamically modify elevation, create new landforms, or flatten areas, impacting movement, line of sight, and resource accessibility.
+*   **Environmental Hazards**: Players can create or mitigate natural disaster zones, such as building flood defenses, initiating controlled burns to prevent wildfires, or even triggering localized seismic events.
+*   **Resource Depletion**: Over-exploitation of natural resources in a region leads to reduced resource yields over time, simulating the long-term consequences of unsustainable practices.
+*   **Climate Change**: Industrial activity and certain threat types can contribute to long-term climate change effects, leading to shifts in global temperatures, sea levels, and weather patterns.
+*   **Radiological Contamination**: Radiological events leave persistent environmental effects, contaminating regions and rendering them hazardous for extended periods, impacting population health and resource extraction.
+*   **Robotic Terraforming**: Autonomous robotic systems can be deployed to reshape terrain for strategic advantage, such as constructing defensive barriers, digging tunnels, or preparing areas for large-scale operations.
 
 ## Ecosystem Simulation
-- **Food Chain Interactions**: Biological threats affect ecosystem balance
-- **Pollution Effects**: Environmental contamination impacts population health
-- **Resource Renewal**: Natural regeneration rates for sustainable management
-- **Biodiversity Index**: Measure of ecological health affecting threat evolution
-- **Quantum Ecosystem Effects**: Entanglement in biological systems
-- **Robotic Ecosystem Impact**: Autonomous systems affecting wildlife behavior
+
+The Ecosystem Simulation models the complex interdependencies within natural environments, demonstrating how threats and player actions can impact biodiversity, resource renewal, and overall ecological health. This system adds a layer of environmental realism and strategic depth.
+
+*   **Food Chain Interactions**: Biological threats and environmental changes can disrupt food chain interactions, leading to cascading effects on species populations and ecosystem stability.
+*   **Pollution Effects**: Environmental contamination from industrial activities or specific threats directly impacts population health, resource quality, and the viability of ecosystems.
+*   **Resource Renewal**: Natural regeneration rates for various resources are simulated, allowing for sustainable management strategies or highlighting the consequences of over-exploitation.
+*   **Biodiversity Index**: A quantifiable measure of ecological health, the biodiversity index affects the evolution and mutation of biological threats, with lower biodiversity potentially leading to more virulent strains.
+*   **Quantum Ecosystem Effects**: Explores the theoretical impact of quantum entanglement on biological systems, potentially leading to unforeseen mutations or accelerated evolution in response to quantum threats.
+*   **Robotic Ecosystem Impact**: Autonomous robotic systems can have both positive and negative impacts on wildlife behavior and natural habitats, from environmental cleanup to unintended ecological disruption.
 
 # Physics Modeling
 
+# Physics Modeling
+
+This section details the various physics models implemented in ThreatForge, which govern the movement of units, the propagation of threats, and the interactions between different elements in the game world. These models ensure a realistic and dynamic simulation environment.
+
 ## Newtonian Mechanics Examples
 
+The engine utilizes Newtonian mechanics to simulate the movement and interactions of physical entities within the game world, providing a foundational layer of realism for unit behavior and environmental responses.
+
 ### Military Unit Movement
+
+These functions demonstrate how different types of military units are simulated using basic Newtonian physics principles, accounting for factors like terrain resistance, engine force, and mass.
+
 ```typescript
 function updateTankMovement(tank: MilitaryUnit, terrainResistance: number, dt: number) {
   // Calculate net force (engine power - friction)
-  const engineForce = 50000; // N (typical main battle tank)
-  const frictionForce = terrainResistance * tank.mass * 9.8;
+  // The net force determines the acceleration of the tank.
+  const engineForce = 50000; // N (typical main battle tank engine force)
+  const frictionForce = terrainResistance * tank.mass * 9.8; // Friction opposing movement.
   const netForce = engineForce - frictionForce;
   
   // Update acceleration, velocity, position
+  // Applying Newton's second law (F=ma) to update the tank's state.
   const acceleration = netForce / tank.mass;
-  tank.velocity[0] += acceleration * dt * Math.cos(tank.heading);
-  tank.velocity[1] += acceleration * dt * Math.sin(tank.heading);
-  tank.position[0] += tank.velocity[0] * dt;
-  tank.position[1] += tank.velocity[1] * dt;
+  tank.velocity[0] += acceleration * dt * Math.cos(tank.heading); // Update x-velocity component.
+  tank.velocity[1] += acceleration * dt * Math.sin(tank.heading); // Update y-velocity component.
+  tank.position[0] += tank.velocity[0] * dt; // Update x-position.
+  tank.position[1] += tank.velocity[1] * dt; // Update y-position.
   
   // Update energy (fuel consumption)
-  tank.energy -= engineForce * 0.0001 * dt; // 0.0001 J/N
+  // Simulates fuel consumption based on engine force and distance traveled.
+  tank.energy -= engineForce * 0.0001 * dt; // 0.0001 Joules per Newton of force per second.
 }
 ```
 
 ### Robotic Swarm Movement
+
+This function models the collective movement of a robotic swarm, incorporating principles of cohesion and attraction towards a central point, while also accounting for damping to prevent runaway acceleration.
+
 ```typescript
 function updateSwarmMovement(swarm: MilitaryUnit, cohesion: number, dt: number) {
   // Calculate average velocity of nearby swarm units
-  const center = swarm.centerOfMass; // [x, y] - calculated from swarm units
+  // This represents the collective intelligence guiding the swarm.
+  const center = swarm.centerOfMass; // [x, y] - calculated from swarm units' positions.
   const directionToCenter = [center[0] - swarm.position[0], center[1] - swarm.position[1]];
   const distanceToCenter = Math.hypot(...directionToCenter);
 
   // Normalize and scale by cohesion
   if (distanceToCenter > 0) {
     const normalizedDir = [directionToCenter[0]/distanceToCenter, directionToCenter[1]/distanceToCenter];
-    const attractionForce = 100 * cohesion; // Newtons
+    const attractionForce = 100 * cohesion; // Newtons, force pulling units towards the center of mass.
 
     // Update velocity
     swarm.velocity[0] += attractionForce * normalizedDir[0] / swarm.mass * dt;
@@ -344,6 +380,7 @@ function updateSwarmMovement(swarm: MilitaryUnit, cohesion: number, dt: number) 
   }
 
   // Damping to prevent infinite acceleration
+  // Reduces velocity over time to simulate drag or energy loss.
   swarm.velocity[0] *= 0.99;
   swarm.velocity[1] *= 0.99;
 
@@ -353,10 +390,11 @@ function updateSwarmMovement(swarm: MilitaryUnit, cohesion: number, dt: number) 
 }
 
 // Geological event simulation
+// This function simulates the physical effects of various geological events on military units within a region.
 function simulateGeologicalEvent(region: Region, eventType: string, magnitude: number) {
   switch (eventType) {
     case "EARTHQUAKE":
-      // Shake all units in region
+      // Shake all units in region by applying random velocity impulses.
       region.militaryUnits.forEach(unit => {
         unit.velocity[0] += (Math.random() - 0.5) * magnitude * 0.1;
         unit.velocity[1] += (Math.random() - 0.5) * magnitude * 0.1;
@@ -364,16 +402,16 @@ function simulateGeologicalEvent(region: Region, eventType: string, magnitude: n
       break;
       
     case "VOLCANO":
-      // Create ash cloud that affects aircraft
+      // Create ash cloud that affects aircraft, reducing their engine efficiency.
       region.militaryUnits
         .filter(u => u.type === "AIRCRAFT")
         .forEach(unit => {
-          unit.energy *= 0.8; // Ash reduces engine efficiency
+          unit.energy *= 0.8; // Ash reduces engine efficiency.
         });
       break;
       
     case "TSUNAMI":
-      // Push naval units
+      // Push naval units with a strong directional force.
       region.militaryUnits
         .filter(u => u.type === "NAVAL")
         .forEach(unit => {
@@ -386,10 +424,13 @@ function simulateGeologicalEvent(region: Region, eventType: string, magnitude: n
 ```
 
 ### Satellite Orbital Adjustment
+
+This function simulates the adjustment of a satellite's orbit, allowing for changes in altitude based on proportional control. This is crucial for maintaining satellite constellations or repositioning assets for strategic purposes.
+
 ```typescript
 function adjustSatelliteOrbit(sat: Satellite, targetAltitude: number, dt: number) {
   const currentAlt = Math.sqrt(sat.position[0]**2 + sat.position[1]**2 + sat.position[2]**2);
-  const deltaV = 0.1 * (targetAltitude - currentAlt); // Proportional control
+  const deltaV = 0.1 * (targetAltitude - currentAlt); // Proportional control, calculates the required change in velocity.
   
   // Apply thrust in velocity direction
   const velocityDir = [
@@ -403,14 +444,17 @@ function adjustSatelliteOrbit(sat: Satellite, targetAltitude: number, dt: number
   sat.velocity[2] += velocityDir[2] * deltaV;
   
   // Update orbital parameters
-  updateOrbit(sat, dt);
+  updateOrbit(sat, dt); // Calls the main orbital mechanics function to update the satellite's position and velocity.
 }
 ```
 
 ## Orbital Mechanics
+
+This section details the fundamental principles of orbital mechanics used to simulate the movement of satellites and other space-based assets around celestial bodies. It applies Newtonian gravitational laws to accurately model trajectories.
+
 ```typescript
-const G = 6.67430e-11; // Gravitational constant
-const EARTH_MASS = 5.972e24; // kg
+const G = 6.67430e-11; // Gravitational constant (m^3 kg^-1 s^-2)
+const EARTH_MASS = 5.972e24; // kg, mass of the Earth.
 
 function updateOrbit(satellite: Satellite, dt: number) {
   // Calculate distance from Earth center
@@ -418,67 +462,74 @@ function updateOrbit(satellite: Satellite, dt: number) {
     satellite.position[0]**2 +
     satellite.position[1]**2 +
     satellite.position[2]**2
-  );
+  ); // Distance from the center of the Earth to the satellite.
   
   // Calculate gravitational force
-  const Fg = G * EARTH_MASS * satellite.mass / r**2;
+  const Fg = G * EARTH_MASS * satellite.mass / r**2; // Newton's Law of Universal Gravitation.
   
   // Direction vector towards Earth
   const dir = [
     -satellite.position[0]/r,
     -satellite.position[1]/r,
     -satellite.position[2]/r
-  ];
+  ]; // Unit vector pointing from the satellite towards the Earth's center.
   
   // Update velocity
   satellite.velocity[0] += dir[0] * Fg / satellite.mass * dt;
   satellite.velocity[1] += dir[1] * Fg / satellite.mass * dt;
-  satellite.velocity[2] += dir[2] * Fg / satellite.mass * dt;
+  satellite.velocity[2] += dir[2] * Fg / satellite.mass * dt; // Update velocity based on gravitational acceleration.
   
   // Update position
   satellite.position[0] += satellite.velocity[0] * dt;
   satellite.position[1] += satellite.velocity[1] * dt;
-  satellite.position[2] += satellite.velocity[2] * dt;
+  satellite.position[2] += satellite.velocity[2] * dt; // Update position based on current velocity.
   
   // Update orbital parameters
-  satellite.orbit.semiMajorAxis = r;
-  satellite.orbit.period = 2 * Math.PI * Math.sqrt(r**3 / (G * EARTH_MASS));
+  satellite.orbit.semiMajorAxis = r; // For a circular orbit, semi-major axis is the radius.
+  satellite.orbit.period = 2 * Math.PI * Math.sqrt(r**3 / (G * EARTH_MASS)); // Kepler's Third Law for orbital period.
 }
 ```
 
 ## Quantum Physics Modeling
+
+This section describes the quantum physics models used to simulate quantum threats and their effects on systems. It covers concepts like quantum state representation, decoherence, and the impact of quantum computing on other domains.
+
 ```typescript
 // Quantum state representation
 interface QuantumState {
-  qubits: number;
-  entanglement: number; // 0-1 entanglement level
-  coherenceTime: number; // ms
+  qubits: number; // The number of qubits in the quantum system.
+  entanglement: number; // 0-1 entanglement level, representing the degree of quantum correlation.
+  coherenceTime: number; // ms, the duration for which a quantum system maintains its coherence.
 }
 
 // Quantum decoherence effects
+// This function simulates the loss of quantum coherence due to environmental noise and time.
+// As coherence decreases, the effectiveness of quantum effects diminishes.
 function applyQuantumDecoherence(state: QuantumState, environmentNoise: number, dt: number) {
   // Decoherence increases with noise and time
-  const decoherenceRate = environmentNoise * 0.01; // % per ms
+  const decoherenceRate = environmentNoise * 0.01; // % per ms, rate at which coherence is lost.
   state.coherenceTime -= dt * decoherenceRate;
   
   // When coherence time drops below threshold, quantum effects diminish
   if (state.coherenceTime < 100) {
-    state.entanglement *= 0.9; // Rapid loss of entanglement
+    state.entanglement *= 0.9; // Rapid loss of entanglement when coherence is low.
   }
 }
 
 // Quantum computing threat effects
+// This function applies the effects of a quantum threat, such as increasing decryption capabilities
+// and creating cross-domain impacts through entanglement.
 function applyQuantumThreat(threat: Threat, dt: number) {
   if (threat.domain === "QUANTUM") {
     const quantumProps = threat.quantumProperties;
     if (quantumProps) {
       // Increase decryption capability over time
-      quantumProps.decryptionTime = Math.max(1, quantumProps.decryptionTime * (1 - 0.01 * dt));
+      quantumProps.decryptionTime = Math.max(1, quantumProps.decryptionTime * (1 - 0.01 * dt)); // Decryption time decreases, meaning faster decryption.
       
       // Entanglement with other quantum systems
       threat.crossDomainImpacts.forEach(impact => {
         if (impact.domain === "CYBER") {
-          impact.multiplier += 0.1 * dt;
+          impact.multiplier += 0.1 * dt; // Quantum threats can amplify cyber impacts through entanglement.
         }
       });
     }
@@ -487,8 +538,12 @@ function applyQuantumThreat(threat: Threat, dt: number) {
 ```
 
 ## Energy Systems
+
+This section describes the energy systems that govern the power consumption and generation of various units and entities within ThreatForge. It includes models for unit energy consumption, different recharge behaviors, and energy generation from radiological decay.
+
 ```typescript
 // Military unit energy consumption modifiers
+// Defines how much energy different unit types consume relative to a base rate.
 const UNIT_ENERGY_MODIFIERS = {
   "INFANTRY": 1.0,
   "TANK": 1.8,
@@ -498,70 +553,72 @@ const UNIT_ENERGY_MODIFIERS = {
   "DRONE": 1.2,
   "QUANTUM_NODE": 5.0,
   "RAD_DISPERSAL": 2.0,
-  "ROBOTIC_SWARM": 1.5,  // NEW
-  "AUTONOMOUS_GROUND": 2.2  // NEW
+  "ROBOTIC_SWARM": 1.5,  // NEW: Energy modifier for robotic swarm units.
+  "AUTONOMOUS_GROUND": 2.2  // NEW: Energy modifier for autonomous ground units.
 };
 
 interface EnergySystem {
-  capacity: number;       // Max energy storage (Joules)
-  current: number;        // Current energy
-  rechargeRate: number;   // Joules per second
-  consumptionRate: number;// Joules per second during operation
+  capacity: number;       // Max energy storage (Joules), the maximum amount of energy the system can hold.
+  current: number;        // Current energy, the current energy level in Joules.
+  rechargeRate: number;   // Joules per second, the rate at which the system recharges.
+  consumptionRate: number;// Joules per second during operation, the rate at which energy is consumed when active.
   // NEW: Robotic energy systems
-  autonomyMode?: "SOLAR" | "BATTERY" | "NUCLEAR";
-  rechargeEfficiency?: number; // 0-1
+  autonomyMode?: "SOLAR" | "BATTERY" | "NUCLEAR"; // The primary energy source for autonomous systems.
+  rechargeEfficiency?: number; // 0-1, efficiency of the recharge process.
 }
 
 function updateEnergy(system: EnergySystem, isActive: boolean, dt: number) {
   if (isActive) {
-    system.current -= system.consumptionRate * dt;
+    system.current -= system.consumptionRate * dt; // Consume energy if the system is active.
   } else {
     // NEW: Different recharge behaviors
     let effectiveRate = system.rechargeRate;
     if (system.autonomyMode === "SOLAR") {
-      effectiveRate *= getSolarEfficiency();
+      effectiveRate *= getSolarEfficiency(); // Solar-powered systems recharge based on solar efficiency.
     }
     system.current = Math.min(
       system.capacity,
       system.current + effectiveRate * dt * (system.rechargeEfficiency || 1)
-    );
+    ); // Recharge energy, capped at capacity.
   }
 }
 
 // NEW: Radiological energy systems
+// This function simulates energy generation from radioactive decay, relevant for units or systems
+// powered by radiological sources. Energy is generated based on the half-life of the material.
 function updateRadiationEnergy(system: EnergySystem, halfLife: number, dt: number) {
   // Radioactive decay energy generation
-  const decayEnergy = 0.001 * system.capacity * (1 - Math.exp(-0.693 * dt / halfLife));
-  system.current = Math.min(system.capacity, system.current + decayEnergy);
+  const decayEnergy = 0.001 * system.capacity * (1 - Math.exp(-0.693 * dt / halfLife)); // Energy generated from decay.
+  system.current = Math.min(system.capacity, system.current + decayEnergy); // Add decay energy, capped at capacity.
 }
 ## Physics-Based Threat Propagation
 
+ThreatForge employs sophisticated physics models to simulate the realistic propagation of various threats across the game world. These models account for domain-specific characteristics and environmental factors, ensuring dynamic and emergent threat behaviors.
+
 ### Biological Threats
-- **Transmission Models**: Airborne, waterborne, vector-borne diffusion
-- **Health Effects**: Mortality rates based on age cohorts and health infrastructure
-- **Example**: Virus spread via fluid dynamics simulation with population density
+*   **Transmission Models**: Utilizes advanced epidemiological models to simulate the spread of biological threats through various vectors, including airborne diffusion, waterborne contamination, and vector-borne transmission (e.g., insects).
+*   **Health Effects**: Calculates mortality rates and other health impacts based on factors like population age cohorts, existing health infrastructure, and the virulence of the pathogen.
+*   **Example**: A highly contagious virus spreads through a densely populated urban area, modeled using fluid dynamics simulation combined with real-time population density data, leading to rapid infection rates and overwhelming healthcare systems.
 
 ### Cyber Threats
-- **Network Propagation**: Node-to-node infection models
-- **AI-Driven Attacks**: Adaptive malware using machine learning
-- **Example**: Botnet growth modeled as network contagion
+*   **Network Propagation**: Simulates the spread of cyber threats through interconnected networks using node-to-node infection models, accounting for network topology, security protocols, and vulnerabilities.
+*   **AI-Driven Attacks**: Models adaptive malware and AI-driven attacks that can learn and evolve using machine learning algorithms, making them more resilient and difficult to contain.
+*   **Example**: A sophisticated botnet grows exponentially by exploiting IoT vulnerabilities, modeled as a network contagion that rapidly infects devices across different geographical regions.
 
 ### Environmental Threats
-- **Atmospheric Dispersion**: Gaussian plume models for aerosol threats
-- **Geological Events**: Finite element analysis for earthquake/tsunami impacts
-- **Example**: Radioactive cloud dispersion with wind patterns
+*   **Atmospheric Dispersion**: Employs Gaussian plume models to simulate the dispersion of aerosol threats (e.g., chemical agents, pollutants) through the atmosphere, accounting for wind patterns, topography, and atmospheric stability.
+*   **Geological Events**: Utilizes finite element analysis to model the physical impacts of geological events like earthquakes and tsunamis, including ground shaking, structural damage, and wave propagation.
+*   **Example**: A radioactive cloud disperses across a continent, with its trajectory and concentration accurately modeled based on real-time wind patterns and atmospheric conditions, leading to widespread contamination.
 
 ### Quantum Effects
-- **Entanglement Propagation**: Non-local correlation models
-- **Decoherence Waves**: Probability field collapse simulations
-- **Example**: Quantum hacking wavefront propagation
+*   **Entanglement Propagation**: Simulates the non-local correlation and propagation of quantum entanglement, which can be leveraged for highly secure communication or for disruptive quantum attacks.
+*   **Decoherence Waves**: Models the collapse of quantum probability fields, representing the loss of quantum coherence and its impact on quantum systems, potentially leading to widespread system failures.
+*   **Example**: A quantum hacking wavefront propagates through a global quantum network, causing a cascade of decoherence and breaking encryption in real-time across multiple interconnected systems.
 
 ### Robotic Systems
-- **Swarm Movement**: Boids algorithm with obstacle avoidance
-- **Autonomy Failure**: Cascading error propagation models
-- **Example**: Drone swarm coordination physics
-
-These physics models enable realistic simulation of threat propagation across all domains.
+*   **Swarm Movement**: Implements advanced algorithms like the Boids model to simulate the coordinated movement of robotic swarms, including obstacle avoidance, flocking, and pursuit behaviors.
+*   **Autonomy Failure**: Models cascading error propagation within autonomous robotic systems, simulating how a single malfunction can lead to widespread system failures or unpredictable behaviors.
+*   **Example**: A drone swarm, initially deployed for surveillance, becomes rogue due to a cyber attack, and its coordinated movement and attack patterns are simulated using complex physics, leading to unexpected and devastating outcomes.
 
 # Cross-Domain Interactions
 
