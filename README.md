@@ -1,4 +1,4 @@
-# ThreatForge Simulator
+# ThreatForge
 
 ## Overview
 ThreatForge is a comprehensive, modular game engine for simulating modern global threats through educational and entertaining strategy/simulation experiences. The engine supports simulation across multiple threat domains including cyber, biological, environmental, quantum, radiological, and robotic dangers.
@@ -29,6 +29,3 @@ Detailed documentation is organized in the following files:
 - **Roadmap**: v1.0 core domains with expansions via mods
 - **Testing**: Automated testing for cross-domain interactions
 - **Deployment**: Browser-installable PWA with optional Electron wrapper
-
-```
-```
