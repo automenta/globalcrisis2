@@ -1,4 +1,4 @@
-# ThreatForge Game Engine
+
 
 ThreatForge is a comprehensive, modular game engine designed for simulating modern global threats in an educational and entertaining strategy/simulation experience. The engine supports simulation of various threat domains including biowarfare, cyber, environmental, quantum, radiological, and robotic dangers.
 
@@ -94,10 +94,10 @@ Mechanic | Extensibility Hook | Emergent Example |
 
 ThreatForge positions itself as an infinitely extensible platform for exploring global risks through immersive, emergent simulations grounded in realistic physics and complex system interactions.
 
-### BioForge Simulator: Complete Engine Specification
+### ThreatForge Simulator: Complete Engine Specification
 
 #### 1. Introduction and Overview
-BioForge Simulator is a comprehensive, modular game engine designed for simulating global pandemic biowarfare scenarios in an educational and entertaining strategy/simulation format. It evolves from prior designs into a fully specified engine, emphasizing unlimited extensibility through open-source architecture and modding tools, and open-ended emergent gameplay narratives via procedural generation, AI-driven interactions, and dynamic systems that allow unique stories to arise organically from player actions.
+ThreatForge Simulator is a comprehensive, modular game engine designed for simulating global pandemic biowarfare scenarios in an educational and entertaining strategy/simulation format. It evolves from prior designs into a fully specified engine, emphasizing unlimited extensibility through open-source architecture and modding tools, and open-ended emergent gameplay narratives via procedural generation, AI-driven interactions, and dynamic systems that allow unique stories to arise organically from player actions.
 
 Inspired by classics like *Dwarf Fortress* for its legendary emergent tales from simple rules
 , *RimWorld* for colony sim drama and extensive modding
@@ -112,7 +112,7 @@ The engine is built as an offline Progressive Web App (PWA) using HTML5/JavaScri
 Educational elements include in-game tooltips, debriefs, and optional "realism mode" explaining concepts like RNA transfection or psychodynamics. Entertainment comes from satirical events, achievements, and replayable scenarios. Win conditions are faction-specific and emergent (e.g., technocrats achieve depopulation without detection; resistance exposes all threats).
 
 #### 2. Core Architecture and Extensibility
-To achieve unlimited extensibility, BioForge is designed as a plugin-based engine with a decoupled modular system, allowing infinite customization without core code changes. This mirrors extensible engines like *The Machinery*
+To achieve unlimited extensibility, ThreatForge is designed as a plugin-based engine with a decoupled modular system, allowing infinite customization without core code changes. This mirrors extensible engines like *The Machinery*
  or *Godot*, where users can add new mechanics, assets, or even overhaul systems.
 
 - **Modular Structure**: Core modules (e.g., Population, Bioweapon) are independent, communicating via an event bus (Pub/Sub pattern in JS). New modules can be plugged in via a JSON manifest defining hooks (e.g., "onTurnEnd" events).
@@ -175,11 +175,11 @@ The engine uses a turn-based loop (weeks/months/years) with real-time elements. 
 - **Testing**: Unit tests for modules; playtests for emergence.
 - **Deployment**: Browser-installable PWA; optional Electron wrapper for desktop.
 
-This specification positions BioForge as a versatile engine: Infinitely extensible for creators, emergent for players, blending education with thrilling, unpredictable narratives.
+This specification positions ThreatForge as a versatile engine: Infinitely extensible for creators, emergent for players, blending education with thrilling, unpredictable narratives.
 
-### Revised Overview of the Game Engine: BioForge Simulator
+### Revised Overview of the Game Engine: ThreatForge Simulator
 
-BioForge Simulator has been expanded into a comprehensive, modular strategy/simulation engine that models global pandemic biowarfare scenarios with endless replayability. Drawing inspiration from classic games like *Plague Inc.* (for pathogen evolution and global spread mechanics)
+ThreatForge Simulator has been expanded into a comprehensive, modular strategy/simulation engine that models global pandemic biowarfare scenarios with endless replayability. Drawing inspiration from classic games like *Plague Inc.* (for pathogen evolution and global spread mechanics)
 , *Civilization* series (for faction-based grand strategy, tech trees, and long-term progression)
 , *SimCity*/*Cities: Skylines* (for detailed management of resources, populations, and unintended consequences)
 , *Democracy 3/4* (for political influence and policy simulation)
@@ -274,11 +274,11 @@ Network graph with procedural media landscapes.
 - **Balancing & Endless Play**: Configurable difficulty; procedural algos ensure variety (e.g., infinite threat waves).
 - **Ethics**: Disclaimers; optional "realism mode" toggles sensitive topics.
 
-This revision makes BioForge a complete, flexible engine: Educational through simulation, entertaining via strategy/humor, and endlessly replayable like the classics it draws from.
+This revision makes ThreatForge a complete, flexible engine: Educational through simulation, entertaining via strategy/humor, and endlessly replayable like the classics it draws from.
 
-### Overview of the Game Engine: BioForge Simulator
+### Overview of the Game Engine: ThreatForge Simulator
 
-BioForge is an educational simulation/strategy game engine designed to model the complexities of global pandemic biowarfare scenarios. It serves as a modular, turn-based strategy engine where players assume the role of a covert organization (e.g., a shadowy elite group, government agency, or pharmaceutical conglomerate) engineering and deploying bioweapons for objectives like depopulation, geopolitical control, or profit maximization. The engine educates players on real-world scientific, sociological, and ethical concepts by integrating them into gameplay mechanics, forcing strategic decisions that reveal unintended consequences, risks, and interconnections.
+ThreatForge is an educational simulation/strategy game engine designed to model the complexities of global pandemic biowarfare scenarios. It serves as a modular, turn-based strategy engine where players assume the role of a covert organization (e.g., a shadowy elite group, government agency, or pharmaceutical conglomerate) engineering and deploying bioweapons for objectives like depopulation, geopolitical control, or profit maximization. The engine educates players on real-world scientific, sociological, and ethical concepts by integrating them into gameplay mechanics, forcing strategic decisions that reveal unintended consequences, risks, and interconnections.
 
 The engine is built on a core simulation loop: **Research & Development** → **Testing & Deployment** → **Influence & Propaganda** → **Monitoring & Adaptation** → **Outcome Evaluation**. Each turn represents a month or quarter, with global events triggering dynamically based on player actions and random variables (e.g., mutations, leaks). The engine uses a probabilistic model for outcomes, drawing from Monte Carlo simulations to reflect uncertainty in biology and human behavior.
 
@@ -365,3 +365,32 @@ Manages narrative control, teaching about media and disinformation.
 - **Ethics Disclaimer**: In-game warnings emphasize this is fictional/educational, not endorsement of theories.
 
 This engine provides a deep, replayable experience that educates through immersion, revealing how interconnected systems could enable or thwart biowarfare agendas.
+
+```mermaid
+graph TD
+    A[Core Architecture] --> B[Game State]
+    A --> C[Threat Mechanics]
+    A --> D[Action System]
+    A --> E[Systems]
+    A --> F[Visualization]
+    A --> G[Physics]
+    
+    B --> H[World State]
+    B --> I[Factions]
+    
+    C --> J[Basic Mechanics]
+    C --> K[Advanced Mechanics]
+    
+    D --> L[Action Types]
+    D --> M[Implementations]
+    
+    E --> N[Cross-Domain]
+    E --> O[Narrative]
+    E --> P[Integration]
+    
+    F --> Q[Data Visualization]
+    F --> R[UI Enhancements]
+    
+    G --> S[Classical Physics]
+    G --> T[Quantum Physics]
+```
