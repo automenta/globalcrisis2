@@ -67,6 +67,10 @@ interface PopulationPyramid {
     trust: number;
     fear: number;
     compliance: number;
+    // Pharmaceutical warfare effects
+    addictionLevel?: number; // 0-1 scale
+    dependencyLevel?: number; // 0-1 scale
+    contaminationExposure?: number; // 0-1 scale
   };
 }
 ```
@@ -105,13 +109,13 @@ interface Faction {
     environmentalManipulation: boolean;
     spaceDominance: boolean;
     // NEW: Geoengineering and space weather capabilities
-    geoengineering?: boolean;          // For manipulating climate/geology
-    spaceWeatherControl?: boolean;     // For manipulating space weather
+    geoengineering: boolean;          // For manipulating climate/geology
+    spaceWeatherControl: boolean;     // For manipulating space weather
     // Faction-specific capabilities
-    aiAssistedDesign?: boolean;       // For TECHNOOCRAT and PHARMA
-    mediaPropaganda?: boolean;         // For CONTROLLED_OPPOSITION
-    whistleblowerNetworks?: boolean;   // For RESISTANCE and HERO_DOCTOR
-    diplomaticImmunity?: boolean;      // For NATION_STATE
+    aiAssistedDesign: boolean;       // For TECHNOOCRAT and PHARMA
+    mediaPropaganda: boolean;         // For CONTROLLED_OPPOSITION
+    whistleblowerNetworks: boolean;   // For RESISTANCE and HERO_DOCTOR
+    diplomaticImmunity: boolean;      // For NATION_STATE
   };
   // Spatial capabilities
   militaryUnits: MilitaryUnit[];
@@ -150,7 +154,7 @@ interface ResourcePool {
 interface MilitaryUnit {
   id: string;
   factionId: string;
-  type: "INFANTRY" | "TANK" | "AIRCRAFT" | "NAVAL" | "CYBER" | "DRONE" | "AUTONOMOUS_GROUND" | "ROBOTIC_SWARM" | "QUANTUM_NODE" | "RAD_DISPERSAL";
+  type: "INFANTRY" | "TANK" | "AIRCRAFT" | "NAVAL" | "CYBER" | "DRONE" | "AUTONOMOUS_GROUND" | "ROBOTIC_SWARM" | "QUANTUM_NODE" | "RAD_DISPERSAL" | "TUNNELER" | "SPACE_PLATFORM";
   position: [number, number];   // [longitude, latitude]
   velocity: [number, number];   // [m/s east, m/s north]
   mass: number;                 // Kilograms
@@ -173,6 +177,9 @@ interface Satellite {
   velocity: [number, number, number]; // km/s
   mass: number;                 // kg
   abilities: UnitAbility[];     // Faction-specific special abilities
+  // Space weather vulnerabilities
+  solarFlareVulnerability?: number; // 0-1 scale
+  radiationSensitivity?: number;    // 0-1 scale
 }
 
 ## 3. Threat Mechanics
@@ -206,6 +213,10 @@ interface Threat {
     incubationPeriod?: number;   // in days
     mortalityRate?: number;      // 0-1
     transmissionVectors?: string[]; // e.g., ["airborne", "waterborne"]
+    // Pharmaceutical warfare properties
+    addictionPotential?: number; // 0-1 scale
+    dependencyRate?: number; // 0-1 scale, how quickly dependency develops
+    contaminationMethods?: string[]; // e.g., "WATER_SUPPLY", "AIRBORNE", "FOOD_CHAIN"
   };
   cyberProperties?: {
     attackVector?: "NETWORK" | "PHYSICAL" | "SOCIAL";
@@ -215,17 +226,19 @@ interface Threat {
   environmentalProperties?: {
     temperatureSensitivity?: number; // 0-1 scale
     precipitationDependency?: number; // 0-1 scale
-    // Weather and geological events
+    // Weather, geological, and space events
     weatherEvents?: string[]; // e.g., ["HURRICANE", "DROUGHT", "ACID_RAIN"]
-    geologicalEvents?: string[]; // e.g., ["EARTHQUAKE", "VOLCANO", "SUBSIDENCE"]
+    geologicalEvents?: string[]; // e.g., ["EARTHQUAKE", "VOLCANO", "SUBSIDENCE", "TSUNAMI"]
+    spaceWeatherEvents?: string[]; // e.g., ["SOLAR_FLARE", "RADIATION_STORM", "GEOMAGNETIC_STORM"]
     severityScale?: number; // 1-10 scale for event intensity
     // Construction and deployment contexts
-    deploymentLocation?: "SURFACE" | "UNDERGROUND" | "OCEANIC" | "ATMOSPHERIC";
+    deploymentLocation?: "SURFACE" | "UNDERGROUND" | "OCEANIC" | "ATMOSPHERIC" | "ORBITAL";
     // Geoengineering and climate manipulation
-    geoengineeringProjects?: string[]; // e.g., ["CLOUD_SEEDING", "SOLAR_RADIATION_MANAGEMENT"]
+    geoengineeringProjects?: string[]; // e.g., ["CLOUD_SEEDING", "SOLAR_RADIATION_MANAGEMENT", "CARBON_CAPTURE"]
     climateManipulation?: {
       targetTemperature?: number; // in degrees Celsius
       areaOfEffect?: number; // km²
+      duration?: number; // turns
     };
   };
   quantumProperties?: {
@@ -373,11 +386,14 @@ flowchart LR
   H --> AA[Swarm Command]       // NEW
   H --> AB[Autonomy Override]   // NEW
   H --> AC[Robotic Sabotage]    // NEW
+  
+  I --> AD[Geoengineering]      // NEW
+  I --> AE[Climate Control]     // NEW
 ```
 
 interface Action {
   id: string;
-  type: "THREAT" | "INFLUENCE" | "INVESTIGATION" | "ECONOMIC" | "QUANTUM" | "RADIOLOGICAL" | "ROBOTIC"; // UPDATED
+  type: "THREAT" | "INFLUENCE" | "INVESTIGATION" | "ECONOMIC" | "QUANTUM" | "RADIOLOGICAL" | "ROBOTIC" | "ENVIRONMENTAL"; // UPDATED
   name: string;
   description: string;
   resourceCost: ResourcePool;
@@ -418,6 +434,36 @@ const QuantumActions: Action[] = [
     ],
     cooldown: 5,
     requiredCapabilities: ["quantumOperations"]
+  }
+];
+
+// NEW: Environmental manipulation actions
+const EnvironmentalActions: Action[] = [
+  {
+    id: "geoengineering",
+    type: "ENVIRONMENTAL",
+    name: "Geoengineering Project",
+    description: "Deploy large-scale climate manipulation technology",
+    resourceCost: { funds: 1500, tech: 1200 },
+    successProbability: 0.65,
+    effects: [
+      { target: "ENV", modifier: -0.5, duration: 8 }
+    ],
+    cooldown: 10,
+    requiredCapabilities: ["geoengineering"]
+  },
+  {
+    id: "weather_control",
+    type: "ENVIRONMENTAL",
+    name: "Weather Control",
+    description: "Manipulate local weather patterns for strategic advantage",
+    resourceCost: { funds: 1000, tech: 800 },
+    successProbability: 0.7,
+    effects: [
+      { target: "REGION", modifier: 0.4, duration: 5 }
+    ],
+    cooldown: 7,
+    requiredCapabilities: ["spaceWeatherControl"]
   }
 ];
 
@@ -764,6 +810,8 @@ interface Faction {
     zoneRestrictions: string[]; // Allowed deployment zones
     // NEW: Deployment contexts
     deploymentContexts: ("SURFACE" | "UNDERGROUND" | "ORBITAL" | "AQUATIC")[];
+    // NEW: Unit type restrictions
+    unitTypeRestrictions?: MilitaryUnit['type'][];
   };
 }
 ```
@@ -842,6 +890,38 @@ function updateSwarmMovement(swarm: MilitaryUnit, cohesion: number, dt: number) 
   // Update position
   swarm.position[0] += swarm.velocity[0] * dt;
   swarm.position[1] += swarm.velocity[1] * dt;
+}
+
+// NEW: Geological event simulation
+function simulateGeologicalEvent(region: Region, eventType: string, magnitude: number) {
+  switch (eventType) {
+    case "EARTHQUAKE":
+      // Shake all units in region
+      region.militaryUnits.forEach(unit => {
+        unit.velocity[0] += (Math.random() - 0.5) * magnitude * 0.1;
+        unit.velocity[1] += (Math.random() - 0.5) * magnitude * 0.1;
+      });
+      break;
+      
+    case "VOLCANO":
+      // Create ash cloud that affects aircraft
+      region.militaryUnits
+        .filter(u => u.type === "AIRCRAFT")
+        .forEach(unit => {
+          unit.energy *= 0.8; // Ash reduces engine efficiency
+        });
+      break;
+      
+    case "TSUNAMI":
+      // Push naval units
+      region.militaryUnits
+        .filter(u => u.type === "NAVAL")
+        .forEach(unit => {
+          unit.velocity[0] += magnitude * 0.2;
+          unit.velocity[1] += magnitude * 0.2;
+        });
+      break;
+  }
 }
 ```
 
@@ -1192,6 +1272,11 @@ function renderEconomicFlow(region: Region, ctx: CanvasRenderingContext2D) {
   if (region.quantumEconomicImpact) {
     drawQuantumEconomicEffects(ctx, region.quantumEconomicImpact);
   }
+  
+  // NEW: Render pharmaceutical impacts
+  if (region.pharmaceuticalImpact) {
+    drawPharmaceuticalEffects(ctx, region.pharmaceuticalImpact);
+  }
 }
 
 ## 11. Integration with Game Systems
@@ -1437,7 +1522,12 @@ function generateWeather(region: Region, globalClimate: number): WeatherSystem {
       duration: Math.floor(3 + Math.random() * 10) // 3-12 turns
     },
     effects: calculateWeatherEffects(weatherType, intensity),
-    forecast: generateForecast(region, globalClimate)
+    forecast: generateForecast(region, globalClimate),
+    // NEW: Space weather integration
+    spaceWeather: {
+      solarFlareProbability: Math.random() * region.attributes.climateVulnerability,
+      radiationLevel: Math.random() * 0.5
+    }
   };
 }
 ```
