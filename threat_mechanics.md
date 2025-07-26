@@ -161,3 +161,50 @@ function evolveSwarmIntelligence(threat: Threat, dt: number): void {
     }
   }
 }
+## Domain-Specific Threat Details
+
+### Biological/Pandemic Threats
+- **Key Components**: Transfection biophysics, health effects, RNA/DNA production, lab leaks, animal testing, depopulation, personalized medicine, placebos/dosage, illicit overdoses
+- **Emergent Examples**: Fake pandemic hoax escalates to real outbreak via mutated vectors, intersecting with economic lockdowns causing societal unrest
+
+### Cybersecurity/Technological Threats
+- **Key Components**: AI-driven malware/deepfakes, ransomware (triple extortion), supply chain attacks, IoT/5G vulnerabilities, social engineering, cloud intrusions, malware-free techniques, AI drug/protein discovery analogs
+- **Emergent Examples**: Cyber breach exposes WMD plans, triggering geopolitical retaliation; AI autonomy leads to rogue botnets allying with info disinfo campaigns
+
+### Geopolitical/Military Threats
+- **Key Components**: Nation-state actors, interstate conflicts, assassination plotting, sabotage/information ops, military modernization, terrorism
+- **Emergent Examples**: Border tensions combine with cyber ops emerging into hybrid wars; economic coercion backfires into alliances
+
+### Environmental/Climate Threats
+- **Key Components**: Extreme weather, biodiversity loss, geoengineering, natural disasters, climate action failure, involuntary migration
+- **Emergent Examples**: Engineered drought (fake as "natural") amplifies economic instability leading to geopolitical resource wars
+
+### Economic/Financial Threats
+- **Key Components**: Debt crises, asset bubbles, market crashes, crypto manipulations, economic downturns, supply chain disruptions
+- **Emergent Examples**: Triple extortion ransomware ties to financial extortion; bubble burst from cyber attack cascades into global recession
+
+### Information/Psychological Threats
+- **Key Components**: Mis/disinformation, deepfakes, societal polarization, propaganda, controlled opposition, psychodynamics manipulation
+- **Emergent Examples**: Fake threats intersect with bio hoaxes; polarization sparks real conflicts amplified by AI-generated content
+
+### Space/Counterspace Threats
+- **Key Components**: Satellite vulnerabilities, anti-satellite weapons, orbital debris, space-based EMPs, ISR disruptions
+- **Emergent Examples**: Nuclear device in orbit triggers cyber retaliation; debris cascade disables global comms
+
+### WMD Threats
+- **Key Components**: Nuclear proliferation, chemical agents, radiological dispersal, WMD delivery strategies
+- **Emergent Examples**: Chem-bio hybrids; proxy use escalates to full-scale wars intersecting with space threats
+
+### Quantum Computing Threats
+- **Key Components**: Decryption attacks, computational sabotage, AI acceleration, simulation manipulation
+- **Emergent Examples**: Quantum hack breaks global encryption causing economic collapse; AI systems become uncontrollable
+
+### Robotics/Autonomous Threats
+- **Key Components**: Drone swarms, autonomous weapons, robotic labor displacement, AI integration
+- **Emergent Examples**: Robotic factory sabotage causes supply chain collapse; hacked drones turn into assassination tools
+
+## Cross-Domain Integration
+Threats compound across domains (e.g., climate disaster + cyber attack = mass migration + economic collapse). Physics engine models combined effects including:
+- Quantum decryption + radiological = undetectable dirty bombs
+- AI malware + misinformation = societal coup
+- Radiological events + migration = faction conflicts

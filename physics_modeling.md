@@ -231,3 +231,31 @@ function updateRadiationEnergy(system: EnergySystem, halfLife: number, dt: numbe
   const decayEnergy = 0.001 * system.capacity * (1 - Math.exp(-0.693 * dt / halfLife));
   system.current = Math.min(system.capacity, system.current + decayEnergy);
 }
+## Physics-Based Threat Propagation
+
+### Biological Threats
+- **Transmission Models**: Airborne, waterborne, vector-borne diffusion
+- **Health Effects**: Mortality rates based on age cohorts and health infrastructure
+- **Example**: Virus spread via fluid dynamics simulation with population density
+
+### Cyber Threats
+- **Network Propagation**: Node-to-node infection models
+- **AI-Driven Attacks**: Adaptive malware using machine learning
+- **Example**: Botnet growth modeled as network contagion
+
+### Environmental Threats
+- **Atmospheric Dispersion**: Gaussian plume models for aerosol threats
+- **Geological Events**: Finite element analysis for earthquake/tsunami impacts
+- **Example**: Radioactive cloud dispersion with wind patterns
+
+### Quantum Effects
+- **Entanglement Propagation**: Non-local correlation models
+- **Decoherence Waves**: Probability field collapse simulations
+- **Example**: Quantum hacking wavefront propagation
+
+### Robotic Systems
+- **Swarm Movement**: Boids algorithm with obstacle avoidance
+- **Autonomy Failure**: Cascading error propagation models
+- **Example**: Drone swarm coordination physics
+
+These physics models enable realistic simulation of threat propagation across all domains.

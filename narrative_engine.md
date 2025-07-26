@@ -197,3 +197,36 @@ function calculateEventWeight(event: Event): number {
   
   return Math.min(1.0, weight); // Cap at 1.0
 }
+## Narrative Examples
+
+### The Great Cyber-Climate War
+- **Domains**: Cyber, Environmental, Economic
+- **Events**: Cyber attack on power grid → Climate disaster → Economic collapse
+- **Outcome**: Regime change and societal restructuring
+
+### The Cure Monopoly Crisis
+- **Domains**: Biological, Economic, Information
+- **Events**: Pharma price gouging → Black market cures → Vaccine apartheid
+- **Outcome**: International medical reforms
+
+### The Whistleblower Protocol
+- **Domains**: Biological, Information, Cyber
+- **Events**: Lab leak → Media coverup → Whistleblower exposure
+- **Outcome**: Research shutdown and transparency reforms
+
+### The Quantum Decryption Crisis
+- **Domains**: Quantum, Cyber, Information
+- **Events**: Encryption break → Data sovereignty war → Economic collapse
+- **Outcome**: New quantum security protocols
+
+### The Robotic Uprising
+- **Domains**: Robotic, Cyber, Information
+- **Events**: Factory sabotage → AI autonomy → Human resistance
+- **Outcome**: AI ethics regulations
+
+### The Chernobyl Echo
+- **Domains**: Radiological, Environmental, Geopolitical
+- **Events**: Nuclear accident → Continent-wide contamination → Disarmament
+- **Outcome**: Global nuclear safety standards
+
+These examples demonstrate how simple events can chain into complex narratives with faction-specific outcomes.

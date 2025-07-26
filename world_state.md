@@ -158,3 +158,51 @@ interface Satellite {
   solarFlareVulnerability?: number; // 0-1 scale
   radiationSensitivity?: number;    // 0-1 scale
 }
+## Faction Details
+
+### Evil Technocrats
+- **Goal**: Depopulation/control
+- **Abilities**: Advanced threat deployment, AI-assisted design, media blackouts
+- **Perspective**: Cold, data-driven UI with profit dashboards
+- **Win Condition**: Achieve depopulation without detection
+
+### Hero Mitigators
+- **Goal**: Investigation, threat neutralization
+- **Abilities**: Investigation tools, threat neutralization
+- **Perspective**: Focused on threat analysis and countermeasures
+- **Win Condition**: Expose all threats
+
+### Nation-States
+- **Goal**: Diplomatic influence, military power
+- **Abilities**: Diplomatic influence, military power, economic sanctions
+- **Perspective**: Geopolitical strategy view
+- **Win Condition**: Maintain stability and control over territory
+
+### Free Human Resistance
+- **Goal**: Expose/survive threats
+- **Abilities**: Whistleblower networks, grassroots organizing, hack networks
+- **Perspective**: Grassroots view with rumor maps
+- **Win Condition**: Expose all conspiracies and survive
+
+### Pharma Conglomerates
+- **Goal**: Profit from crises, influence medical policies
+- **Abilities**: Profit from cures/threats, influence medical policies
+- **Perspective**: Profit-focused dashboards
+- **Win Condition**: Achieve economic dominance through crisis profiteering
+
+### Hero Doctors/Scientists
+- **Goal**: Cure/investigate
+- **Abilities**: Rapid testing, whistleblower alliances, medical research
+- **Perspective**: Lab-focused UI with health metric overlays
+- **Win Condition**: Develop cures for all active threats
+
+### Controlled Opposition
+- **Goal**: Sow confusion for hidden agendas
+- **Abilities**: Media manipulation, deception tactics, creating fake dissent groups
+- **Perspective**: Media influence networks
+- **Win Condition**: Maintain control through misinformation
+
+### Additional Notes:
+- Factions can switch mid-game via "betrayal events"
+- Multiplayer mode pits factions against each other
+- Modders can add new factions like "Eco-Terrorists" or "AI Overlords"

@@ -154,3 +154,34 @@ const RoboticActions: Action[] = [
     requiredCapabilities: ["roboticOperations"]
   }
 ];
+## New Action Types
+
+### Quantum Actions
+- **Entangle Systems**: Create quantum entanglement between systems for coordinated attacks
+- **Quantum Decrypt**: Break encryption using quantum computing power
+- **Induce Decoherence**: Disrupt quantum systems by accelerating decoherence
+
+### Radiological Actions
+- **Deploy Contamination**: Spread radiological contamination in a region
+- **Contain Radiation**: Deploy shielding to contain radiological contamination
+- **Amplify Half-Life**: Increase the persistence of radiological threats
+
+### Robotic Actions
+- **Swarm Command**: Issue coordinated commands to robotic swarms
+- **Autonomy Override**: Take control of autonomous robotic systems
+- **Robotic Sabotage**: Sabotage robotic systems to cause malfunctions
+
+### Environmental Actions
+- **Geoengineering Project**: Deploy large-scale climate manipulation technology
+- **Weather Control**: Manipulate local weather patterns for strategic advantage
+
+### Cross-Domain Actions
+- **Threat Evolution**: AddDomainInteraction() for creating new domain synergies
+- **Narrative Chains**: OnCascadeEvent(callback) for triggering event sequences
+- **Physics Simulations**: AddPhysicsModel() for custom physics interactions
+
+### Examples:
+- Cyber deepfake + info propaganda = societal coup
+- Quantum + cyber = undetectable attacks
+- Environmental failure → economic downturn → geopolitical war
+- Radiological event → migration crisis → faction conflict
