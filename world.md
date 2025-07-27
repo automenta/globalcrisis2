@@ -1,3 +1,84 @@
+Simulation/strategy/war game, prioritizing performance on commodity PCs (e.g., Intel i5/i7 or AMD equivalent, 16GB RAM, GTX 1660/RTX 3050 GPU) to ensure smooth single-player operation at 60 FPS with 1080p resolution and medium settings. The core architecture remains Sparse Voxel Octrees (SVOs) for efficient storage and rendering, but with enhanced optimizations like aggressive Level of Detail (LOD), zoned simulation throttling, and procedural on-demand generation to minimize CPU/GPU load. Multiplayer potential is preserved via a client-server model (e.g., using WebSockets or UDP for low-latency sync), where servers handle shared state, but single-player runs entirely locally without network overhead, simulating AI opponents or neutral entities.
+
+The planet scale stays at ~50 km radius (~31,400 km² surface) for complex gameplay, but voxel resolution and simulation depth are dynamically scaled based on hardware detection (e.g., auto-reduce to 2m³ base voxels on lower-end PCs). This allows human-scale details (e.g., 10m buildings) while ensuring feasibility—total active memory footprint targets <8GB, with CPU usage <50% during typical play. Testing assumptions are based on Unity or Godot engine implementations, leveraging multithreading and GPU acceleration.
+
+### Planet Structure and Generation
+Generation is procedural and lazy-loaded to avoid upfront costs. Only player-visible or interacted chunks are fully realized, reducing initial load times to <30 seconds.
+
+- **Orbit**: Thinned to ~2-5 km thick, with sparser procedural spawns (e.g., 1-2% voxel occupancy). Orbital mechanics use precomputed trajectories for entities, updated at 1-5 Hz globally.
+
+- **Atmosphere**: Reduced to 3-5 km thick, with weather simulated via 2D heightmaps projected onto voxels (e.g., cloud layers as billboards at distance). Density gradients use simple linear falloff.
+
+- **Surface (Land and Water)**: Core layer at ~50-100m thick. Biomes generated with fewer noise octaves (3-4) for faster computation. Water uses a hybrid grid: voxel-based near players for interaction, wave equation simulation elsewhere at low res.
+
+- **Underground**: Depth capped at 5 km for performance (still deep enough for D.U.M.B.s spanning 1-2 km). Procedural features like caves use seeded noise with early termination for unexplored areas.
+
+Revised Generation Process:
+1. Use a lower-res cubed-sphere grid (e.g., 64x64 faces) for base topology.
+2. Generate on-demand: When a chunk loads, apply noise locally with caching.
+3. Erosion/water simulation runs in background threads, batched over frames to avoid hitches.
+
+This ensures single-player worlds load progressively, with no stutters during exploration.
+
+### Voxel System
+Voxels remain 1m³ base (configurable to 2m³), stored in SVOs with deeper compression (e.g., run-length encoding for uniform regions like ocean depths).
+
+- **Storage**: Target <4GB for the entire planet via sparsity (e.g., underground mostly empty/collapsed until dug). Unloaded chunks serialize to disk for seamless saving.
+
+- **Dynamic Updates**: Limit edits to 100-500 voxels/frame. Use dirty flags for mesh regeneration only on changes. LOD merges voxels at distance (e.g., 16m³ beyond 500m).
+
+- **Granularity**: Supports human-scale (e.g., 5m roads as voxel strips with pathfinding overlays). For performance, auto-merge adjacent identical voxels into larger blocks during idle frames.
+
+### Deployable/Autonomous Entity Types
+Entity count capped at 1,000-5,000 active globally in single-player (e.g., via pooling and sleep states for distant units). ECS architecture includes a performance profiler to throttle AI.
+
+| Entity Type | Revised Description | Autonomy/Deployment | Optimization |
+|-------------|---------------------|----------------------|--------------|
+| **Static Deployables** | Voxel-integrated structures. | Manual deployment; no AI. | Pre-baked meshes for common buildings; lazy voxel integration. |
+| **Mobile Units** | AI-driven agents. | Deploy from bases; pathfinding batched every 0.5s. | LOD behaviors: Distant units simulate at 1Hz, aggregate into squads. |
+| **Orbital Assets** | Space entities. | Autonomous orbits. | Simplified physics; offloaded to GPU compute shaders. |
+| **Biological Entities** | Ecosystem agents. | Procedural spawning/migration. | Cull off-screen; use flock simulations for herds to reduce per-entity checks. |
+
+In single-player, AI uses behavior trees with priority queuing (e.g., player-near entities update at 30Hz, others at 5Hz). Multiplayer syncs entity deltas only, reducing bandwidth.
+
+### Pluggable Properties and Systems
+Systems are modular and throttled: Global updates run at 1-10Hz, local (player vicinity) at 30Hz. Plugins can self-optimize via config files (e.g., disable high-fidelity modes).
+
+| System | Revised Description | Pluggability | Performance Tweaks |
+|--------|---------------------|--------------|--------------------|
+| **Physical** | Destruction/fluids/gravity. | Custom forces via hooks. | Proximity-based: Full sim in 200m radius; approximations elsewhere (e.g., no fluid flow in unloaded chunks). |
+| **Social** | Factions/morale. | AI/diplomacy extensions. | Event-driven: Only recompute on interactions. |
+| **Economic** | Resources/trading. | Scriptable markets. | Batch processing: Update chains every 5s; use voxel tags for passive yields. |
+| **Biological** | Growth/diseases. | Species data files. | Cellular automata on GPU; skip cycles in stable areas. |
+| **Climate/Weather** | Temp/rain/seasons. | Modular weathers. | 2D simulation grid (1km resolution) projected to voxels; affects only loaded areas. |
+
+Multithreading ensures systems parallelize (e.g., physics on 4-6 cores). Single-player disables network serialization overhead.
+
+### Depth for Underground/Undersea Bases (D.U.M.B.s)
+Depth remains viable at 5 km, but with zoned loading: Only excavated areas stay in memory. Pressure/heat simulations use lookup tables instead of per-voxel computes. Bases load as "instances" with interior high-res voxels, exteriors low-res for overview maps.
+
+### Feasible Resolution for Semi-Realistic Realtime Physics Updates
+- **Resolution**: Dynamic LOD: 1m³ near player (100m radius), scaling to 8m³ at 1km, 64m³ globally. Active voxels per frame: ~10⁵-10⁶, feasible on commodity hardware.
+- **Physics**: Approximations include rigid body for small scales, particle systems for debris. Updates multi-threaded and zoned—e.g., global gravity at low freq, local collisions at high. Frame budget: <10ms physics tick.
+- **Optimization Suite**:
+  - Chunking: 32x32x32 voxel chunks, loaded in a 5x5x5 grid around player (~160 chunks max).
+  - Culling: Frustum/occlusion for rendering; spatial partitioning (octrees) for queries.
+  - Hardware Adaptation: Runtime profiling adjusts entity caps, sim rates (e.g., halve on detected low FPS).
+  - Single-Player Boost: No sync overhead; AI can pause in unexplored regions.
+
+Benchmarks (estimated): Exploration at 60 FPS, intense battles (100 entities) at 45-60 FPS on target hardware.
+
+### 3D Rendering and UI Interaction
+- **Rendering**: GPU-focused—Marching Cubes on compute shaders for meshes, ray marching for atmospheres at reduced samples (4-8). Fallback to rasterization on weaker GPUs. Global illumination via baked probes + screen-space effects.
+- **UI Interaction**: Streamlined for performance—raycasts limited to screen center, UI elements batched. Single-player includes pause/resume for heavy computations. Minimap uses 2D projection with LOD textures.
+
+### Scale Considerations
+- **Overall Scale**: 50 km radius balances complexity (e.g., multi-continent wars) with load—full planet traversal takes ~hours in-game, but fast travel via orbitals.
+- **Granularity vs. Performance**: Human-scale details preserved, but with auto-optimizations (e.g., merge roads into textures at distance).
+- **Single-Player Focus**: Runs standalone; multiplayer as optional mode (host local server or connect to dedicated). This ensures "ultimate success" by making the game accessible and engaging solo, with scalable depth for groups.
+
+
+
 # World State Representation
 
 This document describes the core data structures and systems used to represent the game world in ThreatForge. It covers the global `WorldState`, detailed `Region` and `Faction` interfaces, and the underlying physics and environmental models that drive the simulation.
