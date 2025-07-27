@@ -204,7 +204,9 @@ enum FactionType {
   RESISTANCE = "Free Human Resistance", // Works to expose hidden agendas and fight for human freedom.
   HERO_DOCTOR = "Hero Doctor/Scientist", // Dedicated to scientific research, cures, and public health.
   PHARMA = "Pharma Conglomerate",   // A corporate entity seeking to profit from global crises, particularly in the biological domain.
-  CONTROLLED_OPPOSITION = "Controlled Opposition" // A deceptive faction designed to sow confusion and serve hidden agendas.
+  CONTROLLED_OPPOSITION = "Controlled Opposition", // A deceptive faction designed to sow confusion and serve hidden agendas.
+  NEURO_CORP = "Neuro-Corporation", // Specializes in cognitive threats
+  CLIMATE_ENGINEER = "Geo-Climate Engineer" // Specializes in large-scale environmental manipulation
 }
 
 interface Faction {
@@ -240,6 +242,10 @@ interface Faction {
     roboticCommand: boolean;          // For controlling robotic systems
     misinformationCampaigns: boolean; // For information warfare
     economicSanctions: boolean;       // For targeted financial attacks
+    // NEW: Specialized faction capabilities
+    neuroManipulation: boolean;       // Can deploy cognitive/neuro threats
+    planetaryEngineering: boolean;    // Can execute large-scale geoengineering
+    temporalOperations: boolean;      // Can manipulate perceived time
   };
   // Spatial capabilities
   militaryUnits: MilitaryUnit[]; // An array of military units controlled by this faction.
@@ -284,7 +290,8 @@ interface MilitaryUnit {
   factionId: string; // The ID of the faction that owns this unit.
   type: "INFANTRY" | "TANK" | "AIRCRAFT" | "NAVAL" | "CYBER" | "DRONE" | 
         "AUTONOMOUS_GROUND" | "ROBOTIC_SWARM" | "QUANTUM_NODE" | 
-        "RAD_DISPERSAL" | "TUNNELER" | "SPACE_PLATFORM"; // The type of military unit.
+        "RAD_DISPERSAL" | "TUNNELER" | "SPACE_PLATFORM" | 
+        "NEURO_IMPLANT" | "CLOUD_SEEDER" | "CHRONO_DISRUPTOR" | "GRAVITY_WELL_GENERATOR"; // The type of military unit.
   position: [number, number];   // [longitude, latitude] coordinates of the unit's current location.
   velocity: [number, number];   // [m/s east, m/s north] current velocity vector of the unit.
   mass: number;                 // Kilograms, the mass of the unit, affecting physics interactions.
@@ -692,6 +699,32 @@ function applyQuantumThreat(threat: Threat, dt: number) {
     }
   }
 }
+
+// Neurological threat propagation
+function propagateNeuroThreat(threat: Threat, populationDensity: number): void {
+  if (threat.domain !== "BIO" || !threat.biologicalProperties) return;
+  
+  const { transmissionVectors, addictionPotential } = threat.biologicalProperties;
+  let neuroModifier = 1.0;
+  
+  if (transmissionVectors.includes("NEURAL_LINK")) {
+    neuroModifier += populationDensity * 0.5;
+  }
+  if (addictionPotential > 0.6) {
+    neuroModifier *= 1 + (addictionPotential * 0.8);
+  }
+  
+  threat.spreadRate *= neuroModifier;
+}
+
+// Quantum-gravity interactions
+function applyQuantumGravityEffects(quantumState: QuantumState, region: Region): void {
+  const gravityDistortion = 0.01 * quantumState.entanglement * region.elevation;
+  region.militaryUnits.forEach(unit => {
+    unit.velocity[0] *= 1 + gravityDistortion;
+    unit.velocity[1] *= 1 + gravityDistortion;
+  });
+}
 ```
 
 ## Energy Systems
@@ -795,6 +828,9 @@ ThreatForge employs sophisticated physics models to simulate the realistic propa
 | Robot + Cyber | 2.5x autonomy | Hacked robots turn against owners |
 | Robot + Info | 1.7x deception | Robot networks spread disinformation |
 | Robot + Bio | 3.0x horror | Robotic organ harvesting operations |
+| Neuro + Quantum | 3.2x cognitive impact | Quantum-entangled neural networks |
+| Climate + Space | 2.5x weather control  | Orbital climate manipulation platforms |
+| Temporal + Info | 4.0x perception shift | Retroactive disinformation campaigns |
 
 ## Interaction Algorithm
 ```typescript
@@ -831,6 +867,19 @@ function calculateRegionModifier(regionA: Region, regionB: Region): number {
                             regionB.attributes.climateVulnerability);
   
   return sharedBorder * climateFactor / (1 + distance/1000);
+}
+
+// New temporal disruption effect
+function applyTemporalDisruption(threatA: Threat, threatB: Threat): void {
+  if (threatA.domainsInvolved.includes("QUANTUM") && 
+      threatB.domainsInvolved.includes("INFO")) {
+    const timeDilation = threatA.quantumProperties?.entanglementLevel || 0;
+    const infoSpread = threatB.informationProperties?.misinformationSpreadRate || 0;
+    
+    threatB.effects.forEach(effect => {
+      effect.duration *= 1 + (timeDilation * infoSpread * 0.5);
+    });
+  }
 }
 
 # Action System

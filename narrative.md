@@ -61,6 +61,9 @@ interface NarrativeChain {
   informationSpread?: number;   // 0-1 scale, how widely information threats propagated
   environmentalDamage?: number; // 0-1 scale, ecological destruction
   cyberDisruption?: number;     // 0-1 scale, digital infrastructure compromise
+  // NEW: Quantum narrative elements
+  quantumParadoxes: string[];   // e.g., ["Causality Violation", "Multiverse Branching"]
+  temporalAnomalies: number;    // 0-1 scale
 }
 
 // Example Chains
@@ -168,7 +171,24 @@ const radChain: NarrativeChain = {
   turningPoint: "event-23",
   resolution: "NEGATIVE",
   duration: 15,
-  radContamination: 0.87
+  radContamination: 0.87,
+  quantumParadoxes: [],
+  temporalAnomalies: 0.0
+}
+
+const neuroChronicle: NarrativeChain = {
+  id: "chain-2051",
+  title: "The Neuro-Social Pandemic",
+  timeline: ["event-31", "event-32", "event-33"],
+  primaryFactions: ["PHARMA", "TECHNOCRAT"],
+  globalImpact: 0.92,
+  keyOutcomes: ["Mass behavioral modification", "Collective consciousness emergence"],
+  domainsInvolved: ["BIO", "INFO", "QUANTUM"],
+  turningPoint: "event-32",
+  resolution: "NEUTRAL",
+  duration: 9,
+  quantumParadoxes: ["Observer Effect Amplification"],
+  temporalAnomalies: 0.75
 }
 ```
 
@@ -218,7 +238,17 @@ function calculateEventWeight(event: Event): number {
     weight *= 1 + (event.roboticAutonomy * 0.4); // Higher robotic autonomy indicates more self-evolving and potentially dangerous events.
   }
   
-  return Math.min(1.0, weight); // The calculated weight is capped at 1.0 to prevent excessive values.
+  // Add temporal anomaly modifier
+  if (event.domainsInvolved.includes("QUANTUM") && event.quantumCoherence > 0.8) {
+    weight *= 1 + (event.quantumCoherence * 0.4);
+  }
+  
+  // Add neuro-social multiplier
+  if (event.domainsInvolved.includes("INFO") && event.informationProperties?.deepfakeQuality > 0.7) {
+    weight *= 1.5;
+  }
+  
+  return Math.min(2.0, weight); // Increase cap for high-impact events
 }
 
 // NEW: Quantum-robotic integration

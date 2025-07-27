@@ -95,6 +95,11 @@ interface Threat {
     inflationRate?: number;              // 0-1 scale, potential to cause hyperinflation
     supplyChainVulnerability?: number;   // 0-1 scale, weakness in distribution networks
   };
+  spaceProperties?: {                    // NEW: Properties for space threats
+    orbitalDebrisPotential: number;      // 0-1 scale, risk of Kessler Syndrome
+    satelliteTargetingPrecision: number; // 0-1 scale
+    spaceWeatherSensitivity: number;     // 0-1 scale, vulnerability to solar flares
+  };
 }
 
 type ThreatDomain =
@@ -124,7 +129,7 @@ interface ThreatEffect {
   traumaType?: "ETHNIC" | "ORGAN_HARVEST" | "WAR_CRIME" | "DISPLACEMENT" | "RADIATION_SICKNESS"; // Specific type of trauma inflicted on the population.
   severity: number; // 0-1 scale, the intensity of this specific effect.
   propagation: {
-    type: "DIFFUSION" | "NETWORK" | "VECTOR" | "SOCIAL_MEDIA" | "QUANTUM_ENTANGLEMENT" | "SWARM_INTELLIGENCE"; // The mechanism by which the effect spreads.
+    type: "DIFFUSION" | "NETWORK" | "VECTOR" | "SOCIAL_MEDIA" | "QUANTUM_ENTANGLEMENT" | "SWARM_INTELLIGENCE" | "GRAVITATIONAL_WAVE" | "DARK_NET" | "NEUROLOGICAL" | "FINANCIAL_NETWORK"; // The mechanism by which the effect spreads.
     rate: number;       // Propagation speed, how quickly the effect expands.
     range: number;      // Effective radius in km, the maximum distance the effect can spread.
     persistence: number; // Duration of effect, how long the effect lingers or remains active.
@@ -195,6 +200,28 @@ function updateQuantumCoherence(threat: Threat, dt: number): void {
     threat.severity *= 0.5;
     threat.visibility *= 0.8;
   }
+}
+
+// New physics model for space threats
+function simulateOrbitalDecay(satellite: Satellite, threat: Threat, dt: number): void {
+  if (threat.domain !== "SPACE" || !threat.spaceProperties) return;
+  
+  const debrisDensity = threat.spaceProperties.orbitalDebrisPotential * 0.01;
+  const decayRate = debrisDensity * satellite.mass * dt;
+  satellite.orbit.semiMajorAxis -= decayRate;
+  
+  if (satellite.orbit.semiMajorAxis < 6371) {
+    triggerReentryEvent(satellite);
+  }
+}
+
+// New economic threat propagation
+function propagateFinancialContagion(threat: Threat, marketIndex: number): void {
+  if (threat.domain !== "ECON" || !threat.economicProperties) return;
+  
+  const volatility = threat.economicProperties.marketCrashPotential;
+  const networkEffect = 1 + (marketIndex * 0.2);
+  threat.severity = Math.min(1, threat.severity * volatility * networkEffect);
 }
 
 // NEW: Robotic swarm evolution
