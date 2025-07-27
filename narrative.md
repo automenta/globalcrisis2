@@ -191,6 +191,21 @@ const neuroChronicle: NarrativeChain = {
   temporalAnomalies: 0.75
 }
 
+const BorderConflictChain: NarrativeChain = {
+  id: "chain-2050",
+  title: "The Resource War Escalation",
+  timeline: ["event-25", "event-26", "event-27"],
+  primaryFactions: ["NATION_STATE", "RESISTANCE"],
+  globalImpact: 0.88,
+  keyOutcomes: ["Border shifts", "Refugee crisis"],
+  domainsInvolved: ["GEO", "ECON", "ENV"],
+  turningPoint: "event-26",
+  resolution: "NEGATIVE",
+  duration: 14,
+  environmentalDamage: 0.75,
+  economicImpact: 0.82
+}
+
 // Quantum narrative effects
 function generateQuantumNarrative(chain: NarrativeChain): void {
   if (chain.quantumEntanglement > 0.7) {
