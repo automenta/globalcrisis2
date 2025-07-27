@@ -120,16 +120,38 @@ interface ThreatEffect {
   };
 }
 
-// NEW: Radiological decay model
-// Calculates the remaining radiation intensity after a given number of elapsed days,
-// based on the threat's half-life. This function is crucial for simulating the
-// long-term impact and dissipation of radiological threats.
-function calculateRadiationDecay(threat: Threat, elapsedDays: number): number {
+// NEW: Radiological contamination model
+// Calculates persistent contamination considering environmental factors
+function calculatePersistentContamination(threat: Threat, elapsedDays: number): number {
   if (threat.domain !== "RAD" || !threat.radiologicalProperties) return 0;
   
   const { halfLife } = threat.radiologicalProperties;
   const decayConstant = Math.LN2 / halfLife;
-  return Math.exp(-decayConstant * elapsedDays);
+  const baseDecay = Math.exp(-decayConstant * elapsedDays);
+  
+  // NEW: Environmental persistence factors
+  const environmentalFactors = {
+    soilAbsorption: 0.2,
+    waterDispersion: 0.15,
+    windSpread: 0.1
+  };
+  
+  return baseDecay * (1 + 
+    environmentalFactors.soilAbsorption +
+    environmentalFactors.waterDispersion +
+    environmentalFactors.windSpread);
+}
+
+// NEW: Bio-robotic contamination vectors
+function updateBioRoboticContamination(threat: Threat, region: Region) {
+  if (threat.domain === "BIO" && threat.biologicalProperties) {
+    threat.biologicalProperties.contaminationMethods.forEach(method => {
+      if (method === "ROBOTIC_VECTOR" && region.roboticProperties) {
+        const spreadBoost = region.roboticProperties.swarmIntelligence * 0.3;
+        threat.spreadRate *= (1 + spreadBoost);
+      }
+    });
+  }
 }
 
 // NEW: Quantum coherence model
@@ -157,22 +179,21 @@ function updateQuantumCoherence(threat: Threat, dt: number): void {
 // Simulates the evolution of swarm intelligence in robotic threats. As intelligence grows,
 // the swarm becomes more effective but also has a chance to develop new, unpredictable
 // failure modes, representing the risks of emergent AI behaviors.
-function evolveSwarmIntelligence(threat: Threat, dt: number): void {
-  if (threat.domain !== "ROBOT" || !threat.roboticProperties) return;
+interface RoboticSwarm {
+  size: number; // Number of units in swarm
+  collectiveIntelligence: number; // 0-1 swarm decision capability
+  adaptationRate: number; // Learning speed multiplier
+  // NEW: Emergent behavior types
+  emergentBehaviors: string[]; // e.g. ["Flanking", "Self-Sacrifice"]
+}
+
+function updateSwarmIntelligence(swarm: RoboticSwarm, threatLevel: number, dt: number) {
+  const intelligenceGain = swarm.adaptationRate * threatLevel * 0.01;
+  swarm.collectiveIntelligence = Math.min(1, swarm.collectiveIntelligence + intelligenceGain * dt);
   
-  const props = threat.roboticProperties;
-  if (props.swarmIntelligence === undefined || props.learningRate === undefined) return;
-  
-  // Swarm intelligence grows over time but risks emergent behaviors
-  props.swarmIntelligence = Math.min(1, props.swarmIntelligence + props.learningRate * dt);
-  
-  // Chance of developing failure modes as intelligence increases
-  if (Math.random() < props.swarmIntelligence * 0.01) {
-    const newFailure = ["SENSOR_FAILURE", "NAVIGATION_ERROR", "TARGETING_ERROR"][Math.floor(Math.random()*3)];
-    if (!props.failureModes) props.failureModes = [];
-    if (!props.failureModes.includes(newFailure)) {
-      props.failureModes.push(newFailure);
-    }
+  // NEW: Emergent behavior development
+  if (swarm.collectiveIntelligence > 0.7 && !swarm.emergentBehaviors.includes("CoordinatedAssault")) {
+    swarm.emergentBehaviors.push("CoordinatedAssault");
   }
 }
 ## Domain-Specific Threat Details
@@ -383,3 +404,7 @@ Threat synergy occurs when the interaction between two or more distinct threats 
 | Economic-Quantum   | 3.0x market disruption               | Quantum trading algorithms capable of manipulating global financial markets with extreme speed and precision, causing rapid market crashes. |
 | Quantum-Robotic    | 2.8x autonomy                        | Quantum AI controlling robotic swarms, enabling highly coordinated, self-evolving, and unpredictable autonomous behaviors. |
 | Rad-Cyber          | 2.3x disruption                      | Electromagnetic Pulse (EMP) attacks disabling critical cyber defenses, leaving systems vulnerable to further exploitation and collapse. |
+| Quantum + Robotic  | 2.8x autonomy gain                   | Quantum-controlled robotic swarms achieve unprecedented coordination and decision-making speed |
+| Radiological + Env | 2.0x contamination                   | Radiological materials spread faster through environmental factors like wind and water |
+| Bio + Quantum      | 1.7x mutation rate                   | Quantum effects accelerate biological mutation processes |
+| Cyber + Radiological | 3.0x system corrosion               | Radiological contamination accelerates hardware degradation in cyber systems |

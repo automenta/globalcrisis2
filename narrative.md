@@ -218,6 +218,30 @@ function calculateEventWeight(event: Event): number {
   
   return Math.min(1.0, weight); // The calculated weight is capped at 1.0 to prevent excessive values.
 }
+
+// NEW: Quantum-robotic integration
+function updateQuantumRoboticInteraction(quantumState: QuantumState, roboticSwarm: RoboticSwarm) {
+  // Quantum-controlled robotics
+  if (quantumState.entanglementLevel > 0.8) {
+    roboticSwarm.adaptationRate *= 1.5;
+    roboticSwarm.collectiveIntelligence = Math.min(1, 
+      roboticSwarm.collectiveIntelligence + quantumState.entanglementLevel * 0.2
+    );
+  }
+}
+
+// NEW: Radiological weather effects
+function applyRadiationWeatherEffects(weather: WeatherSystem, radThreat: Threat) {
+  if (weather.currentConditions.type === "RADIOLOGICAL_FALLOUT") {
+    radThreat.spreadRate *= 1.3;
+    radThreat.severity *= 1.2;
+    // Amplify contamination in water supplies
+    if (!radThreat.biologicalProperties) radThreat.biologicalProperties = {};
+    if (!radThreat.biologicalProperties.contaminationMethods) 
+      radThreat.biologicalProperties.contaminationMethods = [];
+    radThreat.biologicalProperties.contaminationMethods.push("WATER_SUPPLY");
+  }
+}
 ## Narrative Examples
 
 These examples illustrate how the Narrative Engine generates diverse and complex storylines by chaining together individual events across different threat domains. Each example highlights the primary domains involved, the sequence of events, and the resulting global outcomes.

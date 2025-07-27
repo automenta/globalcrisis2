@@ -256,6 +256,15 @@ interface Satellite {
   // Space weather vulnerabilities
   solarFlareVulnerability?: number; // 0-1 scale, how susceptible the satellite is to solar flares.
   radiationSensitivity?: number;    // 0-1 scale, how susceptible the satellite is to radiation.
+}
+
+// NEW: Faction-specific quantum advantages
+function applyFactionQuantumBonus(faction: Faction, quantumAction: Action) {
+  if (faction.capabilities.quantumHacking) {
+    quantumAction.successProbability *= 1.25;
+    quantumAction.resourceCost.tech *= 0.8;
+  }
+}
 ## Faction Details
 
 ThreatForge features a diverse set of factions, each with unique goals, abilities, and perspectives, contributing to the game's asymmetric gameplay. Understanding each faction's characteristics is crucial for strategic planning and anticipating their actions.
