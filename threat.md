@@ -78,7 +78,7 @@ interface Threat {
       thickness: number; // cm
     }[];
   };
-  roboticProperties?: {                // NEW: Properties specific to robotics and autonomous systems threats.
+  roboticProperties?: {                // Properties specific to robotics and autonomous systems threats.
     autonomyLevel?: number; // 0-1 scale, degree of self-governance and independence.
     swarmIntelligence?: number; // 0-1 scale, collective intelligence of a robotic swarm.
     learningRate?: number; // 0-1 scale, speed at which robotic systems adapt and learn.
