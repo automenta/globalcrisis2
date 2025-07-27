@@ -31,13 +31,21 @@ interface Threat {
     coverupDifficulty?: number; // 0-1 scale, difficulty of concealing the accident.
   };
   biologicalProperties?: {             // Properties specific to biological and pandemic threats.
-    incubationPeriod?: number;   // in days, time before symptoms appear.
-    mortalityRate?: number;      // 0-1, proportion of affected population that dies.
-    transmissionVectors?: string[]; // e.g., ["airborne", "waterborne"], how the biological threat spreads.
-    // Pharmaceutical warfare properties
-    addictionPotential?: number; // 0-1 scale, likelihood of addiction from pharmaceutical agents.
-    dependencyRate?: number; // 0-1 scale, how quickly dependency develops on a substance.
-    contaminationMethods?: string[]; // e.g., "WATER_SUPPLY", "AIRBORNE", "FOOD_CHAIN", methods of contamination.
+    transmissionVectors: ("AIRBORNE" | "WATERBORNE" | "VECTOR" | "ZOONOTIC" | "NEURAL")[];
+    mutationRate: number; // 0-1 genetic mutation probability
+    symptomProfile: {
+      latencyPeriod: number; // days until symptoms appear
+      fatalityRate: number; // 0-1 mortality rate
+      disfigurementProbability: number; // 0-1 chance of visible effects
+    };
+    countermeasureResistance: {
+      vaccineEfficacy: number; // 0-1 effectiveness of vaccines
+      treatmentResponse: number; // 0-1 response to medical interventions
+    };
+    psychoactiveEffects: { // For pharmaceutical warfare
+      addictionPotential: number; // 0-1 dependency risk
+      cognitiveImpairment: number; // 0-1 mental function reduction
+    };
   };
   cyberProperties?: {                  // Properties specific to cybersecurity threats.
     attackVector?: "NETWORK" | "PHYSICAL" | "SOCIAL"; // The primary method of attack.
@@ -79,11 +87,17 @@ interface Threat {
     }[];
   };
   roboticProperties?: {                
-    autonomyLevel?: number;
-    swarmIntelligence?: number;
-    learningRate?: number;
-    failureModes?: string[];
-    quantumLinked?: boolean; // NEW: Indicates if robotic system is quantum-entangled
+    learningAlgorithms: ("REINFORCEMENT" | "EVOLUTIONARY" | "SWARM" | "DEEP_LEARNING")[];
+    failureModes: ("HACKABLE" | "MALFUNCTION" | "GOAL_DRIFT" | "ETHICS_OVERRIDE")[];
+    autonomyDegrees: {
+      decisionLevel: number; // 0-1 autonomy in choices
+      selfReplication: boolean; // Can create copies
+      selfModification: boolean; // Can alter own code
+    };
+    humanInterfaceRisks: {
+      manipulationPotential: number; // 0-1 social engineering risk
+      physicalHarmProbability: number; // 0-1 chance of injury
+    };
   };
   neurologicalProperties?: {             
     cognitiveImpact: ("memory" | "decision" | "perception")[]; 
@@ -210,6 +224,22 @@ function updateQuantumCoherence(threat: Threat, dt: number): void {
   if (props.coherenceTime < 1) {
     threat.severity *= 0.5;
     threat.visibility *= 0.8;
+  }
+}
+
+function updateMisinformationImpact(threat: Threat, region: Region): void {
+  if (threat.domain === "INFO" && threat.informationProperties) {
+    const { polarizationFactor, deepfakeQuality } = threat.informationProperties;
+    const vulnerability = 1 - region.population.psychodynamics.trust;
+    
+    threat.spreadRate = Math.min(1, 
+      0.4 * polarizationFactor + 
+      0.3 * deepfakeQuality + 
+      0.3 * vulnerability
+    );
+    
+    // Educational metric
+    region.educationMetrics.misinformationResistance -= 0.15;
   }
 }
 

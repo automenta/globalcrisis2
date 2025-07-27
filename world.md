@@ -125,6 +125,33 @@ const EnvironmentalActions: Action[] = [
   }
 ];
 
+const EnvironmentalDisasters = [
+  {
+    id: "mega_storm",
+    triggerConditions: (region: Region) => 
+      region.attributes.climateVulnerability > 0.7 && 
+      region.attributes.temperature > 30,
+    effects: {
+      infrastructureDamage: 0.6,
+      populationDisplacement: 0.8,
+      economicImpact: 0.7,
+      duration: 8 // turns
+    }
+  },
+  {
+    id: "desertification",
+    triggerConditions: (region: Region) => 
+      region.attributes.precipitation < 500 && 
+      region.attributes.agriculturalIntensity > 0.6,
+    effects: {
+      agriculturalYield: -0.9,
+      waterScarcity: 0.7,
+      migrationTrigger: 0.5,
+      duration: 15 // turns
+    }
+  }
+];
+
 // Radiological-specific actions
 const RadiologicalActions: Action[] = [
   {
@@ -156,6 +183,58 @@ const RoboticActions: Action[] = [
     ],
     cooldown: 3,
     requiredCapabilities: ["roboticOperations"]
+  }
+];
+
+function handleRadiationContainment(region: Region, action: Action): void {
+  const containmentEfficiency = calculateContainmentEfficiency(
+    region.techLevel, 
+    action.resourceCost.tech
+  );
+  
+  region.threats.forEach(threat => {
+    if (threat.domain === "RAD") {
+      threat.severity *= (1 - containmentEfficiency);
+      threat.radiologicalProperties!.halfLife *= 0.8;
+    }
+  });
+  
+  // Educational effect
+  if (containmentEfficiency > 0.7) {
+    region.population.psychodynamics.trust += 0.1;
+  }
+}
+
+const EconomicActions: Action[] = [
+  {
+    id: "currency_manipulation",
+    type: "ECON",
+    name: "Currency Manipulation",
+    description: "Devalue opponent's currency to trigger inflation",
+    resourceCost: { funds: 700, influence: 500 },
+    successProbability: 0.65,
+    effects: [{
+      target: "ECONOMY", 
+      modifier: -0.6, 
+      duration: 8,
+      cascadeEffects: ["MARKET_CRASH", "HYPERINFLATION"]
+    }],
+    cooldown: 10
+  },
+  {
+    id: "supply_chain_attack",
+    type: "ECON",
+    name: "Supply Chain Attack",
+    description: "Disrupt critical resource distribution networks",
+    resourceCost: { intel: 400, tech: 300 },
+    successProbability: 0.75,
+    effects: [{
+      target: "INFRASTRUCTURE",
+      modifier: -0.7,
+      duration: 6,
+      cascadeEffects: ["SHORTAGES", "ECONOMIC_STAGNATION"]
+    }],
+    cooldown: 8
   }
 ];
 
