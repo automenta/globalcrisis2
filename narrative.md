@@ -190,6 +190,21 @@ const neuroChronicle: NarrativeChain = {
   quantumParadoxes: ["Observer Effect Amplification"],
   temporalAnomalies: 0.75
 }
+
+// Quantum narrative effects
+function generateQuantumNarrative(chain: NarrativeChain): void {
+  if (chain.quantumEntanglement > 0.7) {
+    // Add paradoxical elements
+    chain.quantumParadoxes.push(
+      `Causality Reversal at ${(chain.quantumEntanglement * 100).toFixed(1)}%`
+    );
+    
+    // Branching timeline effect
+    if (Math.random() < 0.4) {
+      chain.timeline.push(`TIMELINE_SPLIT_${Date.now()}`);
+    }
+  }
+}
 ```
 
 ## Event Weighting

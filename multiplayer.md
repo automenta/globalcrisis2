@@ -57,6 +57,32 @@ interface MultiplayerEvent {
 }
 
 // Quantum-entangled multiplayer events
+interface QuantumLinkedEvent extends MultiplayerEvent {
+  entanglementLevel: number;
+  requiredSynchronization: number; // 0-1
+}
+
+function createQuantumEvent(players: Player[]): QuantumLinkedEvent {
+  return {
+    id: `quantum-event-${Date.now()}`,
+    type: "TECH_BREAKTHROUGH",
+    participants: players.map(p => p.id),
+    requiredRoles: players.map(p => p.factionType),
+    timeLimit: 5,
+    successConditions: {
+      threshold: 0.8,
+      metrics: ["SYNCHRONIZATION"]
+    },
+    rewards: {
+      factionResources: {},
+      unlockables: ["QUANTUM_COMMUNICATION"]
+    },
+    entanglementLevel: 0.85,
+    requiredSynchronization: 0.7
+  };
+}
+
+// Quantum-entangled multiplayer events
 // This function generates a special type of MultiplayerEvent that leverages quantum entanglement
 // for unique cooperative challenges. These events often involve shared knowledge or synchronized actions
 // across multiple players, reflecting the interconnectedness of quantum systems.

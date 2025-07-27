@@ -2,6 +2,20 @@
 
 This document outlines the key enhancements to the player interface in ThreatForge, focusing on an adaptive UI system, an augmented reality mode, and comprehensive accessibility features. These improvements aim to provide an intuitive, immersive, and inclusive user experience.
 
+## Neurological Impact Visualization
+- **Cognitive Heatmaps**: 
+  - Displays regions by psychological trauma level
+  - Overlay options: 
+    - Trust degradation
+    - Compliance shifts
+  - 3D neuro-signature waveforms
+
+## AR Threat Projection
+- **Quantum State Viewer**:
+  - Visualize superposition of threat outcomes
+  - Gesture-based waveform collapse interaction
+  - Holographic display of entangled systems
+
 ## Adaptive UI System
 
 The Adaptive UI System in ThreatForge dynamically adjusts the user interface based on the current game state, player actions, and emerging threats. This ensures that players always have the most relevant information and controls at their fingertips, reducing cognitive load and improving decision-making.

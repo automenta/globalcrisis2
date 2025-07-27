@@ -85,6 +85,15 @@ interface Threat {
     failureModes?: string[];
     quantumLinked?: boolean; // NEW: Indicates if robotic system is quantum-entangled
   };
+  neurologicalProperties?: {             
+    cognitiveImpact: ("memory" | "decision" | "perception")[]; 
+    vector: ("neural-implant" | "media" | "ultrasonic")[]; 
+    propagationRate: number; // 0-1 (speed of cognitive change)
+  };
+  temporalProperties?: {                
+    causalityViolation: number; // 0-1 scale
+    paradoxRisk: number; // 0-1 scale
+  };
   informationProperties?: {              // NEW: Properties for information threats
     misinformationSpreadRate?: number;   // 0-1 scale, speed of false information propagation
     deepfakeQuality?: number;            // 0-1 scale, realism of synthetic media
@@ -113,7 +122,9 @@ type ThreatDomain =
   | "ECON"        // Economic and financial threats (e.g., market crashes, debt crises)
   | "QUANTUM"     // Quantum computing threats (e.g., decryption attacks, quantum AI)
   | "RAD"         // Radiological threats (e.g., dirty bombs, nuclear accidents)
-  | "ROBOT";      // Robotics and autonomous systems threats (e.g., drone swarms, AI-controlled weapons);
+  | "ROBOT"       // Robotics and autonomous systems threats (e.g., drone swarms, AI-controlled weapons)
+  | "NEURO"       // Neurological threats (e.g., cognitive warfare, neural manipulation)
+  | "TEMPORAL";   // Temporal threats (e.g., chrono-disruption, causality violation);
 
 // NEW: Quantum-specific effects
 type QuantumEffect =
@@ -400,22 +411,17 @@ Threats in ThreatForge rarely exist in isolation; they often compound and intera
 The Threat Mutation System is a dynamic mechanism within ThreatForge that allows threats to evolve and adapt over time, creating new and more complex challenges. This system introduces unpredictability and ensures that no two threat scenarios are exactly alike. The mutation process is illustrated by the following flow:
 
 ```mermaid
-graph LR
-    A[Base Threat] --> B[Mutation Event]
-    B --> C{Mutation Type}
-    C -->|Domain Shift| D[Change threat domain]
-    C -->|Amplification| E[Increase severity]
-    C -->|New Properties| F[Add domain-specific properties]
-    C -->|Hybridization| G[Combine with other threats]
-    C -->|Quantum Entanglement| H[Link with quantum systems]
-    C -->|Robotic Adaptation| I[Gain autonomous behaviors]
-    D --> J[Domain-Specific Adaptation]
-    E --> K[Escalation Event]
-    F --> L[New Threat Variant]
-    G --> M[Hybrid Threat]
-    H --> N[Quantum-Threat Hybrid]
-    I --> O[Self-Evolving Threat]
-    J --> P[Threat Evolution Tree]
+graph TB
+    A[Base Threat] --> B{Exposure to}
+    B --> C[Quantum Fields]
+    B --> D[Radiation]
+    B --> E[AI Algorithms]
+    C --> F[Quantum-Bio Hybrid]
+    D --> G[Radio-Cyber Corrosion]
+    E --> H[AI-Driven Evolution]
+    F --> I[Entangled Pathogens]
+    G --> J[Hardware-Decay Malware]
+    H --> K[Self-Modifying Threats]
 ```
 
 **Explanation of Mutation Types:**
@@ -457,3 +463,15 @@ Threat synergy occurs when the interaction between two or more distinct threats 
 | Radiological + Env | 2.0x contamination                   | Radiological materials spread faster through environmental factors like wind and water |
 | Bio + Quantum      | 1.7x mutation rate                   | Quantum effects accelerate biological mutation processes |
 | Cyber + Radiological | 3.0x system corrosion               | Radiological contamination accelerates hardware degradation in cyber systems |
+| Neuro + Quantum   | 3.2x cognitive impact              | Quantum-entangled neural networks accelerate behavioral change |
+| Temporal + Cyber  | 4.0x decryption risk               | Time-manipulation enables pre-crime decryption attacks |
+
+## Cross-Domain Balance
+
+| Threat Domain      | Physics Models       | Narrative Weight | Multiplayer Impact |
+|--------------------|----------------------|------------------|---------------------|
+| Quantum            | 8 (Entanglement)    | 9 (Paradoxes)    | 7 (Sync Ops)        |
+| Radiological       | 7 (Decay Physics)   | 8 (Contamination)| 6 (Containment)     |
+| Robotic            | 9 (Swarm AI)        | 7 (Uprising)     | 8 (PvP Arenas)      |
+| Neurological       | 6 (Wave Propagation)| 9 (Mass Hysteria)| 7 (Perception Ops)  |
+| Temporal           | 10 (Causality)      | 10 (Butterfly)   | 5 (Limited Use)     |
