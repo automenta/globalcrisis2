@@ -51,14 +51,16 @@ interface NarrativeChain {
   keyOutcomes: string[]; // A list of major consequences or resolutions resulting from the events in the chain.
   domainsInvolved: ThreatDomain[]; // The primary threat domains that played a significant role in the narrative.
   turningPoint: string; // Event ID of the single most impactful or pivotal event within the chain.
-  resolution: "POSITIVE" | "NEGATIVE" | "NEUTRAL"; // The overall sentiment or outcome of the narrative from a global perspective.
-  duration: number; // turns, the total duration of the narrative chain from its first to last event.
-  // NEW: Quantum entanglement level
-  quantumEntanglement?: number; // 0-1 scale, indicating the degree to which quantum phenomena influenced the narrative.
-  // NEW: Radiological contamination index
-  radContamination?: number; // 0-1 scale, representing the level of radiological contamination associated with the narrative.
-  // NEW: Robotic autonomy index
-  roboticAutonomy?: number; // 0-1 scale, indicating the influence or presence of autonomous robotic systems in the narrative.
+  resolution: "POSITIVE" | "NEGATIVE" | "NEUTRAL";
+  duration: number;
+  quantumEntanglement?: number;
+  radContamination?: number;
+  roboticAutonomy?: number;
+  // NEW: Cross-domain impact metrics
+  economicImpact?: number;      // 0-1 scale, economic disruption caused
+  informationSpread?: number;   // 0-1 scale, how widely information threats propagated
+  environmentalDamage?: number; // 0-1 scale, ecological destruction
+  cyberDisruption?: number;     // 0-1 scale, digital infrastructure compromise
 }
 
 // Example Chains

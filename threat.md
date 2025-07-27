@@ -78,11 +78,22 @@ interface Threat {
       thickness: number; // cm
     }[];
   };
-  roboticProperties?: {                // Properties specific to robotics and autonomous systems threats.
-    autonomyLevel?: number; // 0-1 scale, degree of self-governance and independence.
-    swarmIntelligence?: number; // 0-1 scale, collective intelligence of a robotic swarm.
-    learningRate?: number; // 0-1 scale, speed at which robotic systems adapt and learn.
-    failureModes?: string[]; // e.g., ["SENSOR_FAILURE", "NAVIGATION_ERROR"], potential ways the robotic system can malfunction.
+  roboticProperties?: {                
+    autonomyLevel?: number;
+    swarmIntelligence?: number;
+    learningRate?: number;
+    failureModes?: string[];
+    quantumLinked?: boolean; // NEW: Indicates if robotic system is quantum-entangled
+  };
+  informationProperties?: {              // NEW: Properties for information threats
+    misinformationSpreadRate?: number;   // 0-1 scale, speed of false information propagation
+    deepfakeQuality?: number;            // 0-1 scale, realism of synthetic media
+    polarizationFactor?: number;         // 0-1 scale, societal division caused
+  };
+  economicProperties?: {                 // NEW: Properties for economic threats
+    marketCrashPotential?: number;       // 0-1 scale, likelihood of triggering financial collapse
+    inflationRate?: number;              // 0-1 scale, potential to cause hyperinflation
+    supplyChainVulnerability?: number;   // 0-1 scale, weakness in distribution networks
   };
 }
 
@@ -120,29 +131,40 @@ interface ThreatEffect {
   };
 }
 
-// NEW: Radiological contamination model
-// Calculates persistent contamination considering environmental factors
-function calculatePersistentContamination(threat: Threat, elapsedDays: number): number {
-  if (threat.domain !== "RAD" || !threat.radiologicalProperties) return 0;
-  
-  const { halfLife } = threat.radiologicalProperties;
-  const decayConstant = Math.LN2 / halfLife;
-  const baseDecay = Math.exp(-decayConstant * elapsedDays);
-  
-  // NEW: Environmental persistence factors
-  const environmentalFactors = {
-    soilAbsorption: 0.2,
-    waterDispersion: 0.15,
-    windSpread: 0.1
-  };
-  
-  return baseDecay * (1 + 
-    environmentalFactors.soilAbsorption +
-    environmentalFactors.waterDispersion +
-    environmentalFactors.windSpread);
+// NEW: Quantum-Robotic Integration
+function updateQuantumRoboticInteraction(quantumState: QuantumState, roboticSwarm: RoboticSwarm) {
+  if (quantumState.entanglementLevel > 0.7) {
+    roboticSwarm.adaptationRate *= 1.5;
+    roboticSwarm.collectiveIntelligence = Math.min(1, 
+      roboticSwarm.collectiveIntelligence + quantumState.entanglementLevel * 0.3
+    );
+    // Enable quantum-linked behaviors
+    roboticSwarm.quantumLinked = true;
+  }
 }
 
-// NEW: Bio-robotic contamination vectors
+// NEW: Radiological-Weather Interaction
+function applyRadiationWeatherEffects(weather: WeatherSystem, radThreat: Threat) {
+  if (weather.currentConditions.type === "RADIOLOGICAL_FALLOUT") {
+    radThreat.spreadRate *= 1.5;
+    radThreat.severity *= 1.3;
+    // Amplify contamination in water supplies
+    if (!radThreat.biologicalProperties) radThreat.biologicalProperties = {};
+    if (!radThreat.biologicalProperties.contaminationMethods) 
+      radThreat.biologicalProperties.contaminationMethods = [];
+    radThreat.biologicalProperties.contaminationMethods.push("WATER_SUPPLY");
+  }
+}
+
+// NEW: Information Threat Propagation
+function updateMisinformationSpread(threat: Threat, populationDensity: number) {
+  if (threat.domain === "INFO" && threat.informationProperties) {
+    const { misinformationSpreadRate, polarizationFactor } = threat.informationProperties;
+    // Spread increases in dense populations with high polarization
+    return misinformationSpreadRate * populationDensity * (1 + polarizationFactor);
+  }
+  return 0;
+}
 function updateBioRoboticContamination(threat: Threat, region: Region) {
   if (threat.domain === "BIO" && threat.biologicalProperties) {
     threat.biologicalProperties.contaminationMethods.forEach(method => {

@@ -15,35 +15,85 @@ interface WorldState {
   };
 }
 
-// Quantum-specific actions
-const QuantumActions: Action[] = [
-  {
-    id: "quantum_entangle",
-    type: "QUANTUM",
-    name: "Entangle Systems",
-    description: "Create quantum entanglement between systems for coordinated attacks",
-    resourceCost: { funds: 500, intel: 300, tech: 400 },
-    successProbability: 0.7,
-    effects: [
-      { target: "QUANTUM_SYSTEM", modifier: 0.3, duration: 5 }
-    ],
-    cooldown: 3,
-    requiredCapabilities: ["quantumOperations"]
-  },
-  {
-    id: "quantum_decrypt",
-    type: "QUANTUM",
-    name: "Quantum Decryption",
-    description: "Break encryption using quantum computing power",
-    resourceCost: { funds: 800, intel: 500, tech: 700 },
-    successProbability: 0.6,
-    effects: [
-      { target: "CYBER", modifier: -0.4, duration: 3 }
-    ],
-    cooldown: 5,
-    requiredCapabilities: ["quantumOperations"]
-  }
-];
+// Unified Action System Implementation
+const DomainActions: Record<string, Action[]> = {
+  QUANTUM: [
+    {
+      id: "quantum_entangle",
+      type: "QUANTUM",
+      name: "Entangle Systems",
+      description: "Create quantum entanglement for coordinated attacks",
+      resourceCost: { funds: 500, intel: 300, tech: 400 },
+      successProbability: 0.7,
+      effects: [{ target: "QUANTUM_SYSTEM", modifier: 0.3, duration: 5 }],
+      cooldown: 3,
+      requiredCapabilities: ["quantumOperations"]
+    },
+    {
+      id: "quantum_sensor_jam",
+      type: "QUANTUM",
+      name: "Quantum Sensor Jam",
+      description: "Disrupt enemy sensors using quantum interference",
+      resourceCost: { funds: 600, tech: 500 },
+      successProbability: 0.65,
+      effects: [{ target: "SPACE", modifier: -0.5, duration: 4 }],
+      cooldown: 4,
+      requiredCapabilities: ["quantumOperations"]
+    }
+  ],
+  RADIOLOGICAL: [
+    {
+      id: "radiological_cleanup",
+      type: "RADIOLOGICAL",
+      name: "Radiological Cleanup",
+      description: "Decontaminate areas affected by radiation",
+      resourceCost: { funds: 800, manpower: 400, tech: 300 },
+      successProbability: 0.75,
+      effects: [{ target: "RAD", modifier: -0.6, duration: 6 }],
+      cooldown: 5,
+      requiredCapabilities: ["radiologicalContainment"]
+    }
+  ],
+  ROBOTIC: [
+    {
+      id: "swarm_coordination",
+      type: "ROBOTIC",
+      name: "Swarm Coordination",
+      description: "Enhance robotic swarm intelligence",
+      resourceCost: { funds: 450, tech: 350 },
+      successProbability: 0.8,
+      effects: [{ target: "ROBOTIC_NETWORK", modifier: 0.5, duration: 5 }],
+      cooldown: 3,
+      requiredCapabilities: ["roboticCommand"]
+    }
+  ],
+  INFO: [
+    {
+      id: "deepfake_campaign",
+      type: "INFO",
+      name: "Deepfake Campaign",
+      description: "Spread manipulated media to influence populations",
+      resourceCost: { intel: 400, tech: 300 },
+      successProbability: 0.7,
+      effects: [{ target: "POPULATION", modifier: -0.4, duration: 4 }],
+      cooldown: 4,
+      requiredCapabilities: ["misinformationCampaigns"]
+    }
+  ],
+  ECON: [
+    {
+      id: "targeted_sanctions",
+      type: "ECON",
+      name: "Targeted Sanctions",
+      description: "Cripple enemy economy through financial restrictions",
+      resourceCost: { funds: 700, influence: 400 },
+      successProbability: 0.65,
+      effects: [{ target: "ECONOMY", modifier: -0.5, duration: 6 }],
+      cooldown: 5,
+      requiredCapabilities: ["economicSanctions"]
+    }
+  ]
+};
 
 // Environmental manipulation actions
 const EnvironmentalActions: Action[] = [
@@ -170,22 +220,26 @@ interface Faction {
     populationControlThreshold?: number; // % population reduction, percentage of global population to reduce (for hostile factions).
     allianceCount?: number;          // Number of alliances required, minimum number of strategic alliances to form.
   };
-  capabilities: { // Special abilities and operational strengths of the faction.
-    threatDeployment: boolean; // Can deploy new threats.
-    investigation: boolean; // Can conduct investigations to uncover hidden information.
-    influence: boolean; // Can exert influence over other factions or populations.
-    economicWarfare: boolean; // Can engage in economic manipulation and sanctions.
-    cyberOperations: boolean; // Can perform cyber attacks and defense.
-    environmentalManipulation: boolean; // Can manipulate environmental factors.
-    spaceDominance: boolean; // Can operate and exert control in space.
-    // NEW: Geoengineering and space weather capabilities
-    geoengineering: boolean;          // For manipulating climate/geology on a large scale.
-    spaceWeatherControl: boolean;     // For manipulating space weather phenomena.
-    // Faction-specific capabilities
-    aiAssistedDesign: boolean;       // For TECHNOOCRAT and PHARMA, ability to use AI for advanced design and research.
-    mediaPropaganda: boolean;         // For CONTROLLED_OPPOSITION, ability to spread propaganda through media.
-    whistleblowerNetworks: boolean;   // For RESISTANCE and HERO_DOCTOR, ability to establish and leverage whistleblower networks.
-    diplomaticImmunity: boolean;      // For NATION_STATE, protection from certain diplomatic repercussions.
+  capabilities: {
+    threatDeployment: boolean;
+    investigation: boolean;
+    influence: boolean;
+    economicWarfare: boolean;
+    cyberOperations: boolean;
+    environmentalManipulation: boolean;
+    spaceDominance: boolean;
+    geoengineering: boolean;
+    spaceWeatherControl: boolean;
+    aiAssistedDesign: boolean;
+    mediaPropaganda: boolean;
+    whistleblowerNetworks: boolean;
+    diplomaticImmunity: boolean;
+    // NEW: Domain-specific capabilities
+    quantumOperations: boolean;       // For quantum computing actions
+    radiologicalContainment: boolean; // For radiological threat management
+    roboticCommand: boolean;          // For controlling robotic systems
+    misinformationCampaigns: boolean; // For information warfare
+    economicSanctions: boolean;       // For targeted financial attacks
   };
   // Spatial capabilities
   militaryUnits: MilitaryUnit[]; // An array of military units controlled by this faction.
