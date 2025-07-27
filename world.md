@@ -666,9 +666,21 @@ interface QuantumState {
   coherenceTime: number; // ms, the duration for which a quantum system maintains its coherence.
 }
 
+// Unified Physics Model
+class UnifiedPhysicsEngine {
+  applyQuantumGravity(unit: MilitaryUnit, region: Region) {
+    const gravityDistortion = 0.05 * region.quantumFieldDensity;
+    unit.velocity[0] *= 1 + gravityDistortion;
+    unit.velocity[1] *= 1 + gravityDistortion;
+  }
+  
+  simulateNeuroWavePropagation(threat: Threat, population: number) {
+    return threat.severity * Math.log(population) * 0.3;
+  }
+}
+
+// Quantum physics modeling
 // Quantum decoherence effects
-// This function simulates the loss of quantum coherence due to environmental noise and time.
-// As coherence decreases, the effectiveness of quantum effects diminishes.
 function applyQuantumDecoherence(state: QuantumState, environmentNoise: number, dt: number) {
   // Decoherence increases with noise and time
   const decoherenceRate = environmentNoise * 0.01; // % per ms, rate at which coherence is lost.
@@ -677,6 +689,14 @@ function applyQuantumDecoherence(state: QuantumState, environmentNoise: number, 
   // When coherence time drops below threshold, quantum effects diminish
   if (state.coherenceTime < 100) {
     state.entanglement *= 0.9; // Rapid loss of entanglement when coherence is low.
+  }
+}
+
+// New environmental interactions
+function applyRadiationWeatherEffects(weather: WeatherSystem, radThreat: Threat) {
+  if (weather.radiationLevel > 500) {
+    radThreat.spreadRate *= 1.2;
+    radThreat.severity *= 1.15;
   }
 }
 
