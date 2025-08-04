@@ -59,6 +59,22 @@
     #mitigate-button:hover {
         background-color: #218838;
     }
+    #weather-panel {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: sans-serif;
+        width: 200px;
+        display: none; /* Initially hidden */
+    }
+    #weather-panel h3 {
+        margin-top: 0;
+        text-align: center;
+    }
     </style>
 </head>
 <body>
@@ -70,6 +86,13 @@
             <p><strong>Intel:</strong> <span id="intel-value">0</span></p>
             <p><strong>Tech:</strong> <span id="tech-value">0</span></p>
         </div>
+        <button id="toggle-plumes-button" style="width: 100%; margin-top: 10px;">Toggle Plumes</button>
+    </div>
+    <div id="weather-panel">
+        <h3>Weather</h3>
+        <p><strong>Type:</strong> <span id="weather-type">--</span></p>
+        <p><strong>Wind Speed:</strong> <span id="weather-wind-speed">--</span> km/h</p>
+        <p><strong>Wind Direction:</strong> <span id="weather-wind-dir">--</span>°</p>
     </div>
     <script src="lib/three.min.js"></script>
     <script src="lib/OrbitControls.js"></script>

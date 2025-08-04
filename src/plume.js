@@ -5,16 +5,17 @@ class RadiologicalPlume {
         this.mesh = this.createMesh();
         this.scene.add(this.mesh);
         this.particles = [];
-        this.particleCount = 100;
-        this.maxAge = 10; // seconds
+        this.particleCount = 500; // Increased particle count
+        this.maxAge = 15; // Increased lifespan
     }
 
     createMesh() {
         const geometry = new THREE.BufferGeometry();
         const material = new THREE.PointsMaterial({
-            size: 0.1,
+            size: 0.15,
             vertexColors: true,
-            transparent: true
+            transparent: true,
+            opacity: 0.7
         });
         const points = new THREE.Points(geometry, material);
         return points;
@@ -26,7 +27,7 @@ class RadiologicalPlume {
             const particle = {
                 position: this.threat.mesh.position.clone(),
                 age: 0,
-                color: new THREE.Color(0xff0000)
+                color: new THREE.Color(0xADFF2F) // GreenYellow for RAD
             };
             this.particles.push(particle);
         }
@@ -41,15 +42,15 @@ class RadiologicalPlume {
                 return;
             }
 
-            // Update color and opacity based on age
+            // Update color based on age
             const lifeRatio = p.age / this.maxAge;
-            p.color.setHSL(0, 1, 0.5 * (1 - lifeRatio)); // Fade to black
-            this.mesh.material.opacity = 1 - lifeRatio;
+            // Fade from GreenYellow to a dark green
+            p.color.setHSL(0.22, 1, 0.5 * (1 - lifeRatio));
 
             // Move particle with wind
             const windVector = new THREE.Vector3(
                 Math.cos(windDirection * Math.PI / 180),
-                0,
+                0.2, // Add a slight upward movement to the plume
                 Math.sin(windDirection * Math.PI / 180)
             ).multiplyScalar(windSpeed * dt * 0.01);
             p.position.add(windVector);

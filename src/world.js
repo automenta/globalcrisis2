@@ -2,8 +2,9 @@ const threatDomains = ["CYBER", "BIO", "GEO", "ENV", "INFO", "SPACE", "WMD", "EC
 const threatTypes = ["REAL", "FAKE", "UNKNOWN"];
 
 class WorldState {
-    constructor(scene) {
+    constructor(scene, uiState) {
         this.scene = scene;
+        this.uiState = uiState;
         this.regions = [];
         this.factions = [];
         this.playerFaction = null;
@@ -403,6 +404,7 @@ class WorldState {
 
             if (domain === "RAD") {
                 const plume = new RadiologicalPlume(threat, this.scene);
+                plume.mesh.visible = this.uiState.arePlumesVisible;
                 this.plumes.push(plume);
             }
         } else {

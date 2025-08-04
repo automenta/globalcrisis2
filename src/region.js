@@ -89,21 +89,20 @@ class Region {
     }
 
     createWeatherMesh() {
-        const geometry = new THREE.SphereGeometry(0.1, 16, 16);
-        const material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const sphereRadius = 5; // The radius of the Earth mesh in the scene
+        const regionRadiusOnSphere = (this.radius / EARTH_RADIUS_KM) * sphereRadius;
+
+        const geometry = new THREE.SphereGeometry(regionRadiusOnSphere * 1.1, 32, 32);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.2,
+            side: THREE.DoubleSide
+        });
         const mesh = new THREE.Mesh(geometry, material);
 
-        // Position it slightly above the region mesh
-        mesh.position.z = 0.1;
         mesh.visible = false; // Initially hidden
 
         return mesh;
     }
 }
-
-const WEATHER_COLORS = {
-    "STORM": 0x555555, // Dark grey
-    "RAIN": 0x0000ff,  // Blue
-    "SNOW": 0xffffff,  // White
-    "CLEAR": 0x000000, // Hidden
-};

@@ -21,8 +21,22 @@ scene.add(earth);
 // Position the camera
 camera.position.z = 10;
 
+// UI State
+const uiState = {
+    arePlumesVisible: true,
+};
+
 // Instantiate the world state
-const worldState = new WorldState(scene);
+const worldState = new WorldState(scene, uiState);
+
+// UI Controls
+const togglePlumesButton = document.getElementById('toggle-plumes-button');
+togglePlumesButton.addEventListener('click', () => {
+    uiState.arePlumesVisible = !uiState.arePlumesVisible;
+    worldState.plumes.forEach(plume => {
+        plume.mesh.visible = uiState.arePlumesVisible;
+    });
+});
 
 // Add controls
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -35,6 +49,13 @@ const mouse = new THREE.Vector2();
 
 const threatInfoPanel = document.getElementById('threat-info');
 let selectedThreat = null;
+
+const weatherPanel = {
+    panel: document.getElementById('weather-panel'),
+    type: document.getElementById('weather-type'),
+    windSpeed: document.getElementById('weather-wind-speed'),
+    windDir: document.getElementById('weather-wind-dir'),
+};
 
 const playerPanel = {
     name: document.getElementById('faction-name'),
@@ -50,6 +71,23 @@ function updatePlayerPanel() {
         playerPanel.funds.textContent = Math.floor(faction.resources.funds);
         playerPanel.intel.textContent = Math.floor(faction.resources.intel);
         playerPanel.tech.textContent = Math.floor(faction.resources.tech);
+    }
+}
+
+function updateWeatherPanel() {
+    if (!selectedThreat) {
+        weatherPanel.panel.style.display = 'none';
+        return;
+    }
+
+    const region = worldState.getRegionForThreat(selectedThreat);
+    if (region && region.weather) {
+        weatherPanel.panel.style.display = 'block';
+        weatherPanel.type.textContent = region.weather.type;
+        weatherPanel.windSpeed.textContent = region.weather.windSpeed.toFixed(1);
+        weatherPanel.windDir.textContent = region.weather.windDirection.toFixed(0);
+    } else {
+        weatherPanel.panel.style.display = 'none';
     }
 }
 
@@ -135,11 +173,13 @@ function onMouseClick(event) {
         if (newlySelectedThreat !== selectedThreat) {
             selectedThreat = newlySelectedThreat;
             updateThreatPanel();
+            updateWeatherPanel();
         }
     } else {
         if (selectedThreat) {
             selectedThreat = null;
             updateThreatPanel();
+            updateWeatherPanel();
         }
     }
 }
@@ -195,6 +235,7 @@ function animate() {
 
     // Update UI Panels
     updatePlayerPanel();
+    updateWeatherPanel();
 
     // Animate camera if needed
     if (isCameraAnimating) {
