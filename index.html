@@ -18,12 +18,62 @@
             display: none;
             font-family: sans-serif;
         }
+    #player-panel {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: sans-serif;
+        width: 200px;
+    }
+    #player-panel h3 {
+        margin-top: 0;
+        text-align: center;
+    }
+    #investigate-button {
+        width: 100%;
+        padding: 8px;
+        margin-top: 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    #investigate-button:hover {
+        background-color: #0056b3;
+    }
+    #mitigate-button {
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+        background-color: #28a745; /* Green */
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    #mitigate-button:hover {
+        background-color: #218838;
+    }
     </style>
 </head>
 <body>
     <div id="threat-info"></div>
+    <div id="player-panel">
+        <h3 id="faction-name">Faction Name</h3>
+        <div id="resource-display">
+            <p><strong>Funds:</strong> <span id="funds-value">0</span></p>
+            <p><strong>Intel:</strong> <span id="intel-value">0</span></p>
+            <p><strong>Tech:</strong> <span id="tech-value">0</span></p>
+        </div>
+    </div>
     <script src="lib/three.min.js"></script>
     <script src="lib/OrbitControls.js"></script>
+    <script src="src/faction.js"></script>
     <script src="src/region.js"></script>
     <script src="src/weather.js"></script>
     <script src="src/threat.js"></script>

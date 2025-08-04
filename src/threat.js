@@ -84,14 +84,22 @@ class Threat {
     }
 
     updateMesh() {
-        const baseHeight = 0.5;
-        const maxHeight = 2.0;
-        const height = baseHeight + (this.severity * (maxHeight - baseHeight));
-        const radius = height * 0.2;
+        const scale = 0.5 + (this.severity * 1.5);
+        this.mesh.scale.set(scale, scale, scale);
+    }
 
-        // Assuming the mesh is a Cone
-        this.mesh.geometry.dispose(); // Dispose old geometry
-        this.mesh.geometry = new THREE.ConeGeometry(radius, height, 8);
+    updateMeshForInvestigation() {
+        if (this.type === 'FAKE') {
+            console.log(`Threat ${this.id} revealed as FAKE. Removing.`);
+            this.isMitigated = true; // Mark for removal
+        } else if (this.type === 'REAL') {
+            console.log(`Threat ${this.id} revealed as REAL. Updating mesh.`);
+            // Swap geometry to a cone
+            const radius = 0.2;
+            const height = radius * 5; // Maintain aspect ratio
+            this.mesh.geometry.dispose();
+            this.mesh.geometry = new THREE.ConeGeometry(radius, height, 8);
+        }
     }
 
     createMesh() {
@@ -103,12 +111,14 @@ class Threat {
         const baseHeight = 0.5;
         const maxHeight = 2.0;
         const height = baseHeight + (this.severity * (maxHeight - baseHeight));
-        const radius = height * 0.2; // Keep a constant aspect ratio
+        const radius = height * 0.2;
 
-        const geometry = new THREE.ConeGeometry(radius, height, 8);
-        const cone = new THREE.Mesh(geometry, material);
+        // All threats start as 'UNKNOWN' visually (a sphere).
+        // The mesh will be updated upon successful investigation.
+        const geometry = new THREE.SphereGeometry(radius * 1.2, 16, 16);
+        const mesh = new THREE.Mesh(geometry, material);
 
-        // Position the cone on the surface of the Earth
+        // Position the mesh on the surface of the Earth
         const phi = (90 - this.lat) * (Math.PI / 180);
         const theta = (this.lon + 180) * (Math.PI / 180);
 
@@ -117,12 +127,63 @@ class Threat {
         const z = earthRadius * Math.sin(phi) * Math.sin(theta);
         const y = earthRadius * Math.cos(phi);
 
-        cone.position.set(x, y, z);
+        mesh.position.set(x, y, z);
 
-        // Point the cone outwards from the center of the Earth
-        cone.lookAt(0, 0, 0);
-        cone.rotateX(Math.PI / 2);
+        // Point the mesh outwards from the center of the Earth
+        mesh.lookAt(0, 0, 0);
+        mesh.rotateX(Math.PI / 2);
 
-        return cone;
+        return mesh;
+    }
+
+    investigate(faction) {
+        const cost = { intel: 100 };
+        if (this.investigationProgress >= 1.0) {
+            console.log("Threat already fully investigated.");
+            return false;
+        }
+
+        if (faction.canAfford(cost)) {
+            faction.spend(cost);
+            this.investigationProgress += 0.2; // Increase by 20%
+            this.investigationProgress = Math.min(this.investigationProgress, 1.0);
+
+            // Visibility increases as investigation progresses
+            this.visibility = this.investigationProgress;
+
+            if (this.investigationProgress >= 1.0) {
+                console.log(`Threat ${this.id} fully investigated. Type: ${this.type}`);
+                this.updateMeshForInvestigation();
+            }
+            return true; // Success
+        } else {
+            console.log(`Faction ${faction.name} cannot afford to investigate.`);
+            alert("Not enough Intel to investigate!"); // Simple user feedback
+            return false; // Failure
+        }
+    }
+
+    mitigate(faction) {
+        const cost = { funds: 500, tech: 200 };
+        if (this.investigationProgress < 1.0 || this.type !== 'REAL') {
+            console.log("Cannot mitigate: Threat is not a fully investigated REAL threat.");
+            return false;
+        }
+
+        if (faction.canAfford(cost)) {
+            faction.spend(cost);
+            this.severity -= 0.25; // Reduce severity by 25%
+
+            if (this.severity <= 0) {
+                this.severity = 0;
+                this.isMitigated = true; // Mark for removal
+                console.log(`Threat ${this.id} has been fully mitigated.`);
+            }
+            return true; // Success
+        } else {
+            console.log(`Faction ${faction.name} cannot afford to mitigate.`);
+            alert("Not enough Funds or Tech to mitigate!");
+            return false; // Failure
+        }
     }
 }

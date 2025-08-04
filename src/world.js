@@ -6,6 +6,9 @@ class WorldState {
         this.scene = scene;
         this.regions = [];
         this.factions = [];
+        this.playerFaction = null;
+        this.aiFaction = null;
+        this.initializeFactions();
         this.travelRoutes = [];
         this.initializeRegions();
         this.initializeTravelRoutes();
@@ -94,6 +97,32 @@ class WorldState {
         });
     }
 
+    initializeFactions() {
+        // Player Faction
+        this.playerFaction = new Faction({
+            id: 'mitigators',
+            name: 'Hero Mitigators',
+            resources: {
+                funds: 10000,
+                intel: 5000,
+                tech: 2000
+            }
+        });
+        this.factions.push(this.playerFaction);
+
+        // AI Faction
+        this.aiFaction = new Faction({
+            id: 'technocrats',
+            name: 'Evil Technocrats',
+            resources: {
+                funds: 20000,
+                intel: 10000,
+                tech: 10000
+            }
+        });
+        this.factions.push(this.aiFaction);
+    }
+
     /**
      * Adds a threat to the world state.
      * @param {Threat} threat The threat object to add.
@@ -117,6 +146,13 @@ class WorldState {
     update(dt) {
         this.currentTurn++;
 
+        // Resource trickle for all factions
+        this.factions.forEach(f => {
+            f.resources.funds += 10; // 10 funds per turn/tick
+            f.resources.intel += 5;
+            f.resources.tech += 2;
+        });
+
         // Calculate total environmental threat level
         const totalEnvSeverity = this.threats
             .filter(t => t.domain === "ENV")
@@ -128,6 +164,9 @@ class WorldState {
         // Update all threats and their impact on regions
         this.threats.forEach(threat => {
             threat.update(dt);
+
+            // If threat is fully mitigated, it will be removed, so no need to process further
+            if (threat.isMitigated) return;
 
             const region = this.getRegionForThreat(threat);
             if (region) {
@@ -177,6 +216,22 @@ class WorldState {
         if (this.threatGenerationTimer >= this.threatGenerationInterval) {
             this.generateThreat();
             this.threatGenerationTimer = 0;
+        }
+
+        // Remove mitigated threats
+        const threatsToRemove = this.threats.filter(t => t.isMitigated);
+        if (threatsToRemove.length > 0) {
+            threatsToRemove.forEach(threat => {
+                this.scene.remove(threat.mesh);
+                // If the removed threat was selected, deselect it
+                if (typeof selectedThreat !== 'undefined' && selectedThreat === threat) {
+                    selectedThreat = null;
+                    if (typeof updateThreatPanel !== 'undefined') {
+                        updateThreatPanel();
+                    }
+                }
+            });
+            this.threats = this.threats.filter(t => !t.isMitigated);
         }
     }
 
@@ -315,25 +370,43 @@ class WorldState {
     }
 
     /**
-     * Creates a new threat with random properties and adds it to the simulation.
+     * Creates a new threat, orchestrated by the AI faction.
      */
     generateThreat() {
-        const id = this.threats.length;
-        const domain = threatDomains[Math.floor(Math.random() * threatDomains.length)];
-        const type = threatTypes[Math.floor(Math.random() * threatTypes.length)];
-        const severity = Math.random();
-        const lat = Math.random() * 180 - 90;
-        const lon = Math.random() * 360 - 180;
+        const cost = { funds: 1000, tech: 500 };
 
-        // The constructor now expects a single object
-        const threat = new Threat({ id, domain, type, severity, lat, lon });
+        if (this.aiFaction.canAfford(cost)) {
+            this.aiFaction.spend(cost);
+            console.log(`AI Faction ${this.aiFaction.name} spent resources to create a new threat.`);
 
-        this.addThreat(threat);
-        this.scene.add(threat.mesh);
+            const id = `threat-${this.currentTurn}-${this.threats.length}`;
 
-        if (domain === "RAD") {
-            const plume = new RadiologicalPlume(threat, this.scene);
-            this.plumes.push(plume);
+            // Evil Technocrats prefer certain domains
+            const technocratDomains = ["CYBER", "ROBOT", "QUANTUM", "ECON", "INFO", "WMD"];
+            let domain;
+            if (Math.random() < 0.75) { // 75% chance to pick a preferred domain
+                domain = technocratDomains[Math.floor(Math.random() * technocratDomains.length)];
+            } else {
+                domain = threatDomains[Math.floor(Math.random() * threatDomains.length)];
+            }
+
+            // AI always creates REAL threats for now, but could create FAKE ones later
+            const type = 'REAL';
+            const severity = Math.random() * 0.4 + 0.1; // Start with 10-50% severity
+            const lat = Math.random() * 180 - 90;
+            const lon = Math.random() * 360 - 180;
+
+            const threat = new Threat({ id, domain, type, severity, lat, lon });
+
+            this.addThreat(threat);
+            this.scene.add(threat.mesh);
+
+            if (domain === "RAD") {
+                const plume = new RadiologicalPlume(threat, this.scene);
+                this.plumes.push(plume);
+            }
+        } else {
+            console.log(`AI Faction ${this.aiFaction.name} cannot afford to create a new threat.`);
         }
     }
 }
