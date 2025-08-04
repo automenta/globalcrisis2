@@ -22,10 +22,7 @@ scene.add(earth);
 camera.position.z = 10;
 
 // Instantiate the world state
-const worldState = new WorldState();
-
-// Generate threats periodically
-setInterval(() => worldState.generateThreat(scene), 3000);
+const worldState = new WorldState(scene);
 
 // Add controls
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -72,10 +69,20 @@ function onMouseClick(event) {
 
 window.addEventListener('click', onMouseClick, false);
 
-// Render loop
+// Game loop
+const clock = new THREE.Clock();
 function animate() {
     requestAnimationFrame(animate);
+
+    const deltaTime = clock.getDelta();
+
+    // Update game state
+    worldState.update(deltaTime);
+
+    // Update controls
     controls.update();
+
+    // Render the scene
     renderer.render(scene, camera);
 }
 animate();
