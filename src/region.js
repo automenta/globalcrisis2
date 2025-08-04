@@ -16,7 +16,9 @@ class Region {
         this.name = name;
         this.centroid = centroid; // [lat, lon]
         this.radius = radius; // km
-        this.attributes = attributes; // { climateVulnerability, temperature }
+        this.attributes = attributes; // { climateVulnerability, temperature, economy: 1.0 }
+        this.stability = 1.0; // Initial stability
+        this.economy = 1.0; // Initial economy
 
         // Weather will be managed by the WeatherSystem
         this.weather = null;
@@ -27,16 +29,21 @@ class Region {
         this.mesh.add(this.weatherMesh); // Add weather mesh as a child
     }
 
+    updateMeshColor(envDamage = 0) {
+        const color = this.getRegionColor(this.attributes.temperature, this.stability, envDamage);
+        this.mesh.material.color.set(color);
+    }
+
     createMesh() {
         const sphereRadius = 5; // The radius of the Earth mesh in the scene
         const regionRadiusOnSphere = (this.radius / EARTH_RADIUS_KM) * sphereRadius;
 
         const geometry = new THREE.CircleGeometry(regionRadiusOnSphere, 32);
 
-        // Color based on temperature
-        const tempColor = this.getTemperatureColor(this.attributes.temperature);
+        // Color based on temperature and stability
+        const regionColor = this.getRegionColor(this.attributes.temperature, this.stability);
         const material = new THREE.MeshBasicMaterial({
-            color: tempColor,
+            color: regionColor,
             transparent: true,
             opacity: 0.4
         });
@@ -60,16 +67,24 @@ class Region {
         return mesh;
     }
 
-    getTemperatureColor(temp) {
-        // Simple scale from blue (cold) to red (hot)
-        // Clamping temperature between -50 and 40 for color mapping
+    getRegionColor(temp, stability, envDamage) {
+        // Temperature based color (blue to red)
         const minTemp = -50;
         const maxTemp = 40;
         const normalizedTemp = (Math.max(minTemp, Math.min(maxTemp, temp)) - minTemp) / (maxTemp - minTemp);
+        const tempHue = 0.7 * (1 - normalizedTemp);
+
+        // Stability based color (stable = no change, unstable = red)
+        const stabilityHue = 0; // Red
+
+        // Blend hue based on stability. Full stability = tempHue, zero stability = stabilityHue
+        const finalHue = tempHue * stability + stabilityHue * (1 - stability);
+
+        // Environmental damage reduces saturation
+        const saturation = Math.max(0, 1.0 - envDamage * 0.5);
 
         const color = new THREE.Color();
-        // Blue (0) -> Red (1)
-        color.setHSL(0.7 * (1 - normalizedTemp), 1.0, 0.5);
+        color.setHSL(finalHue, saturation, 0.5);
         return color;
     }
 

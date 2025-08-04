@@ -53,6 +53,9 @@ class Threat {
         this.spreadRate = spreadRate;
         this.effects = effects;
         this.crossDomainImpacts = crossDomainImpacts;
+        this.isSpreading = false;
+        this.spreadTimer = 0;
+        this.spreadInterval = 10; // 10 seconds to spread
 
         // Domain-specific properties
         this.economicImpact = economicImpact;
@@ -69,6 +72,26 @@ class Threat {
 
         // 3D representation
         this.mesh = this.createMesh();
+    }
+
+    update(dt) {
+        // Increase severity over time, capped at 1.0
+        if (this.severity < 1.0) {
+            this.severity += 0.01 * dt; // Adjust rate as needed
+            this.severity = Math.min(this.severity, 1.0);
+        }
+        this.updateMesh();
+    }
+
+    updateMesh() {
+        const baseHeight = 0.5;
+        const maxHeight = 2.0;
+        const height = baseHeight + (this.severity * (maxHeight - baseHeight));
+        const radius = height * 0.2;
+
+        // Assuming the mesh is a Cone
+        this.mesh.geometry.dispose(); // Dispose old geometry
+        this.mesh.geometry = new THREE.ConeGeometry(radius, height, 8);
     }
 
     createMesh() {
