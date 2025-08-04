@@ -58,6 +58,7 @@ class Threat {
         this.spreadTimer = 0;
         this.spreadInterval = 10; // 10 seconds to spread
         this.isMitigated = false;
+        this.wasMitigatedByPlayer = false;
 
         // Domain-specific properties
         this.economicImpact = economicImpact; // This is a specific property from the design
@@ -129,8 +130,8 @@ class Threat {
 
     updateMesh() {
         const baseScale = 0.5 + (this.severity * 1.5);
-        let pulseSpeed = 1 + this.severity * 4;
-        let pulseIntensity = 0.1 * this.severity;
+        let pulseSpeed = 2 + this.severity * 8; // Faster pulse
+        let pulseIntensity = 0.2 * this.severity; // More intense pulse
 
         // --- Domain-specific visualization logic ---
         const qProps = this.quantumProperties;
@@ -192,23 +193,38 @@ class Threat {
     createMesh() {
         // Determine color based on domain
         const color = DOMAIN_COLORS[this.domain] || DOMAIN_COLORS["DEFAULT"];
-        // Enable transparency for domains that might need it (like QUANTUM)
         const isTransparent = this.domain === 'QUANTUM';
-        const material = new THREE.MeshBasicMaterial({
+
+        const material = new THREE.MeshPhongMaterial({
             color: color,
+            emissive: color,
+            emissiveIntensity: 0.5,
             transparent: isTransparent,
             opacity: 1.0
         });
 
-        // Determine size based on severity
-        const baseHeight = 0.5;
-        const maxHeight = 2.0;
-        const height = baseHeight + (this.severity * (maxHeight - baseHeight));
-        const radius = height * 0.2;
+        let geometry;
+        const radius = 0.2;
+        switch (this.domain) {
+            case 'CYBER':
+                geometry = new THREE.OctahedronGeometry(radius, 0);
+                break;
+            case 'BIO':
+                geometry = new THREE.IcosahedronGeometry(radius, 0);
+                break;
+            case 'GEO':
+                geometry = new THREE.TetrahedronGeometry(radius, 0);
+                break;
+            case 'QUANTUM':
+                geometry = new THREE.TorusKnotGeometry(radius * 0.7, radius * 0.3, 100, 16);
+                break;
+            case 'ROBOT':
+                geometry = new THREE.BoxGeometry(radius, radius, radius);
+                break;
+            default:
+                geometry = new THREE.SphereGeometry(radius, 16, 16);
+        }
 
-        // All threats start as 'UNKNOWN' visually (a sphere).
-        // The mesh will be updated upon successful investigation.
-        const geometry = new THREE.SphereGeometry(radius * 1.2, 16, 16);
         const mesh = new THREE.Mesh(geometry, material);
 
         // Position the mesh on the surface of the Earth
@@ -229,17 +245,30 @@ class Threat {
         return mesh;
     }
 
-    investigate(faction) {
+    investigate(faction, cheat = false) {
         const cost = { intel: 100 };
         if (this.investigationProgress >= 1.0) {
             console.log("Threat already fully investigated.");
             return false;
         }
 
-        if (faction.canAfford(cost)) {
-            faction.spend(cost);
-            this.investigationProgress += 0.2; // Increase by 20%
+        if (cheat || faction.canAfford(cost)) {
+            if (!cheat) {
+                faction.spend(cost);
+            }
+
+            let investigationAmount = 0.2; // 20%
+            const region = worldState.getRegionForThreat(this);
+            if (worldState.units.some(u => u.region === region && u.type === 'AGENT')) {
+                investigationAmount = worldState.research.advancedAgents ? 0.8 : 0.5;
+            }
+            if (cheat) {
+                investigationAmount = 1.0;
+            }
+
+            this.investigationProgress += investigationAmount;
             this.investigationProgress = Math.min(this.investigationProgress, 1.0);
+
 
             // Visibility increases as investigation progresses
             this.visibility = this.investigationProgress;
@@ -256,22 +285,21 @@ class Threat {
         }
     }
 
-    mitigate(faction) {
+    mitigate(faction, cheat = false) {
         const cost = { funds: 500, tech: 200 };
         if (this.investigationProgress < 1.0 || this.type !== 'REAL') {
             console.log("Cannot mitigate: Threat is not a fully investigated REAL threat.");
             return false;
         }
 
-        if (faction.canAfford(cost)) {
-            faction.spend(cost);
-            this.severity -= 0.25; // Reduce severity by 25%
-
-            if (this.severity <= 0) {
-                this.severity = 0;
-                this.isMitigated = true; // Mark for removal
-                console.log(`Threat ${this.id} has been fully mitigated.`);
+        if (cheat || faction.canAfford(cost)) {
+            if (!cheat) {
+                faction.spend(cost);
             }
+            this.severity = 0;
+            this.isMitigated = true; // Mark for removal
+            this.wasMitigatedByPlayer = true;
+            console.log(`Threat ${this.id} has been fully mitigated.`);
             return true; // Success
         } else {
             console.log(`Faction ${faction.name} cannot afford to mitigate.`);

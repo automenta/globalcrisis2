@@ -122,14 +122,20 @@ class WorldState {
         this.weatherSystem = new WeatherSystem();
         this.threats = [];
         this.plumes = [];
+        this.buildings = [];
+        this.units = [];
         this.currentTurn = 0;
         this.globalMetrics = {
             stability: 1.0,
             economy: 1.0,
             trust: 1.0,
         };
+        this.aiAlertLevel = 0; // 0: low, 1: medium, 2: high
         this.threatGenerationTimer = 0;
         this.threatGenerationInterval = 3; // seconds
+        this.research = {
+            advancedAgents: false
+        };
     }
 
     initializeTravelRoutes() {
@@ -260,7 +266,56 @@ class WorldState {
             f.resources.tech += 2;
         });
 
-        // Calculate total environmental threat level
+        // Income from player-owned regions
+        this.regions.forEach(region => {
+            if (region.owner === 'PLAYER') {
+                let incomeMultiplier = 1;
+                if (this.buildings.some(b => b.region === region && b.type === 'BASE')) {
+                    incomeMultiplier = 1.5;
+                }
+                this.playerFaction.resources.funds += region.economy * 10 * incomeMultiplier;
+                this.playerFaction.resources.intel += region.economy * 2 * incomeMultiplier;
+                this.playerFaction.resources.tech += region.economy * 1 * incomeMultiplier;
+            }
+        });
+    }
+
+    addBuilding(region, type) {
+        let cost;
+        switch (type) {
+            case 'BASE':
+                cost = { funds: 1000 };
+                break;
+            case 'SENSOR':
+                cost = { funds: 750 };
+                break;
+            default:
+                cost = { funds: 99999 }; // Should not happen
+        }
+
+        if (this.playerFaction.canAfford(cost)) {
+            this.playerFaction.spend(cost);
+            const building = new Building({ region, type });
+            this.buildings.push(building);
+            this.scene.add(building.mesh);
+            return true;
+        }
+        return false;
+    }
+
+    addUnit(region, type) {
+        const cost = { funds: 500 };
+        if (this.playerFaction.canAfford(cost)) {
+            this.playerFaction.spend(cost);
+            const unit = new Unit({ region, type });
+            this.units.push(unit);
+            this.scene.add(unit.mesh);
+            return true;
+        }
+        return false;
+    }
+
+    // Calculate total environmental threat level
         const totalEnvSeverity = this.threats
             .filter(t => t.domain === "ENV")
             .reduce((sum, t) => sum + t.severity, 0);
@@ -271,6 +326,12 @@ class WorldState {
         // Update all threats and their impact on regions
         this.threats.forEach(threat => {
             threat.update(dt);
+
+            const region = this.getRegionForThreat(threat);
+            if (region && this.buildings.some(b => b.region === region && b.type === 'SENSOR')) {
+                threat.visibility = Math.min(1.0, threat.visibility + 0.1 * dt);
+            }
+
 
             // If threat is fully mitigated, it will be removed, so no need to process further
             if (threat.isMitigated) return;
@@ -332,10 +393,27 @@ class WorldState {
         // Update visualizations
         this.updateVisualization(dt);
 
+        // Update AI Alert Level
+        const mitigatedThreats = this.threats.filter(t => t.wasMitigatedByPlayer).length;
+        const playerRegions = this.regions.filter(r => r.owner === 'PLAYER').length;
+        const alertScore = mitigatedThreats + playerRegions * 2;
+
+        if (alertScore > 10) {
+            this.aiAlertLevel = 2; // High
+            this.threatGenerationInterval = 1; // Generate threats faster
+        } else if (alertScore > 5) {
+            this.aiAlertLevel = 1; // Medium
+            this.threatGenerationInterval = 2;
+        } else {
+            this.aiAlertLevel = 0; // Low
+            this.threatGenerationInterval = 3;
+        }
+
+
         // Update threat generation timer
         this.threatGenerationTimer += dt;
         if (this.threatGenerationTimer >= this.threatGenerationInterval) {
-            this.generateThreat();
+            this.generateThreat({ isFromAI: true });
             this.threatGenerationTimer = 0;
         }
 
@@ -548,78 +626,93 @@ class WorldState {
     }
 
     /**
-     * Creates a new threat, orchestrated by the AI faction.
+     * Creates a new threat. Can be called by AI or by cheats.
+     * @param {object} [options] - Optional parameters for threat creation.
      */
-    generateThreat() {
-        const cost = { funds: 1000, tech: 500 };
+    generateThreat(options = {}) {
+        let threatProps = {};
+        const id = `threat-${this.currentTurn}-${this.threats.length}`;
 
-        if (this.aiFaction.canAfford(cost)) {
+        if (options.isFromAI) {
+            const cost = { funds: 1000, tech: 500 };
+            if (!this.aiFaction.canAfford(cost)) {
+                console.log(`AI Faction ${this.aiFaction.name} cannot afford to create a new threat.`);
+                return;
+            }
             this.aiFaction.spend(cost);
             console.log(`AI Faction ${this.aiFaction.name} spent resources to create a new threat.`);
 
-            const id = `threat-${this.currentTurn}-${this.threats.length}`;
-
-            // Evil Technocrats prefer certain domains
             const technocratDomains = ["CYBER", "ROBOT", "QUANTUM", "ECON", "INFO", "WMD"];
             let domain;
-            if (Math.random() < 0.75) { // 75% chance to pick a preferred domain
+            if (Math.random() < 0.75) {
                 domain = technocratDomains[Math.floor(Math.random() * technocratDomains.length)];
             } else {
                 domain = threatDomains[Math.floor(Math.random() * threatDomains.length)];
             }
 
-            // AI always creates REAL threats for now, but could create FAKE ones later
-            const type = 'REAL';
-            const severity = Math.random() * 0.4 + 0.1; // Start with 10-50% severity
-            const lat = Math.random() * 180 - 90;
-            const lon = Math.random() * 360 - 180;
+            threatProps = {
+                id,
+                domain,
+                type: 'REAL',
+                severity: Math.random() * 0.4 + 0.1,
+                lat: Math.random() * 180 - 90,
+                lon: Math.random() * 360 - 180,
+            };
 
-            let threatProps = { id, domain, type, severity, lat, lon };
-
-            // Add domain-specific properties based on the generated domain
-            switch (domain) {
-                case 'QUANTUM':
-                    threatProps.quantumProperties = {
-                        coherenceTime: 5 + Math.random() * 5, // e.g., 5-10
-                        entanglementLevel: Math.random()
-                    };
-                    break;
-                case 'ROBOT':
-                    threatProps.roboticProperties = {
-                        adaptationRate: Math.random() * 0.5,
-                        collectiveIntelligence: Math.random() * 0.2
-                    };
-                    break;
-                case 'SPACE':
-                    threatProps.spaceProperties = {
-                        orbitalDebrisPotential: Math.random()
-                    };
-                    break;
-                case 'INFO':
-                    threatProps.informationProperties = {
-                        polarizationFactor: Math.random(),
-                        deepfakeQuality: Math.random()
-                    };
-                    break;
-                case 'ECON':
-                    threatProps.economicProperties = {
-                        marketCrashPotential: Math.random()
-                    };
-                    break;
-            }
-
-            const threat = new Threat(threatProps);
-
-            this.addThreat(threat);
-            this.scene.add(threat.mesh);
-
-            if (domain === "RAD") {
-                const plume = new RadiologicalPlume(threat, this.scene);
-                plume.mesh.visible = this.uiState.arePlumesVisible;
-                this.plumes.push(plume);
-            }
         } else {
-            console.log(`AI Faction ${this.aiFaction.name} cannot afford to create a new threat.`);
+            // Threat created from cheat menu
+            threatProps = {
+                id,
+                domain: options.domain,
+                type: options.type,
+                severity: options.severity,
+                lat: options.lat,
+                lon: options.lon,
+            };
+        }
+
+
+        // Add domain-specific properties based on the generated domain
+        switch (threatProps.domain) {
+            case 'QUANTUM':
+                threatProps.quantumProperties = {
+                    coherenceTime: 5 + Math.random() * 5,
+                    entanglementLevel: Math.random()
+                };
+                break;
+            case 'ROBOT':
+                threatProps.roboticProperties = {
+                    adaptationRate: Math.random() * 0.5,
+                    collectiveIntelligence: Math.random() * 0.2
+                };
+                break;
+            case 'SPACE':
+                threatProps.spaceProperties = {
+                    orbitalDebrisPotential: Math.random()
+                };
+                break;
+            case 'INFO':
+                threatProps.informationProperties = {
+                    polarizationFactor: Math.random(),
+                    deepfakeQuality: Math.random()
+                };
+                break;
+            case 'ECON':
+                threatProps.economicProperties = {
+                    marketCrashPotential: Math.random()
+                };
+                break;
+        }
+
+        const threat = new Threat(threatProps);
+
+        this.addThreat(threat);
+        this.scene.add(threat.mesh);
+
+        if (threatProps.domain === "RAD") {
+            const plume = new RadiologicalPlume(threat, this.scene);
+            plume.mesh.visible = this.uiState.arePlumesVisible;
+            this.plumes.push(plume);
         }
     }
 }

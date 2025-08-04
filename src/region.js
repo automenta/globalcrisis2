@@ -1,3 +1,9 @@
+const REGION_COLORS = {
+    NEUTRAL: 0x808080, // Grey
+    PLAYER: 0x00ff00,  // Green
+    AI: 0xff0000,      // Red
+};
+
 const EARTH_RADIUS_KM = 6371; // For converting region radius to sphere scale
 
 class Region {
@@ -19,6 +25,7 @@ class Region {
         this.attributes = attributes; // { climateVulnerability, temperature, economy: 1.0 }
         this.stability = 1.0; // Initial stability
         this.economy = 1.0; // Initial economy
+        this.owner = 'NEUTRAL'; // NEUTRAL, PLAYER, or AI
 
         // Weather will be managed by the WeatherSystem
         this.weather = null;
@@ -43,6 +50,14 @@ class Region {
     updateMeshColor(envDamage = 0) {
         const color = this.getRegionColor(this.attributes.temperature, this.stability, envDamage);
         this.mesh.material.color.set(color);
+
+        const ownerColor = new THREE.Color(REGION_COLORS[this.owner]);
+        this.mesh.material.color.lerp(ownerColor, 0.5);
+    }
+
+    setOwner(owner) {
+        this.owner = owner;
+        this.updateMeshColor();
     }
 
     createMesh() {

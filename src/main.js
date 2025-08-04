@@ -54,11 +54,64 @@ scene.add(selectionIndicator);
 
 // Create the Earth
 const textureLoader = new THREE.TextureLoader();
-const texture = textureLoader.load('https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg');
+const dayTexture = textureLoader.load('https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg');
+const specularTexture = textureLoader.load('https://www.solarsystemscope.com/textures/download/2k_earth_specular_map.tif');
+const nightTexture = textureLoader.load('https://www.solarsystemscope.com/textures/download/2k_earth_nightmap.jpg');
+const normalTexture = textureLoader.load('https://www.solarsystemscope.com/textures/download/2k_earth_normal_map.tif');
+
 const geometry = new THREE.SphereGeometry(5, 32, 32);
-const material = new THREE.MeshStandardMaterial({ map: texture });
+const material = new THREE.MeshPhongMaterial({
+    map: dayTexture,
+    specularMap: specularTexture,
+    specular: new THREE.Color('grey'),
+    shininess: 10,
+    emissive: nightTexture,
+    emissiveIntensity: 1,
+    emissiveMap: nightTexture,
+    normalMap: normalTexture
+});
 const earth = new THREE.Mesh(geometry, material);
 scene.add(earth);
+
+// Create clouds
+const cloudTexture = textureLoader.load('https://www.solarsystemscope.com/textures/download/2k_earth_clouds.jpg');
+const cloudGeometry = new THREE.SphereGeometry(5.05, 32, 32);
+const cloudMaterial = new THREE.MeshPhongMaterial({
+    map: cloudTexture,
+    transparent: true,
+    opacity: 0.8
+});
+const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
+scene.add(clouds);
+
+// Atmospheric glow
+const vertexShader = `
+    varying vec3 vNormal;
+    void main() {
+        vNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+`;
+
+const fragmentShader = `
+    varying vec3 vNormal;
+    void main() {
+        float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 4.0);
+        gl_FragColor = vec4(0.3, 0.6, 1.0, 1.0) * intensity;
+    }
+`;
+
+const atmosphereGeometry = new THREE.SphereGeometry(5.2, 32, 32);
+const atmosphereMaterial = new THREE.ShaderMaterial({
+    vertexShader: vertexShader,
+    fragmentShader: fragmentShader,
+    side: THREE.BackSide,
+    blending: THREE.AdditiveBlending,
+    transparent: true
+});
+const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+scene.add(atmosphere);
+
 
 // Position the camera
 camera.position.z = 10;
@@ -94,6 +147,8 @@ const mouse = new THREE.Vector2();
 
 const threatInfoPanel = document.getElementById('threat-info');
 let selectedThreat = null;
+let selectedUnit = null;
+let moveMode = false;
 
 const weatherPanel = {
     panel: document.getElementById('weather-panel'),
@@ -116,6 +171,22 @@ function updatePlayerPanel() {
         playerPanel.funds.textContent = Math.floor(faction.resources.funds);
         playerPanel.intel.textContent = Math.floor(faction.resources.intel);
         playerPanel.tech.textContent = Math.floor(faction.resources.tech);
+    }
+
+    const aiAlertDiv = document.getElementById('ai-alert-level');
+    switch (worldState.aiAlertLevel) {
+        case 0:
+            aiAlertDiv.textContent = 'AI Alert: LOW';
+            aiAlertDiv.style.color = 'green';
+            break;
+        case 1:
+            aiAlertDiv.textContent = 'AI Alert: MEDIUM';
+            aiAlertDiv.style.color = 'orange';
+            break;
+        case 2:
+            aiAlertDiv.textContent = 'AI Alert: HIGH';
+            aiAlertDiv.style.color = 'red';
+            break;
     }
 }
 
@@ -287,38 +358,84 @@ function updateThreatPanel() {
 }
 
 function onMouseClick(event) {
-    // calculate mouse position in normalized device coordinates
-    // (-1 to +1) for both components
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
-
     raycaster.setFromCamera(mouse, camera);
+
+    if (moveMode && selectedUnit) {
+        const regionMeshes = worldState.regions.map(r => r.mesh);
+        const intersects = raycaster.intersectObjects(regionMeshes);
+        if (intersects.length > 0) {
+            const intersectedMesh = intersects[0].object;
+            const targetRegion = worldState.regions.find(r => r.mesh === intersectedMesh);
+            if (targetRegion) {
+                selectedUnit.moveTo(targetRegion);
+            }
+        }
+        moveMode = false;
+        document.getElementById('move-agent-button').textContent = 'Move Agent';
+        return;
+    }
 
     const allThreats = worldState.getThreats();
     const threatMeshes = allThreats.map(t => t.mesh);
-    const intersects = raycaster.intersectObjects(threatMeshes);
+    const allUnits = worldState.units;
+    const unitMeshes = allUnits.map(u => u.mesh);
+    const intersects = raycaster.intersectObjects([...threatMeshes, ...unitMeshes]);
 
     if (intersects.length > 0) {
         const intersectedMesh = intersects[0].object;
-        const newlySelectedThreat = allThreats.find(t => t.mesh === intersectedMesh);
-
-        // Play click sound regardless of whether it's a new threat
         audioManager.playSound('click');
 
-        // If the same threat is clicked, do nothing to prevent panel flicker
-        if (newlySelectedThreat !== selectedThreat) {
+        const newlySelectedThreat = allThreats.find(t => t.mesh === intersectedMesh);
+        const newlySelectedUnit = allUnits.find(u => u.mesh === intersectedMesh);
+
+        if (newlySelectedThreat) {
             selectedThreat = newlySelectedThreat;
+            selectedUnit = null;
             updateThreatPanel();
             updateWeatherPanel();
             updateSelectionIndicator();
-        }
-    } else {
-        if (selectedThreat) {
+            document.getElementById('cheat-investigate-threat').disabled = false;
+            document.getElementById('cheat-mitigate-threat').disabled = false;
+            document.getElementById('move-agent-button').disabled = true;
+
+            const region = worldState.getRegionForThreat(selectedThreat);
+            const claimButton = document.getElementById('claim-region-button');
+            const buildButton = document.getElementById('build-button');
+            if (region && region.owner === 'NEUTRAL') {
+                claimButton.disabled = false;
+                buildButton.disabled = true;
+            } else if (region && region.owner === 'PLAYER') {
+                claimButton.disabled = true;
+                buildButton.disabled = false;
+            } else {
+                claimButton.disabled = true;
+                buildButton.disabled = true;
+            }
+        } else if (newlySelectedUnit) {
+            selectedUnit = newlySelectedUnit;
             selectedThreat = null;
             updateThreatPanel();
             updateWeatherPanel();
             updateSelectionIndicator();
+            document.getElementById('cheat-investigate-threat').disabled = true;
+            document.getElementById('cheat-mitigate-threat').disabled = true;
+            document.getElementById('claim-region-button').disabled = true;
+            document.getElementById('build-button').disabled = true;
+            document.getElementById('move-agent-button').disabled = false;
         }
+    } else {
+        selectedThreat = null;
+        selectedUnit = null;
+        updateThreatPanel();
+        updateWeatherPanel();
+        updateSelectionIndicator();
+        document.getElementById('cheat-investigate-threat').disabled = true;
+        document.getElementById('cheat-mitigate-threat').disabled = true;
+        document.getElementById('claim-region-button').disabled = true;
+        document.getElementById('build-button').disabled = true;
+        document.getElementById('move-agent-button').disabled = true;
     }
 }
 
@@ -376,8 +493,186 @@ window.addEventListener('keyup', (event) => {
     }
 });
 
+let currentThreatIndex = -1;
+
+window.addEventListener('keydown', (event) => {
+    const key = event.key.toLowerCase();
+    if (key === 'c') {
+        const isVisible = cheatPanel.style.display === 'block';
+        cheatPanel.style.display = isVisible ? 'none' : 'block';
+    } else if (key === 'p') {
+        gameSpeed = gameSpeed > 0 ? 0 : 1;
+        document.getElementById('cheat-game-speed').value = gameSpeed;
+        document.getElementById('game-speed-value').textContent = `${gameSpeed.toFixed(1)}x`;
+    } else if (key === 't') {
+        const threats = worldState.getThreats();
+        if (threats.length > 0) {
+            currentThreatIndex = (currentThreatIndex + 1) % threats.length;
+            selectedThreat = threats[currentThreatIndex];
+            updateThreatPanel();
+            updateWeatherPanel();
+            updateSelectionIndicator();
+        }
+    }
+});
+
+document.getElementById('build-sensor-button').addEventListener('click', () => {
+    if (selectedThreat) {
+        const region = worldState.getRegionForThreat(selectedThreat);
+        if (region && region.owner === 'PLAYER') {
+            worldState.addBuilding(region, 'SENSOR');
+            buildPanel.style.display = 'none';
+        }
+    }
+});
+
+document.getElementById('move-agent-button').addEventListener('click', () => {
+    if (selectedUnit) {
+        moveMode = true;
+        document.getElementById('move-agent-button').textContent = 'Select Target Region...';
+    }
+});
+
+const researchPanel = document.getElementById('research-panel');
+document.getElementById('research-button').addEventListener('click', () => {
+    const isVisible = researchPanel.style.display === 'block';
+    researchPanel.style.display = isVisible ? 'none' : 'block';
+});
+
+document.getElementById('research-advanced-agents-button').addEventListener('click', () => {
+    const cost = { tech: 2000 };
+    if (worldState.playerFaction.canAfford(cost)) {
+        worldState.playerFaction.spend(cost);
+        worldState.research.advancedAgents = true;
+        document.getElementById('research-advanced-agents-button').disabled = true;
+        researchPanel.style.display = 'none';
+    } else {
+        alert("Not enough tech to research Advanced Agents.");
+    }
+});
+
+document.getElementById('build-agent-button').addEventListener('click', () => {
+    if (selectedThreat) {
+        const region = worldState.getRegionForThreat(selectedThreat);
+        if (region && region.owner === 'PLAYER' && worldState.buildings.some(b => b.region === region && b.type === 'BASE')) {
+            worldState.addUnit(region, 'AGENT');
+            buildPanel.style.display = 'none';
+        } else {
+            alert("You need a base in this region to build an agent.");
+        }
+    }
+});
+
+const buildPanel = document.getElementById('build-panel');
+document.getElementById('build-button').addEventListener('click', () => {
+    const isVisible = buildPanel.style.display === 'block';
+    buildPanel.style.display = isVisible ? 'none' : 'block';
+});
+
+document.getElementById('build-base-button').addEventListener('click', () => {
+    if (selectedThreat) {
+        const region = worldState.getRegionForThreat(selectedThreat);
+        if (region && region.owner === 'PLAYER') {
+            worldState.addBuilding(region, 'BASE');
+            buildPanel.style.display = 'none';
+        }
+    }
+});
+
+// --- CHEAT PANEL ---
+const cheatPanel = document.getElementById('cheat-panel');
+const toggleCheatPanelButton = document.getElementById('toggle-cheat-panel');
+const cheatThreatDomainSelect = document.getElementById('cheat-threat-domain');
+const cheatThreatTypeSelect = document.getElementById('cheat-threat-type');
+
+// Populate cheat menu dropdowns
+const allThreatDomains = ["CYBER", "BIO", "GEO", "ENV", "INFO", "SPACE", "WMD", "ECON", "QUANTUM", "RAD", "ROBOT"];
+allThreatDomains.forEach(domain => {
+    const option = document.createElement('option');
+    option.value = domain;
+    option.textContent = domain;
+    cheatThreatDomainSelect.appendChild(option);
+});
+
+const allThreatTypes = ["REAL", "FAKE", "UNKNOWN"];
+allThreatTypes.forEach(type => {
+    const option = document.createElement('option');
+    option.value = type;
+    option.textContent = type;
+    cheatThreatTypeSelect.appendChild(option);
+});
+
+
+toggleCheatPanelButton.addEventListener('click', () => {
+    const isVisible = cheatPanel.style.display === 'block';
+    cheatPanel.style.display = isVisible ? 'none' : 'block';
+});
+
+// Cheat functionality
+document.getElementById('cheat-add-funds').addEventListener('click', () => {
+    worldState.playerFaction.resources.funds += 1000;
+    updatePlayerPanel();
+});
+
+document.getElementById('cheat-add-intel').addEventListener('click', () => {
+    worldState.playerFaction.resources.intel += 1000;
+    updatePlayerPanel();
+});
+
+document.getElementById('cheat-add-tech').addEventListener('click', () => {
+    worldState.playerFaction.resources.tech += 1000;
+    updatePlayerPanel();
+});
+
+document.getElementById('cheat-create-threat').addEventListener('click', () => {
+    const domain = cheatThreatDomainSelect.value;
+    const type = cheatThreatTypeSelect.value;
+    const severity = parseFloat(document.getElementById('cheat-threat-severity').value);
+    const lat = Math.random() * 180 - 90;
+    const lon = Math.random() * 360 - 180;
+
+    worldState.generateThreat({
+        domain,
+        type,
+        severity,
+        lat,
+        lon
+    });
+});
+
+document.getElementById('cheat-investigate-threat').addEventListener('click', () => {
+    if (selectedThreat) {
+        selectedThreat.investigate(worldState.playerFaction, true);
+        updateThreatPanel();
+    }
+});
+
+document.getElementById('claim-region-button').addEventListener('click', () => {
+    if (selectedThreat) {
+        const region = worldState.getRegionForThreat(selectedThreat);
+        if (region && region.owner === 'NEUTRAL') {
+            region.setOwner('PLAYER');
+            document.getElementById('claim-region-button').disabled = true;
+        }
+    }
+});
+
+document.getElementById('cheat-mitigate-threat').addEventListener('click', () => {
+    if (selectedThreat) {
+        selectedThreat.mitigate(worldState.playerFaction, true);
+        updateThreatPanel();
+    }
+});
+
 // Game loop
 const clock = new THREE.Clock();
+let gameSpeed = 1; // Initial game speed
+
+document.getElementById('cheat-game-speed').addEventListener('input', (event) => {
+    gameSpeed = parseFloat(event.target.value);
+    document.getElementById('game-speed-value').textContent = `${gameSpeed.toFixed(1)}x`;
+});
+
 
 function handleKeyboardCameraControls(dt) {
     const panSpeed = 2.0; // Radians per second
@@ -398,10 +693,20 @@ function handleKeyboardCameraControls(dt) {
     }
 }
 
+// Post-processing
+const composer = new THREE.EffectComposer(renderer);
+composer.addPass(new THREE.RenderPass(scene, camera));
+
+const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+bloomPass.threshold = 0;
+bloomPass.strength = 0.5;
+bloomPass.radius = 0;
+composer.addPass(bloomPass);
+
 function animate() {
     requestAnimationFrame(animate);
 
-    const deltaTime = clock.getDelta();
+    const deltaTime = clock.getDelta() * gameSpeed;
 
     // Handle user input
     handleKeyboardCameraControls(deltaTime);
@@ -432,8 +737,13 @@ function animate() {
     // Update controls
     controls.update();
 
+    // Animate clouds
+    clouds.rotation.y += 0.0005;
+
     // Render the scene
-    renderer.render(scene, camera);
+    composer.render();
+
+    TWEEN.update();
 }
 animate();
 

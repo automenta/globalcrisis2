@@ -113,7 +113,12 @@
             <p><strong>Intel:</strong> <span id="intel-value">0</span></p>
             <p><strong>Tech:</strong> <span id="tech-value">0</span></p>
         </div>
-        <button id="toggle-plumes-button" style="width: 100%; margin-top: 10px;">Toggle Plumes</button>
+        <button id="toggle-plumes-button" style="width: 100%; margin-top: 10px;" title="Toggle visibility of radiological plumes">Toggle Plumes</button>
+        <button id="claim-region-button" style="width: 100%; margin-top: 5px;" title="Claim the region of the selected threat" disabled>Claim Region</button>
+        <div id="ai-alert-level" style="width: 100%; margin-top: 10px; text-align: center; font-weight: bold;">AI Alert: LOW</div>
+        <button id="build-button" style="width: 100%; margin-top: 5px;" disabled>Build</button>
+        <button id="move-agent-button" style="width: 100%; margin-top: 5px;" disabled>Move Agent</button>
+        <button id="research-button" style="width: 100%; margin-top: 5px;">Research</button>
     </div>
     <div id="weather-panel">
         <h3>Weather</h3>
@@ -122,8 +127,53 @@
         <p><strong>Wind Direction:</strong> <span id="weather-wind-dir">--</span>°</p>
     </div>
     <div id="narrative-log"></div>
+
+    <!-- Cheat Panel -->
+    <div id="cheat-panel" style="display: none; position: absolute; top: 10px; left: 220px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-family: sans-serif; width: 250px;">
+        <h3>Cheat Menu</h3>
+        <button id="cheat-add-funds" title="Add 1000 funds to your faction">Add 1000 Funds</button><br>
+        <button id="cheat-add-intel" title="Add 1000 intel to your faction">Add 1000 Intel</button><br>
+        <button id="cheat-add-tech" title="Add 1000 tech to your faction">Add 1000 Tech</button><br>
+        <hr>
+        <h4>Create Threat</h4>
+        <select id="cheat-threat-domain" title="Select the domain of the new threat"></select>
+        <select id="cheat-threat-type" title="Select the type of the new threat"></select><br>
+        <label for="cheat-threat-severity">Severity:</label>
+        <input type="range" id="cheat-threat-severity" min="0.1" max="1.0" step="0.1" value="0.5" title="Set the severity of the new threat"><br>
+        <button id="cheat-create-threat" title="Create a new threat with the specified properties">Create Threat</button>
+        <hr>
+        <h4>Selected Threat</h4>
+        <button id="cheat-investigate-threat" title="Instantly investigate the selected threat" disabled>Instant Investigate</button><br>
+        <button id="cheat-mitigate-threat" title="Instantly mitigate the selected threat" disabled>Instant Mitigate</button><br>
+        <hr>
+        <h4>Game Speed</h4>
+        <input type="range" id="cheat-game-speed" min="0" max="5" step="0.5" value="1" title="Control the game speed"><br>
+        <span id="game-speed-value">1x</span>
+    </div>
+
+    <button id="toggle-cheat-panel" style="position: absolute; top: 10px; right: 220px; width: 30px; height: 30px; background-color: #555; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">C</button>
+
+    <!-- Build Panel -->
+    <div id="build-panel" style="display: none; position: absolute; top: 150px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-family: sans-serif; width: 200px;">
+        <h3>Build Menu</h3>
+        <button id="build-base-button">Build Base (1000 Funds)</button><br>
+        <button id="build-agent-button">Build Agent (500 Funds)</button><br>
+        <button id="build-sensor-button">Build Sensor Tower (750 Funds)</button>
+    </div>
+
+    <!-- Research Panel -->
+    <div id="research-panel" style="display: none; position: absolute; top: 150px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-family: sans-serif; width: 250px;">
+        <h3>Research Menu</h3>
+        <button id="research-advanced-agents-button">Advanced Agents (2000 Tech)</button>
+    </div>
+
     <script src="lib/three.min.js"></script>
     <script src="lib/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/ShaderPass.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/UnrealBloomPass.js"></script>
     <script src="src/faction.js"></script>
     <script src="src/region.js"></script>
     <script src="src/weather.js"></script>
@@ -132,6 +182,9 @@
     <script src="src/domain_logic.js"></script>
     <script src="src/threat.js"></script>
     <script src="src/plume.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/25.0.0/tween.umd.js"></script>
+    <script src="src/building.js"></script>
+    <script src="src/unit.js"></script>
     <script src="src/world.js"></script>
     <script src="src/audio.js"></script>
     <script src="src/main.js"></script>
