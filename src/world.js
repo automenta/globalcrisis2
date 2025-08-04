@@ -1,6 +1,61 @@
 const threatDomains = ["CYBER", "BIO", "GEO", "ENV", "INFO", "SPACE", "WMD", "ECON", "QUANTUM", "RAD", "ROBOT"];
 const threatTypes = ["REAL", "FAKE", "UNKNOWN"];
 
+const CROSS_DOMAIN_INTERACTIONS = {
+    "CYBER-RAD": {
+        narrativeEvent: "CYBER_RAD_SYNERGY",
+        effect: (cyberThreat, radThreat, dt) => {
+            radThreat.severity = Math.min(1.0, radThreat.severity + 0.001 * cyberThreat.severity);
+            cyberThreat.severity = Math.min(1.0, cyberThreat.severity + 0.0005 * radThreat.severity);
+        }
+    },
+    "ECON-INFO": {
+        narrativeEvent: "ECON_INFO_SYNERGY",
+        effect: (econThreat, infoThreat, dt) => {
+            // Economic trouble makes people more susceptible to misinformation
+            infoThreat.spreadRate = Math.min(1.0, infoThreat.spreadRate + 0.002 * econThreat.severity);
+            // Misinformation can amplify economic panic
+            econThreat.severity = Math.min(1.0, econThreat.severity + 0.001 * infoThreat.severity);
+        }
+    },
+    "QUANTUM-ROBOT": {
+        narrativeEvent: "QUANTUM_ROBOTIC_ENHANCEMENT",
+        effect: (qThreat, rThreat, dt) => {
+            const qProps = qThreat.quantumProperties;
+            const rProps = rThreat.roboticProperties;
+            if (qProps && rProps && (qProps.entanglementLevel || 0) > 0.7) {
+                rProps.adaptationRate = (rProps.adaptationRate || 1) * (1 + (0.5 * dt / 60));
+                rProps.collectiveIntelligence = Math.min(1, (rProps.collectiveIntelligence || 0) + (qProps.entanglementLevel * 0.3 * dt / 60));
+            }
+        }
+    },
+    "CYBER-ROBOT": {
+        narrativeEvent: "CYBER_ROBOT_HACK",
+        effect: (cyberThreat, robotThreat, dt) => {
+            const rProps = robotThreat.roboticProperties;
+            if (rProps && cyberThreat.severity > 0.6) {
+                 // High severity cyber attacks can increase robot autonomy (e.g., hack them to be more independent)
+                 const autonomyGain = (cyberThreat.severity - 0.6) * 0.01 * dt;
+                 if(rProps.autonomyDegrees) {
+                    rProps.autonomyDegrees.decisionLevel = Math.min(1, rProps.autonomyDegrees.decisionLevel + autonomyGain);
+                 }
+            }
+        }
+    },
+    "QUANTUM-INFO": {
+        narrativeEvent: "QUANTUM_DISINFORMATION_BREAKTHROUGH",
+        effect: (qThreat, infoThreat, dt) => {
+            const qProps = qThreat.quantumProperties;
+            const iProps = infoThreat.informationProperties;
+            // Quantum computing can dramatically improve deepfake quality
+            if (qProps && iProps && qProps.coherenceTime > 3) {
+                 const qualityGain = qProps.coherenceTime * 0.005 * dt;
+                 iProps.deepfakeQuality = Math.min(1, (iProps.deepfakeQuality || 0) + qualityGain);
+            }
+        }
+    }
+};
+
 class WorldState {
     constructor(scene, uiState) {
         this.scene = scene;
@@ -287,57 +342,51 @@ class WorldState {
             if (threat.domain === "RAD" && region.weather.type === "RADIOLOGICAL_FALLOUT") {
                 threat.spreadRate = Math.min(1, threat.spreadRate + (1.5 * dt / 60)); // Spread rate increases
                 threat.severity = Math.min(1, threat.severity + (0.3 * dt / 60)); // Severity increases
-                console.log(`NARRATIVE_EVENT: RAD_FALLOUT_AMPLIFY, threatId: ${threat.id}, region: ${region.id}`);
+                NarrativeManager.logEvent('RAD_FALLOUT_AMPLIFY', {
+                    threatId: threat.id,
+                    region: region.id
+                });
             }
         });
     }
 
     handleCrossDomainInteractions(dt) {
-        for (let i = 0; i < this.threats.length; i++) {
-            for (let j = i + 1; j < this.threats.length; j++) {
-                const threatA = this.threats[i];
-                const threatB = this.threats[j];
+        const threatsByRegion = new Map();
+        this.threats.forEach(threat => {
+            const region = this.getRegionForThreat(threat);
+            if (region) {
+                if (!threatsByRegion.has(region.id)) {
+                    threatsByRegion.set(region.id, []);
+                }
+                threatsByRegion.get(region.id).push(threat);
+            }
+        });
 
-                const regionA = this.getRegionForThreat(threatA);
-                const regionB = this.getRegionForThreat(threatB);
+        for (const threatsInRegion of threatsByRegion.values()) {
+            for (let i = 0; i < threatsInRegion.length; i++) {
+                for (let j = i + 1; j < threatsInRegion.length; j++) {
+                    const threatA = threatsInRegion[i];
+                    const threatB = threatsInRegion[j];
 
-                if (regionA && regionA === regionB) {
-                    // Rule 1: CYBER + RAD
-                    if (threatA.domain === "CYBER" && threatB.domain === "RAD") {
-                        threatB.severity = Math.min(1.0, threatB.severity + 0.001 * threatA.severity);
-                    }
-                    if (threatB.domain === "CYBER" && threatA.domain === "RAD") {
-                        threatA.severity = Math.min(1.0, threatA.severity + 0.001 * threatB.severity);
-                    }
-
-                    // Rule 2: ECON + INFO
-                    if (threatA.domain === "ECON" && threatB.domain === "INFO") {
-                        threatB.severity = Math.min(1.0, threatB.severity + 0.001 * threatA.severity);
-                    }
-                    if (threatB.domain === "ECON" && threatA.domain === "INFO") {
-                        threatA.severity = Math.min(1.0, threatA.severity + 0.001 * threatB.severity);
-                    }
-
-                    // Rule 3: Quantum-Robotic Interaction
-                    const processQuantumRobotic = (qThreat, rThreat) => {
-                        const qProps = qThreat.quantumProperties;
-                        const rProps = rThreat.roboticProperties;
-                        if (qProps && rProps && (qProps.entanglementLevel || 0) > 0.7) {
-                            rProps.adaptationRate = (rProps.adaptationRate || 1) * (1 + (0.5 * dt / 60));
-                            rProps.collectiveIntelligence = Math.min(1, (rProps.collectiveIntelligence || 0) + (qProps.entanglementLevel * 0.3 * dt / 60));
-                            console.log(`NARRATIVE_EVENT: QUANTUM_ROBOTIC_ENHANCEMENT, quantumThreat: ${qThreat.id}, roboticThreat: ${rThreat.id}`);
+                    const interaction = this.getInteractionEffect(threatA, threatB);
+                    if (interaction) {
+                        interaction.effect(threatA, threatB, dt);
+                        if (interaction.narrativeEvent) {
+                            NarrativeManager.logEvent(interaction.narrativeEvent, {
+                                threats: [threatA.id, threatB.id],
+                                domains: [threatA.domain, threatB.domain]
+                            });
                         }
-                    };
-
-                    if (threatA.domain === "QUANTUM" && threatB.domain === "ROBOT") {
-                        processQuantumRobotic(threatA, threatB);
-                    }
-                    if (threatB.domain === "QUANTUM" && threatA.domain === "ROBOT") {
-                        processQuantumRobotic(threatB, threatA);
                     }
                 }
             }
         }
+    }
+
+    getInteractionEffect(threatA, threatB) {
+        const key1 = `${threatA.domain}-${threatB.domain}`;
+        const key2 = `${threatB.domain}-${threatA.domain}`;
+        return CROSS_DOMAIN_INTERACTIONS[key1] || CROSS_DOMAIN_INTERACTIONS[key2] || null;
     }
 
     updateVisualization(dt) {

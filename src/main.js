@@ -160,7 +160,9 @@ function updateThreatPanel() {
     const typeDisplay = isInvestigated ? threat.type : 'UNKNOWN';
 
     threatInfoPanel.style.display = 'block';
-    let innerHTML = `
+
+    // --- Render Threat Info ---
+    let infoHTML = `
         <h3>Threat Details</h3>
         <p><strong>ID:</strong> ${threat.id}</p>
         <p><strong>Domain:</strong> ${threat.domain}</p>
@@ -171,11 +173,9 @@ function updateThreatPanel() {
         <p><strong>Investigation:</strong> ${(threat.investigationProgress * 100).toFixed(0)}%</p>
     `;
 
-    // --- Domain-Specific Details ---
     if (isInvestigated) {
         let domainDetails = '<h4>Domain-Specifics</h4>';
         let hasDetails = false;
-
         if (threat.domain === 'QUANTUM' && threat.quantumProperties) {
             const qp = threat.quantumProperties;
             if (qp.coherenceTime !== undefined) {
@@ -201,97 +201,61 @@ function updateThreatPanel() {
         }
         if (threat.domain === 'INFO' && threat.informationProperties) {
             const ip = threat.informationProperties;
-            domainDetails += `<p><strong>Spread Rate:</strong> ${threat.spreadRate.toFixed(2)}</p>`;
-            hasDetails = true;
+            if (threat.spreadRate !== undefined) {
+                domainDetails += `<p><strong>Spread Rate:</strong> ${threat.spreadRate.toFixed(2)}</p>`;
+                hasDetails = true;
+            }
         }
-
         if (hasDetails) {
-            innerHTML += domainDetails;
+            infoHTML += domainDetails;
         }
     }
 
-
-    innerHTML += '<div id="action-buttons"></div>';
-    threatInfoPanel.innerHTML = innerHTML;
-
+    threatInfoPanel.innerHTML = infoHTML + '<div id="action-buttons"></div>';
     const actionButtonsContainer = document.getElementById('action-buttons');
 
-    // Add Investigate Button
-    if (!isInvestigated) {
-        actionButtonsContainer.innerHTML += `
-            <button id="investigate-button">Investigate (100 Intel)</button>
-        `;
-    } else {
-        actionButtonsContainer.innerHTML += `
-            <button id="investigate-button" disabled style="background-color: #555;">Fully Investigated</button>
-        `;
-    }
+    // --- Dynamically Generate Action Buttons ---
+    for (const actionId in PlayerActions) {
+        const action = PlayerActions[actionId];
+        if (action.isAvailable(threat)) {
+            const button = document.createElement('button');
+            button.id = `${action.id}-button`;
 
-    // Add Mitigate Button if applicable
-    if (isInvestigated && threat.type === 'REAL') {
-        actionButtonsContainer.innerHTML += `
-            <button id="mitigate-button">Mitigate (500 Funds, 200 Tech)</button>
-        `;
-    }
+            let costText = '';
+            if (action.resourceCost) {
+                costText = Object.entries(action.resourceCost)
+                               .map(([key, value]) => `${value} ${key.charAt(0).toUpperCase() + key.slice(1)}`)
+                               .join(', ');
+            }
+            button.textContent = `${action.name}${costText ? ` (${costText})` : ''}`;
+            button.title = action.description;
 
-    // Add domain-specific action buttons
-    if (isInvestigated && threat.domain === 'INFO') {
-        actionButtonsContainer.innerHTML += `
-            <button id="counter-intel-button">Deploy Counter-Intel (250 Intel, 100 Funds)</button>
-        `;
-    }
-    if (isInvestigated && threat.domain === 'ECON') {
-        actionButtonsContainer.innerHTML += `
-            <button id="stabilize-markets-button">Stabilize Markets (1000 Funds)</button>
-        `;
-    }
+            button.addEventListener('click', () => {
+                // Store investigation status before executing action
+                const wasInvestigated = threat.investigationProgress >= 1.0;
 
+                if (action.execute(threat, worldState.playerFaction)) {
+                    // Play sound based on action type
+                    if (action.id === 'investigate') {
+                        audioManager.playSound('investigate');
+                        const isNowInvestigated = threat.investigationProgress >= 1.0;
+                        if (!wasInvestigated && isNowInvestigated) {
+                            audioManager.playSound('investigation_complete');
+                        }
+                    } else if (action.id === 'mitigate') {
+                        audioManager.playSound('mitigate');
+                    }
 
-    // Add event listeners
-    const investigateButton = document.getElementById('investigate-button');
-    if (investigateButton && !investigateButton.disabled) {
-        investigateButton.addEventListener('click', () => {
-            const wasInvestigated = threat.investigationProgress >= 1.0;
-            if (threat.investigate(worldState.playerFaction)) {
-                audioManager.playSound('investigate');
-                const isNowInvestigated = threat.investigationProgress >= 1.0;
-                if (!wasInvestigated && isNowInvestigated) {
-                    audioManager.playSound('investigation_complete');
+                    // The threat might be removed or its state changed, so re-render the panel
+                    // If the threat is removed, selectedThreat will become null, hiding the panel
+                    updateThreatPanel();
+                } else {
+                    // Provide feedback for failed actions (e.g., not enough resources)
+                    alert(`Could not perform action: ${action.name}. Check resources.`);
                 }
-                updateThreatPanel();
-            }
-        });
-    }
-
-    const mitigateButton = document.getElementById('mitigate-button');
-    if (mitigateButton) {
-        mitigateButton.addEventListener('click', () => {
-            if (threat.mitigate(worldState.playerFaction)) {
-                audioManager.playSound('mitigate');
-                // The threat might be removed, so update panel will handle the rest
-                // No need to call it here explicitly if mitigate handles it
-            }
-        });
-    }
-
-    const counterIntelButton = document.getElementById('counter-intel-button');
-    if (counterIntelButton) {
-        counterIntelButton.addEventListener('click', () => {
-            if (threat.deployCounterIntel(worldState.playerFaction)) {
-                // Maybe add a new sound for this later
-                updateThreatPanel(); // Re-render to show updated spread rate
-            }
-        });
-    }
-
-    const stabilizeMarketsButton = document.getElementById('stabilize-markets-button');
-    if (stabilizeMarketsButton) {
-        stabilizeMarketsButton.addEventListener('click', () => {
-            if (threat.stabilizeMarkets(worldState.playerFaction)) {
-                // Maybe add a new sound for this later
-                updateThreatPanel(); // Re-render to show updated severity
-            }
-        });
+            });
+            actionButtonsContainer.appendChild(button);
+        }
     }
 }
 

@@ -73,65 +73,41 @@ class Threat {
         this.economicProperties = economicProperties || {};
         this.spaceProperties = spaceProperties || {};
 
+        // --- Deep Initialization for Specific Domains ---
+        if (this.domain === 'ROBOT') {
+            const defaults = {
+                learningAlgorithms: ["SWARM"],
+                failureModes: ["HACKABLE"],
+                emergentBehaviors: [],
+                autonomyDegrees: {
+                    decisionLevel: 0.1,
+                    selfReplication: false,
+                    selfModification: false,
+                },
+                humanInterfaceRisks: {
+                    manipulationPotential: 0.1,
+                    physicalHarmProbability: 0.1,
+                },
+                // Ensure core logic props exist
+                adaptationRate: this.roboticProperties.adaptationRate || 0.1,
+                collectiveIntelligence: this.roboticProperties.collectiveIntelligence || 0,
+            };
+            this.roboticProperties = { ...defaults, ...this.roboticProperties };
+        }
+
+        if (this.domain === 'QUANTUM') {
+            const defaults = {
+                quantumEffects: [],
+                entanglementLevel: 0,
+                coherenceTime: 10.0,
+            };
+            this.quantumProperties = { ...defaults, ...this.quantumProperties };
+        }
+
+
         // 3D representation
         this.mesh = this.createMesh();
         this.pulseTime = 0;
-    }
-
-    updateQuantumCoherence(dt) {
-        if (this.domain !== "QUANTUM" || this.quantumProperties.coherenceTime === undefined) {
-            return;
-        }
-
-        const props = this.quantumProperties;
-
-        // Decoherence increases with time and threat severity
-        const decoherenceRate = 0.01 * this.severity;
-        props.coherenceTime -= dt * decoherenceRate;
-
-        // When coherence drops too low, quantum effects diminish
-        if (props.coherenceTime < 1 && props.coherenceTime > 0) { // Check > 0 to prevent this from running repeatedly
-            this.severity *= 0.5;
-            this.visibility *= 0.8;
-            props.coherenceTime = -1; // Mark as collapsed
-            console.log(`NARRATIVE_EVENT: QUANTUM_DECOHERENCE, threatId: ${this.id}, severity: ${this.severity.toFixed(2)}`);
-        }
-    }
-
-    updateSwarmIntelligence(dt) {
-        if (this.domain !== "ROBOT" || !this.roboticProperties.adaptationRate) {
-            return;
-        }
-        const props = this.roboticProperties;
-        const intelligenceGain = props.adaptationRate * this.severity * 0.01;
-        props.collectiveIntelligence = Math.min(1, (props.collectiveIntelligence || 0) + intelligenceGain * dt);
-
-        if (props.collectiveIntelligence > 0.7 && !(props.emergentBehaviors || []).includes("CoordinatedAssault")) {
-            if (!props.emergentBehaviors) {
-                props.emergentBehaviors = [];
-            }
-            props.emergentBehaviors.push("CoordinatedAssault");
-            console.log(`NARRATIVE_EVENT: ROBOTIC_EMERGENCE, threatId: ${this.id}, behavior: CoordinatedAssault`);
-        }
-    }
-
-    simulateOrbitalDecay(dt) {
-        if (this.domain !== "SPACE" || !this.spaceProperties) {
-            return;
-        }
-        const props = this.spaceProperties;
-        if (props.altitude === undefined) {
-            props.altitude = 400; // Start at a nominal 400km LEO
-        }
-
-        const debrisDensity = (props.orbitalDebrisPotential || 0.1) * 0.01;
-        const decayRate = debrisDensity * dt;
-        props.altitude -= decayRate;
-
-        if (props.altitude < 100) { // 100km is Karman line, re-entry
-            this.isMitigated = true; // Mark for removal
-            console.log(`NARRATIVE_EVENT: SPACE_DEORBIT, threatId: ${this.id}`);
-        }
     }
 
     update(dt) {
@@ -143,12 +119,9 @@ class Threat {
         }
 
         // --- Domain-specific update logic ---
-        if (this.domain === "QUANTUM") {
-            this.updateQuantumCoherence(dt);
-        } else if (this.domain === "ROBOT") {
-            this.updateSwarmIntelligence(dt);
-        } else if (this.domain === "SPACE") {
-            this.simulateOrbitalDecay(dt);
+        const domainUpdateLogic = DomainLogic[this.domain];
+        if (domainUpdateLogic) {
+            domainUpdateLogic(this, dt);
         }
 
         this.updateMesh();
@@ -160,22 +133,35 @@ class Threat {
         let pulseIntensity = 0.1 * this.severity;
 
         // --- Domain-specific visualization logic ---
-        if (this.domain === 'QUANTUM' && this.quantumProperties.coherenceTime !== undefined) {
-            // Lower coherence reduces pulse intensity
-            const coherenceFactor = Math.max(0, this.quantumProperties.coherenceTime / 10); // Assuming coherenceTime starts around 10
+        const qProps = this.quantumProperties;
+        if (this.domain === 'QUANTUM' && qProps.coherenceTime !== undefined) {
+            const coherenceFactor = Math.max(0, qProps.coherenceTime / 10);
             pulseIntensity *= coherenceFactor;
+            // Phasing effect for tunneling
+            if (qProps.quantumEffects && qProps.quantumEffects.includes("QUANTUM_TUNNELING")) {
+                this.mesh.material.opacity = 0.5 + Math.sin(this.pulseTime * 5) * 0.4;
+            } else {
+                this.mesh.material.opacity = 1.0;
+            }
         }
-        if (this.domain === 'ROBOT' && this.roboticProperties.collectiveIntelligence !== undefined) {
-            // Higher intelligence increases pulse speed
-            pulseSpeed += (this.roboticProperties.collectiveIntelligence * 5);
+
+        const rProps = this.roboticProperties;
+        if (this.domain === 'ROBOT' && rProps.collectiveIntelligence !== undefined) {
+            pulseSpeed += (rProps.collectiveIntelligence * 5);
+            // Unstable failure mode visual
+            if (rProps.failureModes.includes("GOAL_DRIFT") || rProps.failureModes.includes("ETHICS_OVERRIDE")) {
+                const flicker = Math.sin(this.pulseTime * 20) > 0;
+                this.mesh.material.color.set(flicker ? 0xff0000 : DOMAIN_COLORS.ROBOT);
+            } else {
+                 this.mesh.material.color.set(DOMAIN_COLORS.ROBOT);
+            }
         }
+
         if (this.domain === 'INFO' && this.spreadRate !== undefined) {
-            // Higher spread rate makes the color brighter
             const originalColor = new THREE.Color(DOMAIN_COLORS[this.domain]);
             const brighterColor = originalColor.lerp(new THREE.Color(0xffffff), this.spreadRate * 0.5);
             this.mesh.material.color.set(brighterColor);
         }
-
 
         const pulseFactor = 1 + Math.sin(this.pulseTime * pulseSpeed) * pulseIntensity;
         const scale = baseScale * pulseFactor;
@@ -206,7 +192,13 @@ class Threat {
     createMesh() {
         // Determine color based on domain
         const color = DOMAIN_COLORS[this.domain] || DOMAIN_COLORS["DEFAULT"];
-        const material = new THREE.MeshBasicMaterial({ color: color });
+        // Enable transparency for domains that might need it (like QUANTUM)
+        const isTransparent = this.domain === 'QUANTUM';
+        const material = new THREE.MeshBasicMaterial({
+            color: color,
+            transparent: isTransparent,
+            opacity: 1.0
+        });
 
         // Determine size based on severity
         const baseHeight = 0.5;
@@ -315,8 +307,37 @@ class Threat {
             console.log(`Market stabilization funds deployed against ${this.id}. Severity reduced.`);
             return true;
         } else {
-            alert("Not enough funds to stabilize markets!");
+            // No alert here, the generic handler in main.js will cover it.
             return false;
         }
+    }
+
+    // --- New Action Methods for ROBOTICS and QUANTUM ---
+    sabotageRobotics(faction) {
+        const cost = PlayerActions.robotic_sabotage.resourceCost;
+        if (faction.canAfford(cost)) {
+            faction.spend(cost);
+            const rProps = this.roboticProperties;
+            if (rProps) {
+                rProps.collectiveIntelligence = Math.max(0, rProps.collectiveIntelligence - 0.25);
+                console.log(`Robotic threat ${this.id} sabotaged. Collective intelligence reduced.`);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    induceDecoherence(faction) {
+        const cost = PlayerActions.induce_decoherence.resourceCost;
+        if (faction.canAfford(cost)) {
+            faction.spend(cost);
+            const qProps = this.quantumProperties;
+            if (qProps && qProps.coherenceTime > 0) {
+                qProps.coherenceTime = Math.max(0, qProps.coherenceTime - 5.0); // Drastic reduction
+                console.log(`Decoherence induced in quantum threat ${this.id}. Coherence time reduced.`);
+            }
+            return true;
+        }
+        return false;
     }
 }
