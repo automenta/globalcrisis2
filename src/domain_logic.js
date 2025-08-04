@@ -96,6 +96,146 @@ const DomainLogic = {
             threat.isMitigated = true; // Mark for removal
             NarrativeManager.logEvent('SPACE_DEORBIT', { threatId: threat.id });
         }
+    },
+
+    BIO: (threat, dt) => {
+        const props = threat.biologicalProperties;
+        if (!props) return;
+
+        // Lethality increases slowly over time (mutation)
+        props.lethality = Math.min(1, props.lethality + 0.005 * dt);
+
+        const region = worldState.getRegionForThreat(threat);
+        if (region) {
+            if (region.activeBuffs.some(b => b.type === 'QUARANTINE')) {
+                // Quarantine reduces infectivity
+                props.infectivity = Math.max(0, props.infectivity - 0.05 * dt);
+            } else {
+                // Infectivity is influenced by the region's population density
+                const densityFactor = region.population.density || 0.5;
+                props.infectivity = Math.min(1, props.infectivity + (0.01 * densityFactor) * dt);
+            }
+        }
+    },
+
+    CYBER: (threat, dt) => {
+        const props = threat.cyberProperties;
+        if (!props) return;
+
+        // As a cyber threat remains active, it gets easier to detect
+        props.stealth = Math.max(0, props.stealth - 0.01 * dt);
+
+        const region = worldState.getRegionForThreat(threat);
+        if (region && region.activeBuffs.some(b => b.type === 'NETWORK_SCRUB')) {
+            // Network scrub reduces severity
+            threat.severity = Math.max(0, threat.severity - 0.05 * dt);
+        } else {
+            // Its severity grows as it infects more systems
+            threat.severity = Math.min(1, threat.severity + 0.02 * dt);
+        }
+    },
+
+    INFO: (threat, dt) => {
+        const props = threat.informationProperties;
+        if (!props) return;
+
+        const region = worldState.getRegionForThreat(threat);
+        if (region && region.activeBuffs.some(b => b.type === 'COUNTER_PROPAGANDA')) {
+            // Counter-propaganda reduces spread rate
+            threat.spreadRate = Math.max(0, threat.spreadRate - 0.05 * dt);
+        } else {
+            // Divisive information spreads faster
+            const spreadBonus = props.polarizationFactor * 0.1;
+            threat.spreadRate = Math.min(1, threat.spreadRate + spreadBonus * dt);
+        }
+    },
+
+    ECON: (threat, dt) => {
+        const props = threat.economicProperties;
+        if (!props) return;
+
+        // Economic threats are more contagious in unstable regions
+        const region = worldState.getRegionForThreat(threat);
+        if (region) {
+            const instabilityFactor = 1 - region.economy;
+            props.contagionRisk = Math.min(1, props.contagionRisk + (0.05 * instabilityFactor) * dt);
+        }
+    },
+
+    GEO: (threat, dt) => {
+        // Geological events are typically instantaneous.
+        // This logic will apply a one-time effect and then the threat should be removed.
+        const region = worldState.getRegionForThreat(threat);
+        if (region && !threat.hasHadInitialImpact) {
+            const props = threat.geologicalProperties;
+            const impact = (props.magnitude / 10) * 0.5; // Scale magnitude to 0-0.5 impact
+            region.stability = Math.max(0, region.stability - impact);
+            region.economy = Math.max(0, region.economy - impact * 0.5);
+            threat.hasHadInitialImpact = true;
+            threat.severity = 0; // The event is over
+            threat.isMitigated = true; // Mark for removal
+            NarrativeManager.logEvent('GEO_EVENT', {
+                threatId: threat.id,
+                region: region.name,
+                type: props.eventType,
+                magnitude: props.magnitude
+            });
+        }
+    },
+
+    ENV: (threat, dt) => {
+        const props = threat.environmentalProperties;
+        if (!props) return;
+
+        // The area of effect of an environmental threat grows over time
+        props.areaOfEffect += 0.5 * threat.severity * dt;
+    },
+
+    WMD: (threat, dt) => {
+        // WMDs are instantaneous events.
+        const region = worldState.getRegionForThreat(threat);
+        if (region && !threat.hasHadInitialImpact) {
+            const props = threat.wmdProperties;
+            const impact = (props.yield / 100) * 0.8; // Scale yield to a massive impact
+            region.stability = Math.max(0, region.stability - impact);
+            region.economy = Math.max(0, region.economy - impact);
+
+            // High fallout can create a new radiological threat
+            if (props.falloutPotential > 0.5) {
+                worldState.generateThreat({
+                    domain: 'RAD',
+                    type: 'REAL',
+                    severity: props.falloutPotential * threat.severity,
+                    lat: threat.lat,
+                    lon: threat.lon
+                });
+            }
+
+            threat.hasHadInitialImpact = true;
+            threat.severity = 0;
+            threat.isMitigated = true;
+            NarrativeManager.logEvent('WMD_DETONATION', {
+                threatId: threat.id,
+                region: region.name,
+                yield: props.yield
+            });
+        }
+    },
+
+    RAD: (threat, dt) => {
+        const props = threat.radiologicalProperties;
+        if (!props) return;
+
+        // Contamination level decays based on half-life.
+        // Simple exponential decay: N(t) = N0 * (1/2)^(t/T)
+        // We can approximate this by reducing it each tick.
+        const decayConstant = Math.log(2) / props.halfLife; // Assumes dt is in years, which it isn't.
+        // A simpler approximation for game purposes:
+        const decayPerSecond = (props.contaminationLevel / (props.halfLife * 365 * 24 * 60 * 60)); // This is too small
+        // Let's use a simpler game-friendly decay model. Assume a "turn" is a day.
+        const decayPerTick = props.contaminationLevel * 0.001 / props.halfLife;
+        props.contaminationLevel = Math.max(0, props.contaminationLevel - (decayPerTick * dt));
+        threat.severity = props.contaminationLevel; // Severity is directly tied to contamination
     }
 };
 
@@ -136,14 +276,48 @@ const GlobalGoals = [
         description: 'Build a permanent, self-sustaining base on the moon.',
         isCompleted: false,
         progress: (worldState) => {
-            // This would require a more complex check, e.g., checking for a specific research project and resource investment.
-            // For now, we'll just return 0.
+            if (worldState.research.moon_program_complete) {
+                return 1.0;
+            }
+            if (worldState.research.isProjectActive && worldState.research.activeProject === 'moon_program') {
+                return worldState.research.projectProgress;
+            }
             return 0.0;
         },
         reward: (worldState) => {
             worldState.playerFaction.resources.tech += 10000;
             worldState.globalMetrics.trust += 0.2;
             worldState.narrativeManager.logEvent('GOAL_COMPLETE', { title: 'Moon Base Established', description: 'Humanity has taken a giant leap.' });
+        }
+    },
+    {
+        id: 'global_stability',
+        title: 'Achieve Global Stability',
+        description: 'Achieve a global stability rating of 90% or higher.',
+        isCompleted: false,
+        progress: (worldState) => {
+            return worldState.globalMetrics.stability / 0.9; // Progress is relative to the 90% target
+        },
+        reward: (worldState) => {
+            worldState.playerFaction.resources.funds += 20000;
+            worldState.narrativeManager.logEvent('GOAL_COMPLETE', { title: 'An Era of Peace', description: 'The world has achieved unprecedented stability.' });
+        }
+    },
+    {
+        id: 'tech_singularity',
+        title: 'Technological Singularity',
+        description: 'Usher in a new era of existence by completing the singularity project.',
+        isCompleted: false,
+        progress: (worldState) => {
+            // This requires a sequence of research projects.
+            if (worldState.research.singularity_3_complete) return 1.0;
+            if (worldState.research.singularity_2_complete) return 0.66;
+            if (worldState.research.singularity_1_complete) return 0.33;
+            return 0.0;
+        },
+        reward: (worldState) => {
+            worldState.narrativeManager.logEvent('GOAL_COMPLETE', { title: 'Singularity', description: 'Human consciousness has ascended. The simulation has been won.' });
+            // This could be a true "win" condition that ends the game.
         }
     }
 ];

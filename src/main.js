@@ -287,7 +287,7 @@ function updateThreatPanel() {
     let infoHTML = `
         <h3>Threat Details</h3>
         <p><strong>ID:</strong> ${threat.id}</p>
-        <p><strong>Domain:</strong> ${threat.domain}</p>
+        <p><strong>Domain:</strong> ${threat.domain} ${threat.subType ? `(${threat.subType})` : ''}</p>
         <p><strong>Type:</strong> ${typeDisplay}</p>
         <p><strong>Severity:</strong> ${threat.severity.toFixed(2)}</p>
         <p><strong>Location:</strong> ${threat.lat.toFixed(2)}, ${threat.lon.toFixed(2)}</p>
@@ -337,9 +337,11 @@ function updateThreatPanel() {
     const actionButtonsContainer = document.getElementById('action-buttons');
 
     // --- Dynamically Generate Action Buttons ---
+    const region = worldState.getRegionForThreat(threat); // Get the region for context
     for (const actionId in PlayerActions) {
         const action = PlayerActions[actionId];
-        if (action.isAvailable(threat)) {
+        // Pass the region to isAvailable
+        if (action.isAvailable(threat, worldState, region)) {
             const button = document.createElement('button');
             button.id = `${action.id}-button`;
 
@@ -356,7 +358,8 @@ function updateThreatPanel() {
                 // Store investigation status before executing action
                 const wasInvestigated = threat.investigationProgress >= 1.0;
 
-                if (action.execute(threat, worldState.playerFaction)) {
+                // Pass the region to execute
+                if (action.execute(threat, worldState.playerFaction, worldState, region)) {
                     // Play sound based on action type
                     if (action.id === 'investigate') {
                         audioManager.playSound('investigate');
@@ -427,15 +430,19 @@ function onMouseClick(event) {
             const region = worldState.getRegionForThreat(selectedThreat);
             const claimButton = document.getElementById('claim-region-button');
             const buildButton = document.getElementById('build-button');
+            const networkButton = document.getElementById('deploy-network-button');
             if (region && region.owner === 'NEUTRAL') {
                 claimButton.disabled = false;
                 buildButton.disabled = true;
+                networkButton.disabled = true; // Can't deploy in neutral region
             } else if (region && region.owner === 'PLAYER') {
                 claimButton.disabled = true;
                 buildButton.disabled = false;
+                networkButton.disabled = !PlayerActions.deploy_network_infrastructure.isAvailable(null, worldState, region);
             } else {
                 claimButton.disabled = true;
                 buildButton.disabled = true;
+                networkButton.disabled = true;
             }
         } else if (newlySelectedUnit) {
             selectedUnit = newlySelectedUnit;
@@ -446,6 +453,7 @@ function onMouseClick(event) {
             document.getElementById('cheat-investigate-threat').disabled = true;
             document.getElementById('cheat-mitigate-threat').disabled = true;
             document.getElementById('claim-region-button').disabled = true;
+            document.getElementById('deploy-network-button').disabled = true;
             document.getElementById('build-button').disabled = true;
             document.getElementById('move-agent-button').disabled = false;
         }
@@ -458,6 +466,7 @@ function onMouseClick(event) {
         document.getElementById('cheat-investigate-threat').disabled = true;
         document.getElementById('cheat-mitigate-threat').disabled = true;
         document.getElementById('claim-region-button').disabled = true;
+        document.getElementById('deploy-network-button').disabled = true;
         document.getElementById('build-button').disabled = true;
         document.getElementById('move-agent-button').disabled = true;
     }
@@ -517,6 +526,21 @@ window.addEventListener('keyup', (event) => {
     }
 });
 
+document.getElementById('launch-satellite-button').addEventListener('click', () => {
+    const action = PlayerActions.launch_satellite;
+    if (action.isAvailable(null, worldState)) {
+        if (worldState.launchSatellite(worldState.playerFaction)) {
+            alert('Satellite launched successfully!');
+            // Disable button if max satellites reached
+            document.getElementById('launch-satellite-button').disabled = !action.isAvailable(null, worldState);
+        } else {
+            alert('Failed to launch satellite. Not enough resources.');
+        }
+    } else {
+        alert('Cannot launch more satellites.');
+    }
+});
+
 let currentThreatIndex = -1;
 
 window.addEventListener('keydown', (event) => {
@@ -540,6 +564,32 @@ window.addEventListener('keydown', (event) => {
     }
 });
 
+document.getElementById('build-research-outpost-button').addEventListener('click', () => {
+    if (selectedThreat) {
+        const region = worldState.getRegionForThreat(selectedThreat);
+        if (region && region.owner === 'PLAYER') {
+            if (worldState.addBuilding(region, 'RESEARCH_OUTPOST')) {
+                buildPanel.style.display = 'none';
+            } else {
+                alert('Not enough resources to build a Research Outpost.');
+            }
+        }
+    }
+});
+
+document.getElementById('deploy-network-button').addEventListener('click', () => {
+    if (selectedThreat) { // A threat must be selected to identify the region
+        const region = worldState.getRegionForThreat(selectedThreat);
+        const action = PlayerActions.deploy_network_infrastructure;
+        if (region && action.isAvailable(null, worldState, region)) {
+            if (region.deployNetworkInfrastructure(worldState.playerFaction)) {
+                // Action was successful, button might need to be disabled if access is now 1.0
+                document.getElementById('deploy-network-button').disabled = !action.isAvailable(null, worldState, region);
+            }
+        }
+    }
+});
+
 document.getElementById('build-sensor-button').addEventListener('click', () => {
     if (selectedThreat) {
         const region = worldState.getRegionForThreat(selectedThreat);
@@ -558,9 +608,42 @@ document.getElementById('move-agent-button').addEventListener('click', () => {
 });
 
 const researchPanel = document.getElementById('research-panel');
+
+function updateResearchPanel() {
+    if (researchPanel.style.display !== 'block') return;
+
+    const research = worldState.research;
+
+    // Handle Singularity buttons
+    const btn1 = document.getElementById('research-singularity-1-button');
+    const btn2 = document.getElementById('research-singularity-2-button');
+    const btn3 = document.getElementById('research-singularity-3-button');
+
+    if (research.singularity_1_complete) {
+        btn1.style.display = 'none';
+        btn2.style.display = 'inline-block';
+    } else {
+        btn2.style.display = 'none';
+    }
+
+    if (research.singularity_2_complete) {
+        btn2.style.display = 'none';
+        btn3.style.display = 'inline-block';
+    } else {
+        btn3.style.display = 'none';
+    }
+
+    if (research.singularity_3_complete) {
+        btn3.style.display = 'none';
+    }
+}
+
 document.getElementById('research-button').addEventListener('click', () => {
     const isVisible = researchPanel.style.display === 'block';
     researchPanel.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) {
+        updateResearchPanel(); // Update when opening
+    }
 });
 
 document.getElementById('research-advanced-agents-button').addEventListener('click', () => {
@@ -572,6 +655,42 @@ document.getElementById('research-advanced-agents-button').addEventListener('cli
         researchPanel.style.display = 'none';
     } else {
         alert("Not enough tech to research Advanced Agents.");
+    }
+});
+
+document.getElementById('research-moon-program-button').addEventListener('click', () => {
+    if (worldState.startResearchProject('moon_program')) {
+        document.getElementById('research-moon-program-button').disabled = true;
+        researchPanel.style.display = 'none';
+    } else {
+        alert("Cannot start Moon Program. Is another project active or do you lack resources?");
+    }
+});
+
+document.getElementById('research-singularity-1-button').addEventListener('click', () => {
+    if (worldState.startResearchProject('singularity_1')) {
+        document.getElementById('research-singularity-1-button').disabled = true;
+        researchPanel.style.display = 'none';
+    } else {
+        alert("Cannot start Singularity Phase 1. Check resources and active projects.");
+    }
+});
+
+document.getElementById('research-singularity-2-button').addEventListener('click', () => {
+    if (worldState.startResearchProject('singularity_2')) {
+        document.getElementById('research-singularity-2-button').disabled = true;
+        researchPanel.style.display = 'none';
+    } else {
+        alert("Cannot start Singularity Phase 2. Check resources and active projects.");
+    }
+});
+
+document.getElementById('research-singularity-3-button').addEventListener('click', () => {
+    if (worldState.startResearchProject('singularity_3')) {
+        document.getElementById('research-singularity-3-button').disabled = true;
+        researchPanel.style.display = 'none';
+    } else {
+        alert("Cannot start Singularity Phase 3. Check resources and active projects.");
     }
 });
 
@@ -745,6 +864,7 @@ function animate() {
     updateWeatherPanel();
     updateNarrativeLog();
     updateGoalsPanel();
+    updateResearchPanel();
 
     // Animate camera if needed
     if (isCameraAnimating) {

@@ -124,6 +124,7 @@ class WorldState {
         this.plumes = [];
         this.buildings = [];
         this.units = [];
+        this.satellites = [];
         this.currentTurn = 0;
         this.globalMetrics = {
             stability: 1.0,
@@ -269,23 +270,31 @@ class WorldState {
             f.resources.funds += 10; // 10 funds per turn/tick
             f.resources.intel += 5;
             f.resources.tech += 2;
+
+            // Satellite intel bonus
+            const satelliteCount = this.satellites.filter(s => s.owner === f.id).length;
+            f.resources.intel += satelliteCount * 10; // 10 extra intel per satellite
         });
 
         // Income from player-owned regions
         this.regions.forEach(region => {
             if (region.owner === 'PLAYER') {
                 let incomeMultiplier = 1;
+                let techMultiplier = 1;
                 if (this.buildings.some(b => b.region === region && b.type === 'BASE')) {
                     incomeMultiplier = 1.5;
                 }
+                if (this.buildings.some(b => b.region === region && b.type === 'RESEARCH_OUTPOST')) {
+                    techMultiplier = 3.0; // Research outposts triple tech income
+                }
                 this.playerFaction.resources.funds += region.economy * 10 * incomeMultiplier;
                 this.playerFaction.resources.intel += region.economy * 2 * incomeMultiplier;
-                this.playerFaction.resources.tech += region.economy * 1 * incomeMultiplier;
+                this.playerFaction.resources.tech += region.economy * 1 * incomeMultiplier * techMultiplier;
             }
         });
     }
 
-    addBuilding(region, type) {
+    addBuilding(region, type, faction = this.playerFaction) {
         let cost;
         switch (type) {
             case 'BASE':
@@ -294,15 +303,33 @@ class WorldState {
             case 'SENSOR':
                 cost = { funds: 750 };
                 break;
+            case 'RESEARCH_OUTPOST':
+                cost = { funds: 1200, tech: 500 };
+                break;
             default:
                 cost = { funds: 99999 }; // Should not happen
         }
 
-        if (this.playerFaction.canAfford(cost)) {
-            this.playerFaction.spend(cost);
-            const building = new Building({ region, type });
+        if (faction.canAfford(cost)) {
+            faction.spend(cost);
+            const building = new Building({ region, type, owner: faction.id });
             this.buildings.push(building);
             this.scene.add(building.mesh);
+            return true;
+        }
+        return false;
+    }
+
+    launchSatellite(faction) {
+        const cost = PlayerActions.launch_satellite.resourceCost;
+        if (faction.canAfford(cost)) {
+            faction.spend(cost);
+            const satellite = {
+                id: `sat-${this.satellites.length}`,
+                owner: faction.id,
+            };
+            this.satellites.push(satellite);
+            this.narrativeManager.logEvent('SATELLITE_LAUNCH', { faction: faction.name });
             return true;
         }
         return false;
@@ -419,9 +446,13 @@ class WorldState {
         // Update threat generation timer
         this.threatGenerationTimer += dt;
         if (this.threatGenerationTimer >= this.threatGenerationInterval) {
-            this.generateThreat({ isFromAI: true });
+            // The AI now decides when to generate threats in its own update loop
+            // this.generateThreat({ isFromAI: true });
             this.threatGenerationTimer = 0;
         }
+
+        // Update the AI faction's logic
+        this.updateAIFaction(dt);
 
         // Remove mitigated threats
         const threatsToRemove = this.threats.filter(t => t.isMitigated);
@@ -452,7 +483,11 @@ class WorldState {
         const projectCosts = {
             'advanced_materials': 10000,
             'quantum_computing': 25000,
-            'ai_ethics': 5000
+            'ai_ethics': 5000,
+            'moon_program': 50000, // A very expensive, long-term project
+            'singularity_1': 75000,
+            'singularity_2': 150000,
+            'singularity_3': 300000
         };
 
         if (this.research.isProjectActive || !projectCosts[projectId]) {
@@ -487,6 +522,19 @@ class WorldState {
             case 'ai_ethics':
                 // e.g., reduce robotic threat severity
                 break;
+            case 'moon_program':
+                this.research.moon_program_complete = true;
+                this.narrativeManager.logEvent('MILESTONE', { title: 'Moon Program Complete!', description: 'We have the technology to establish a permanent lunar presence.' });
+                break;
+            case 'singularity_1':
+                this.research.singularity_1_complete = true;
+                break;
+            case 'singularity_2':
+                this.research.singularity_2_complete = true;
+                break;
+            case 'singularity_3':
+                this.research.singularity_3_complete = true;
+                break;
         }
 
         // Reset research state
@@ -494,6 +542,66 @@ class WorldState {
         this.research.activeProject = null;
         this.research.projectProgress = 0;
         this.research.projectCost = 0;
+    }
+
+    updateAIFaction(dt) {
+        const ai = this.aiFaction;
+        if (!ai) return;
+
+        // AI decision-making happens on a slower tick to save performance and feel more strategic
+        ai.decisionTimer = (ai.decisionTimer || 0) + dt;
+        if (ai.decisionTimer < 5) { // Make a decision every 5 seconds
+            return;
+        }
+        ai.decisionTimer = 0;
+
+        // 1. Generate Threats (The AI's primary offensive action)
+        // The AI will now generate threats based on its resources and goals, not just a timer.
+        if (ai.canAfford({ funds: 1000, tech: 500 })) {
+             this.generateThreat({ isFromAI: true });
+        }
+
+
+        // 2. Expand by claiming neutral regions
+        const aiRegions = this.regions.filter(r => r.owner === ai.id);
+        const claimableRegions = this.regions.filter(r => {
+            if (r.owner !== 'NEUTRAL') return false;
+            // Check if adjacent to an AI region
+            return this.travelRoutes.some(route =>
+                (route.from.owner === ai.id && route.to === r) ||
+                (route.to.owner === ai.id && route.from === r)
+            );
+        });
+
+        if (claimableRegions.length > 0) {
+            const cost = { funds: 1500 }; // Cost to claim a region
+            if (ai.canAfford(cost)) {
+                ai.spend(cost);
+                const targetRegion = claimableRegions[0]; // Simple logic: claim the first available
+                targetRegion.setOwner(ai.id);
+                this.narrativeManager.logEvent('REGION_CLAIMED', { faction: ai.name, region: targetRegion.name });
+            }
+        }
+
+        // 3. Build in owned regions
+        aiRegions.forEach(region => {
+            // Prioritize building a base first
+            if (!this.buildings.some(b => b.region === region && b.type === 'BASE')) {
+                const cost = { funds: 1000 };
+                if (ai.canAfford(cost)) {
+                    ai.spend(cost);
+                    this.addBuilding(region, 'BASE', ai); // Need to modify addBuilding to accept owner
+                }
+            }
+            // Then build a sensor
+            else if (!this.buildings.some(b => b.region === region && b.type === 'SENSOR')) {
+                const cost = { funds: 750 };
+                if (ai.canAfford(cost)) {
+                    ai.spend(cost);
+                    this.addBuilding(region, 'SENSOR', ai);
+                }
+            }
+        });
     }
 
     propagateFinancialContagion(threat, dt) {
@@ -747,10 +855,24 @@ class WorldState {
                     break;
                 case 'counter_player':
                     domain = ['CYBER', 'INFO', 'WMD'][Math.floor(Math.random() * 3)];
-                    const playerRegions = this.regions.filter(r => r.owner === 'PLAYER');
+                    const playerRegions = this.regions.filter(r => r.owner === 'PLAYER' || r.owner === 'mitigators');
                     if (playerRegions.length > 0) {
-                        targetRegion = playerRegions[Math.floor(Math.random() * playerRegions.length)];
+                        // Find a player region that is adjacent to an AI region to target the frontier
+                        const frontierRegions = playerRegions.filter(pr =>
+                            this.travelRoutes.some(route =>
+                                (route.from === pr && (this.regions.find(r => r === route.to)?.owner === 'technocrats')) ||
+                                (route.to === pr && (this.regions.find(r => r === route.from)?.owner === 'technocrats'))
+                            )
+                        );
+
+                        if (frontierRegions.length > 0) {
+                            targetRegion = frontierRegions[Math.floor(Math.random() * frontierRegions.length)];
+                        } else {
+                            // If no frontier, target a random player region
+                            targetRegion = playerRegions[Math.floor(Math.random() * playerRegions.length)];
+                        }
                     } else {
+                        // If player has no regions, fall back to targeting the most stable region
                         targetRegion = this.regions.reduce((prev, curr) => prev.stability > curr.stability ? prev : curr);
                     }
                     break;
@@ -788,6 +910,13 @@ class WorldState {
 
         // Add domain-specific properties based on the generated domain
         switch (threatProps.domain) {
+            case 'BIO':
+                // Add a chance for a special, persistent disease to appear for the global goal
+                if (Math.random() < 0.1) { // 10% chance for a BIO threat to be 'Disease X'
+                    threatProps.subType = 'DISEASE_X';
+                    threatProps.severity = 0.5; // Make it a bit stronger
+                }
+                break;
             case 'QUANTUM':
                 threatProps.quantumProperties = {
                     coherenceTime: 5 + Math.random() * 5,
@@ -822,6 +951,15 @@ class WorldState {
 
         this.addThreat(threat);
         this.scene.add(threat.mesh);
+
+        this.narrativeManager.logEvent('THREAT_GENERATED', {
+            threatId: threat.id,
+            domain: threat.domain,
+            type: threat.type,
+            lat: threat.lat,
+            lon: threat.lon,
+            isFromAI: options.isFromAI || false
+        });
 
         if (threatProps.domain === "RAD") {
             const plume = new RadiologicalPlume(threat, this.scene);

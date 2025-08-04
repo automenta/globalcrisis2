@@ -1,7 +1,8 @@
 class Building {
-    constructor({ region, type }) {
+    constructor({ region, type, owner }) {
         this.region = region;
         this.type = type; // 'BASE', 'SENSOR', etc.
+        this.owner = owner; // 'PLAYER' or 'technocrats'
         this.mesh = this.createMesh();
     }
 
@@ -14,11 +15,15 @@ class Building {
             case 'SENSOR':
                 geometry = new THREE.CylinderGeometry(0.1, 0.2, 0.5, 8);
                 break;
+            case 'RESEARCH_OUTPOST':
+                geometry = new THREE.DodecahedronGeometry(0.2);
+                break;
             default:
                 geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
         }
 
-        const material = new THREE.MeshPhongMaterial({ color: 0x0000ff });
+        const ownerColor = this.owner === 'mitigators' ? 0x0000ff : 0xff0000; // Blue for player, Red for AI
+        const material = new THREE.MeshPhongMaterial({ color: ownerColor });
         const mesh = new THREE.Mesh(geometry, material);
 
         // Position the mesh on the surface of the Earth in the region's centroid

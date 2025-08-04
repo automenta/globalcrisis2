@@ -105,6 +105,71 @@ class Threat {
             this.quantumProperties = { ...defaults, ...this.quantumProperties };
         }
 
+        if (this.domain === 'BIO') {
+            const defaults = {
+                infectivity: 0.1,
+                lethality: 0.1,
+                vector: 'AIRBORNE',
+            };
+            this.biologicalProperties = { ...defaults, ...this.biologicalProperties };
+        }
+
+        if (this.domain === 'CYBER') {
+            const defaults = {
+                stealth: 0.2,
+                target: 'INFRASTRUCTURE',
+            };
+            this.cyberProperties = { ...defaults, ...this.cyberProperties };
+        }
+
+        if (this.domain === 'INFO') {
+            const defaults = {
+                polarizationFactor: 0.1,
+                deepfakeQuality: 0.1,
+            };
+            this.informationProperties = { ...defaults, ...this.informationProperties };
+        }
+
+        if (this.domain === 'ECON') {
+            const defaults = {
+                marketCrashPotential: 0.1,
+                contagionRisk: 0.1,
+            };
+            this.economicProperties = { ...defaults, ...this.economicProperties };
+        }
+
+        if (this.domain === 'GEO') {
+            const defaults = {
+                magnitude: 5.0,
+                eventType: 'EARTHQUAKE',
+            };
+            this.geologicalProperties = { ...defaults, ...this.geologicalProperties };
+        }
+
+        if (this.domain === 'ENV') {
+            const defaults = {
+                impactType: 'POLLUTION',
+                areaOfEffect: 100, // in km
+            };
+            this.environmentalProperties = { ...defaults, ...this.environmentalProperties };
+        }
+
+        if (this.domain === 'WMD') {
+            const defaults = {
+                yield: 10, // kilotons
+                falloutPotential: 0.2,
+            };
+            this.wmdProperties = { ...defaults, ...this.wmdProperties };
+        }
+
+        if (this.domain === 'RAD') {
+            const defaults = {
+                halfLife: 5, // years
+                contaminationLevel: 0.1,
+            };
+            this.radiologicalProperties = { ...defaults, ...this.radiologicalProperties };
+        }
+
 
         // 3D representation
         this.mesh = this.createMesh();
@@ -299,6 +364,14 @@ class Threat {
             this.severity = 0;
             this.isMitigated = true; // Mark for removal
             this.wasMitigatedByPlayer = true;
+
+            // Log the narrative event
+            worldState.narrativeManager.logEvent('THREAT_MITIGATED', {
+                threatId: this.id,
+                threat: this, // Pass the whole threat object for context
+                factionId: faction.id
+            });
+
             console.log(`Threat ${this.id} has been fully mitigated.`);
             return true; // Success
         } else {

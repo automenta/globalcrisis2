@@ -104,6 +104,61 @@ const PlayerActions = {
         resourceCost: { funds: 500, intel: 200 },
         isAvailable: (threat) => true, // Available for any region
         execute: (threat, faction, worldState, region) => region.startAwarenessCampaign()
+    },
+    'deploy_network_infrastructure': {
+        id: 'deploy_network_infrastructure',
+        name: 'Deploy Network Infrastructure',
+        description: 'Invest in a region to improve its internet access, boosting tech generation and goal progress.',
+        resourceCost: { funds: 800, tech: 400 },
+        isAvailable: (threat, worldState, region) => {
+            // This is a region action, so it doesn't depend on a threat.
+            // Let's assume it's available from a region's own menu, not the threat panel.
+            // For now, we'll just check if the region's internet access is not yet maxed out.
+            return region && region.attributes.internetAccess < 1.0;
+        },
+        execute: (threat, faction, worldState, region) => region.deployNetworkInfrastructure(faction)
+    },
+    'launch_satellite': {
+        id: 'launch_satellite',
+        name: 'Launch Recon Satellite',
+        description: 'Launch a satellite to provide a permanent global boost to Intel generation.',
+        resourceCost: { funds: 2500, tech: 5000 },
+        isAvailable: (threat, worldState) => {
+            // A global action, not tied to a threat or region.
+            // Let's say we can have a max of 5 satellites.
+            return worldState.satellites.length < 5;
+        },
+        execute: (threat, faction, worldState) => worldState.launchSatellite(faction)
+    },
+    'initiate_quarantine': {
+        id: 'initiate_quarantine',
+        name: 'Initiate Quarantine',
+        description: 'Enforce a regional quarantine to slow the spread of biological threats.',
+        resourceCost: { funds: 700 },
+        isAvailable: (threat, worldState, region) => {
+            return threat.domain === 'BIO' && region.owner === 'PLAYER' && !region.activeBuffs.includes('QUARANTINE');
+        },
+        execute: (threat, faction, worldState, region) => region.initiateQuarantine(faction)
+    },
+    'scrub_network': {
+        id: 'scrub_network',
+        name: 'Scrub Network',
+        description: 'Deploy a deep-clean of the regional network to reduce the severity of cyber threats.',
+        resourceCost: { tech: 600 },
+        isAvailable: (threat, worldState, region) => {
+            return threat.domain === 'CYBER' && region.owner === 'PLAYER' && !region.activeBuffs.includes('NETWORK_SCRUB');
+        },
+        execute: (threat, faction, worldState, region) => region.scrubNetwork(faction)
+    },
+    'counter_propaganda': {
+        id: 'counter_propaganda',
+        name: 'Launch Counter-Propaganda',
+        description: 'Launch a targeted campaign to counter specific disinformation threats.',
+        resourceCost: { intel: 500 },
+        isAvailable: (threat, worldState, region) => {
+            return threat.domain === 'INFO' && region.owner === 'PLAYER' && !region.activeBuffs.includes('COUNTER_PROPAGANDA');
+        },
+        execute: (threat, faction, worldState, region) => region.launchCounterPropaganda(faction)
     }
 };
 

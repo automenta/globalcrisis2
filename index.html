@@ -148,10 +148,12 @@
         </div>
         <button id="toggle-plumes-button" style="width: 100%; margin-top: 10px;" title="Toggle visibility of radiological plumes">Toggle Plumes</button>
         <button id="claim-region-button" style="width: 100%; margin-top: 5px;" title="Claim the region of the selected threat" disabled>Claim Region</button>
+        <button id="deploy-network-button" style="width: 100%; margin-top: 5px;" title="Deploy network infrastructure in the selected region" disabled>Deploy Network (800F, 400T)</button>
         <div id="ai-alert-level" style="width: 100%; margin-top: 10px; text-align: center; font-weight: bold;">AI Alert: LOW</div>
         <button id="build-button" style="width: 100%; margin-top: 5px;" disabled>Build</button>
         <button id="move-agent-button" style="width: 100%; margin-top: 5px;" disabled>Move Agent</button>
         <button id="research-button" style="width: 100%; margin-top: 5px;">Research</button>
+        <button id="launch-satellite-button" style="width: 100%; margin-top: 5px;">Launch Satellite (2.5k F, 5k T)</button>
     </div>
     <div id="weather-panel">
         <h3>Weather</h3>
@@ -191,13 +193,20 @@
         <h3>Build Menu</h3>
         <button id="build-base-button">Build Base (1000 Funds)</button><br>
         <button id="build-agent-button">Build Agent (500 Funds)</button><br>
-        <button id="build-sensor-button">Build Sensor Tower (750 Funds)</button>
+        <button id="build-sensor-button">Build Sensor Tower (750 Funds)</button><br>
+        <button id="build-research-outpost-button">Build Research Outpost (1200F, 500T)</button>
     </div>
 
     <!-- Research Panel -->
     <div id="research-panel" style="display: none; position: absolute; top: 150px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-family: sans-serif; width: 250px;">
         <h3>Research Menu</h3>
-        <button id="research-advanced-agents-button">Advanced Agents (2000 Tech)</button>
+        <button id="research-advanced-agents-button">Advanced Agents (2000 Tech)</button><br>
+        <button id="research-moon-program-button">Moon Program (50000 Tech)</button><br>
+        <hr>
+        <h4>Singularity Project</h4>
+        <button id="research-singularity-1-button">Phase 1: AI Theory (75k Tech)</button><br>
+        <button id="research-singularity-2-button" style="display: none;">Phase 2: AI Consciousness (150k Tech)</button><br>
+        <button id="research-singularity-3-button" style="display: none;">Phase 3: Ascend (300k Tech)</button>
     </div>
 
     <script src="lib/three.min.js"></script>
@@ -211,6 +220,7 @@
     <script src="src/region.js"></script>
     <script src="src/weather.js"></script>
     <script src="src/actions.js"></script>
+    <script src="src/chronicle_rules.js"></script>
     <script src="src/narrative.js"></script>
     <script src="src/domain_logic.js"></script>
     <script src="src/threat.js"></script>

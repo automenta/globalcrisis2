@@ -49,6 +49,8 @@ class Region {
         this.activeMission = null; // 'diplomatic' or 'awareness'
         this.missionProgress = 0;
         this.missionDuration = 30; // seconds
+
+        this.activeBuffs = []; // To store temporary buffs like 'QUARANTINE'
     }
 
     startDiplomaticMission() {
@@ -72,6 +74,54 @@ class Region {
                 this.completeMission();
             }
         }
+
+        // Update active buffs
+        for (let i = this.activeBuffs.length - 1; i >= 0; i--) {
+            const buff = this.activeBuffs[i];
+            buff.duration -= dt;
+            if (buff.duration <= 0) {
+                this.activeBuffs.splice(i, 1);
+                console.log(`Buff ${buff.type} has expired in ${this.name}.`);
+            }
+        }
+    }
+
+    addBuff(type, duration) {
+        if (!this.activeBuffs.some(b => b.type === type)) {
+            this.activeBuffs.push({ type, duration });
+            return true;
+        }
+        return false;
+    }
+
+    initiateQuarantine(faction) {
+        const cost = PlayerActions.initiate_quarantine.resourceCost;
+        if (faction.canAfford(cost)) {
+            faction.spend(cost);
+            this.addBuff('QUARANTINE', 60); // Buff lasts for 60 seconds
+            return true;
+        }
+        return false;
+    }
+
+    scrubNetwork(faction) {
+        const cost = PlayerActions.scrub_network.resourceCost;
+        if (faction.canAfford(cost)) {
+            faction.spend(cost);
+            this.addBuff('NETWORK_SCRUB', 45); // Buff lasts for 45 seconds
+            return true;
+        }
+        return false;
+    }
+
+    launchCounterPropaganda(faction) {
+        const cost = PlayerActions.counter_propaganda.resourceCost;
+        if (faction.canAfford(cost)) {
+            faction.spend(cost);
+            this.addBuff('COUNTER_PROPAGANDA', 90); // Buff lasts for 90 seconds
+            return true;
+        }
+        return false;
     }
 
     completeMission() {
@@ -84,6 +134,18 @@ class Region {
 
         this.activeMission = null;
         this.missionProgress = 0;
+    }
+
+    deployNetworkInfrastructure(faction) {
+        const cost = PlayerActions.deploy_network_infrastructure.resourceCost;
+        if (faction.canAfford(cost)) {
+            faction.spend(cost);
+            this.attributes.internetAccess = Math.min(1.0, this.attributes.internetAccess + 0.25); // Increase by 25%
+            console.log(`Network infrastructure deployed in ${this.name}. Internet access is now ${this.attributes.internetAccess.toFixed(2)}.`);
+            return true;
+        }
+        alert(`Not enough resources to deploy network infrastructure in ${this.name}.`);
+        return false;
     }
 
     updateMeshColor(envDamage = 0) {
