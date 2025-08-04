@@ -72,9 +72,11 @@ class Threat {
 
         // 3D representation
         this.mesh = this.createMesh();
+        this.pulseTime = 0;
     }
 
     update(dt) {
+        this.pulseTime += dt;
         // Increase severity over time, capped at 1.0
         if (this.severity < 1.0) {
             this.severity += 0.01 * dt; // Adjust rate as needed
@@ -84,8 +86,21 @@ class Threat {
     }
 
     updateMesh() {
-        const scale = 0.5 + (this.severity * 1.5);
+        const baseScale = 0.5 + (this.severity * 1.5);
+        // Pulse speed and intensity are based on severity
+        const pulseSpeed = 1 + this.severity * 4;
+        const pulseIntensity = 0.1 * this.severity;
+        const pulseFactor = 1 + Math.sin(this.pulseTime * pulseSpeed) * pulseIntensity;
+
+        const scale = baseScale * pulseFactor;
         this.mesh.scale.set(scale, scale, scale);
+
+        // Also update the selection indicator if this threat is selected
+        if (typeof selectionIndicator !== 'undefined' && typeof selectedThreat !== 'undefined' && selectedThreat === this) {
+            if (typeof updateSelectionIndicator !== 'undefined') {
+                updateSelectionIndicator();
+            }
+        }
     }
 
     updateMeshForInvestigation() {

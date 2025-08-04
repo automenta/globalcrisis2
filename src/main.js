@@ -1,14 +1,56 @@
 // Set up the scene, camera, and renderer
+const audioManager = new AudioManager();
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+// --- AUDIO ---
+// NOTE: Using placeholder URLs for audio assets.
+// These should be replaced with actual URLs to desired sound files.
+const sounds = {
+    music: 'https://cdn.pixabay.com/audio/2022/11/22/audio_7333d45a97.mp3', // Stellar Sphere by JuliusH
+    click: 'https://cdn.pixabay.com/audio/2022/03/15/audio_28b1b9b81f.mp3', // UI Click by Pixabay
+    investigate: 'https://cdn.pixabay.com/audio/2021/08/04/audio_5734a3108c.mp3', // Sci-fi Scan by Pixabay
+    mitigate: 'https://cdn.pixabay.com/audio/2022/01/18/audio_8db1f1b621.mp3', // Success by Pixabay
+    investigation_complete: 'https://cdn.pixabay.com/audio/2022/08/18/audio_2c0d13a5db.mp3' // Level Up by Pixabay
+};
+
+async function loadAudio() {
+    for (const [name, url] of Object.entries(sounds)) {
+        await audioManager.loadSound(name, url);
+    }
+}
+loadAudio();
+
+// Start music on first user interaction
+function startMusicOnFirstInteraction() {
+    audioManager.playMusic('music');
+    window.removeEventListener('click', startMusicOnFirstInteraction);
+    window.removeEventListener('keydown', startMusicOnFirstInteraction);
+}
+window.addEventListener('click', startMusicOnFirstInteraction);
+window.addEventListener('keydown', startMusicOnFirstInteraction);
+
+
 // Add a light to the scene
 const light = new THREE.DirectionalLight(0xffffff, 1);
 light.position.set(5, 3, 5);
 scene.add(light);
+
+// --- SELECTION INDICATOR ---
+const indicatorGeometry = new THREE.RingGeometry(1, 1.1, 32);
+const indicatorMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00ffff,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.7
+});
+const selectionIndicator = new THREE.Mesh(indicatorGeometry, indicatorMaterial);
+selectionIndicator.visible = false;
+scene.add(selectionIndicator);
+
 
 // Create the Earth
 const textureLoader = new THREE.TextureLoader();
@@ -71,6 +113,22 @@ function updatePlayerPanel() {
         playerPanel.funds.textContent = Math.floor(faction.resources.funds);
         playerPanel.intel.textContent = Math.floor(faction.resources.intel);
         playerPanel.tech.textContent = Math.floor(faction.resources.tech);
+    }
+}
+
+function updateSelectionIndicator() {
+    if (selectedThreat) {
+        selectionIndicator.visible = true;
+        selectionIndicator.position.copy(selectedThreat.mesh.position);
+        selectionIndicator.quaternion.copy(selectedThreat.mesh.quaternion);
+
+        // Scale the indicator to be slightly larger than the threat.
+        // We use the bounding sphere of the geometry, scaled by the mesh's scale.
+        const threatSize = selectedThreat.mesh.geometry.boundingSphere.radius * selectedThreat.mesh.scale.x;
+        const indicatorScale = threatSize * 1.5; // 50% larger
+        selectionIndicator.scale.set(indicatorScale, indicatorScale, indicatorScale);
+    } else {
+        selectionIndicator.visible = false;
     }
 }
 
@@ -138,7 +196,13 @@ function updateThreatPanel() {
     const investigateButton = document.getElementById('investigate-button');
     if (investigateButton && !investigateButton.disabled) {
         investigateButton.addEventListener('click', () => {
+            const wasInvestigated = threat.investigationProgress >= 1.0;
             if (threat.investigate(worldState.playerFaction)) {
+                audioManager.playSound('investigate');
+                const isNowInvestigated = threat.investigationProgress >= 1.0;
+                if (!wasInvestigated && isNowInvestigated) {
+                    audioManager.playSound('investigation_complete');
+                }
                 updateThreatPanel();
             }
         });
@@ -148,7 +212,9 @@ function updateThreatPanel() {
     if (mitigateButton) {
         mitigateButton.addEventListener('click', () => {
             if (threat.mitigate(worldState.playerFaction)) {
-                updateThreatPanel();
+                audioManager.playSound('mitigate');
+                // The threat might be removed, so update panel will handle the rest
+                // No need to call it here explicitly if mitigate handles it
             }
         });
     }
@@ -168,18 +234,24 @@ function onMouseClick(event) {
 
     if (intersects.length > 0) {
         const intersectedMesh = intersects[0].object;
-        // If the same threat is clicked, do nothing to prevent panel flicker
         const newlySelectedThreat = allThreats.find(t => t.mesh === intersectedMesh);
+
+        // Play click sound regardless of whether it's a new threat
+        audioManager.playSound('click');
+
+        // If the same threat is clicked, do nothing to prevent panel flicker
         if (newlySelectedThreat !== selectedThreat) {
             selectedThreat = newlySelectedThreat;
             updateThreatPanel();
             updateWeatherPanel();
+            updateSelectionIndicator();
         }
     } else {
         if (selectedThreat) {
             selectedThreat = null;
             updateThreatPanel();
             updateWeatherPanel();
+            updateSelectionIndicator();
         }
     }
 }
@@ -223,12 +295,50 @@ function onMouseDoubleClick(event) {
 }
 window.addEventListener('dblclick', onMouseDoubleClick, false);
 
+// --- KEYBOARD CONTROLS ---
+const keyStates = { w: false, a: false, s: false, d: false };
+window.addEventListener('keydown', (event) => {
+    const key = event.key.toLowerCase();
+    if (keyStates.hasOwnProperty(key)) {
+        keyStates[key] = true;
+    }
+});
+window.addEventListener('keyup', (event) => {
+    const key = event.key.toLowerCase();
+    if (keyStates.hasOwnProperty(key)) {
+        keyStates[key] = false;
+    }
+});
+
 // Game loop
 const clock = new THREE.Clock();
+
+function handleKeyboardCameraControls(dt) {
+    const panSpeed = 2.0; // Radians per second
+    const moveSpeed = panSpeed * dt;
+
+    // Pan left/right (around world Y-axis)
+    if (keyStates.a || keyStates.d) {
+        const panAngle = (keyStates.a ? 1 : -1) * moveSpeed;
+        camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), panAngle);
+    }
+
+    // Pan up/down (around camera's local right-axis)
+    if (keyStates.w || keyStates.s) {
+        // Calculate the camera's right vector
+        const right = new THREE.Vector3().crossVectors(camera.position, new THREE.Vector3(0, 1, 0)).normalize();
+        const panAngle = (keyStates.s ? 1 : -1) * moveSpeed;
+        camera.position.applyAxisAngle(right, panAngle);
+    }
+}
+
 function animate() {
     requestAnimationFrame(animate);
 
     const deltaTime = clock.getDelta();
+
+    // Handle user input
+    handleKeyboardCameraControls(deltaTime);
 
     // Update game state
     worldState.update(deltaTime);
