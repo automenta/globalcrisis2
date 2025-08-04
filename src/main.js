@@ -68,8 +68,11 @@ const uiState = {
     arePlumesVisible: true,
 };
 
+// Instantiate the narrative manager
+const narrativeManager = new NarrativeManager();
+
 // Instantiate the world state
-const worldState = new WorldState(scene, uiState);
+const worldState = new WorldState(scene, uiState, narrativeManager);
 
 // UI Controls
 const togglePlumesButton = document.getElementById('toggle-plumes-button');
@@ -130,6 +133,30 @@ function updateSelectionIndicator() {
     } else {
         selectionIndicator.visible = false;
     }
+}
+
+const narrativeLogPanel = document.getElementById('narrative-log');
+let lastChronicleCount = 0;
+
+function updateNarrativeLog() {
+    const chronicles = narrativeManager.chronicles;
+    if (chronicles.length === lastChronicleCount) {
+        return; // No update needed
+    }
+
+    let logHTML = '<h3>Narrative Log</h3>';
+    chronicles.forEach(chronicle => {
+        logHTML += `
+            <div class="narrative-entry">
+                <h4>${chronicle.title}</h4>
+                <p>${chronicle.description}</p>
+            </div>
+        `;
+    });
+
+    narrativeLogPanel.innerHTML = logHTML;
+    narrativeLogPanel.scrollTop = narrativeLogPanel.scrollHeight; // Auto-scroll to bottom
+    lastChronicleCount = chronicles.length;
 }
 
 function updateWeatherPanel() {
@@ -385,6 +412,7 @@ function animate() {
     // Update UI Panels
     updatePlayerPanel();
     updateWeatherPanel();
+    updateNarrativeLog();
 
     // Animate camera if needed
     if (isCameraAnimating) {

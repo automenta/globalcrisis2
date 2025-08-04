@@ -57,9 +57,10 @@ const CROSS_DOMAIN_INTERACTIONS = {
 };
 
 class WorldState {
-    constructor(scene, uiState) {
+    constructor(scene, uiState, narrativeManager) {
         this.scene = scene;
         this.uiState = uiState;
+        this.narrativeManager = narrativeManager;
         this.regions = [];
         this.factions = [];
         this.playerFaction = null;
@@ -275,6 +276,9 @@ class WorldState {
             }
         });
 
+        // Update narrative manager
+        this.narrativeManager.update(this);
+
         // Update visualizations
         this.updateVisualization(dt);
 
@@ -342,7 +346,7 @@ class WorldState {
             if (threat.domain === "RAD" && region.weather.type === "RADIOLOGICAL_FALLOUT") {
                 threat.spreadRate = Math.min(1, threat.spreadRate + (1.5 * dt / 60)); // Spread rate increases
                 threat.severity = Math.min(1, threat.severity + (0.3 * dt / 60)); // Severity increases
-                NarrativeManager.logEvent('RAD_FALLOUT_AMPLIFY', {
+                this.narrativeManager.logEvent('RAD_FALLOUT_AMPLIFY', {
                     threatId: threat.id,
                     region: region.id
                 });
@@ -372,7 +376,7 @@ class WorldState {
                     if (interaction) {
                         interaction.effect(threatA, threatB, dt);
                         if (interaction.narrativeEvent) {
-                            NarrativeManager.logEvent(interaction.narrativeEvent, {
+                            this.narrativeManager.logEvent(interaction.narrativeEvent, {
                                 threats: [threatA.id, threatB.id],
                                 domains: [threatA.domain, threatB.domain]
                             });

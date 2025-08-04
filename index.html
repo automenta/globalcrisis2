@@ -75,6 +75,33 @@
         margin-top: 0;
         text-align: center;
     }
+    #narrative-log {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 300px;
+        height: 200px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #00ff00; /* Green text for a terminal look */
+        padding: 10px;
+        border-radius: 5px;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 12px;
+        overflow-y: scroll;
+        border: 1px solid #00ff00;
+    }
+    .narrative-entry {
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 1px dashed #00ff00;
+    }
+    .narrative-entry h4 {
+        margin: 0 0 5px 0;
+        color: #ffffff;
+    }
+    .narrative-entry p {
+        margin: 0;
+    }
     </style>
 </head>
 <body>
@@ -94,6 +121,7 @@
         <p><strong>Wind Speed:</strong> <span id="weather-wind-speed">--</span> km/h</p>
         <p><strong>Wind Direction:</strong> <span id="weather-wind-dir">--</span>°</p>
     </div>
+    <div id="narrative-log"></div>
     <script src="lib/three.min.js"></script>
     <script src="lib/OrbitControls.js"></script>
     <script src="src/faction.js"></script>
