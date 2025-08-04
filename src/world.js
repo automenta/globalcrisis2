@@ -4,23 +4,32 @@ const threatTypes = ["REAL", "FAKE", "UNKNOWN"];
 const CROSS_DOMAIN_INTERACTIONS = {
     "CYBER-RAD": {
         narrativeEvent: "CYBER_RAD_SYNERGY",
-        effect: (cyberThreat, radThreat, dt) => {
+        effect: (threatA, threatB, dt) => {
+            const cyberThreat = threatA.domain === 'CYBER' ? threatA : threatB;
+            const radThreat = threatA.domain === 'RAD' ? threatA : threatB;
+            if (!cyberThreat || !radThreat) return;
             radThreat.severity = Math.min(1.0, radThreat.severity + 0.001 * cyberThreat.severity);
             cyberThreat.severity = Math.min(1.0, cyberThreat.severity + 0.0005 * radThreat.severity);
         }
     },
     "ECON-INFO": {
         narrativeEvent: "ECON_INFO_SYNERGY",
-        effect: (econThreat, infoThreat, dt) => {
+        effect: (threatA, threatB, dt) => {
+            const econThreat = threatA.domain === 'ECON' ? threatA : threatB;
+            const infoThreat = threatA.domain === 'INFO' ? threatA : threatB;
+            if (!econThreat || !infoThreat) return;
             // Economic trouble makes people more susceptible to misinformation
-            infoThreat.spreadRate = Math.min(1.0, infoThreat.spreadRate + 0.002 * econThreat.severity);
+            infoThreat.spreadRate = Math.min(1.0, (infoThreat.spreadRate || 0) + 0.002 * econThreat.severity);
             // Misinformation can amplify economic panic
             econThreat.severity = Math.min(1.0, econThreat.severity + 0.001 * infoThreat.severity);
         }
     },
     "QUANTUM-ROBOT": {
         narrativeEvent: "QUANTUM_ROBOTIC_ENHANCEMENT",
-        effect: (qThreat, rThreat, dt) => {
+        effect: (threatA, threatB, dt) => {
+            const qThreat = threatA.domain === 'QUANTUM' ? threatA : threatB;
+            const rThreat = threatA.domain === 'ROBOT' ? threatA : threatB;
+            if (!qThreat || !rThreat) return;
             const qProps = qThreat.quantumProperties;
             const rProps = rThreat.roboticProperties;
             if (qProps && rProps && (qProps.entanglementLevel || 0) > 0.7) {
@@ -31,7 +40,10 @@ const CROSS_DOMAIN_INTERACTIONS = {
     },
     "CYBER-ROBOT": {
         narrativeEvent: "CYBER_ROBOT_HACK",
-        effect: (cyberThreat, robotThreat, dt) => {
+        effect: (threatA, threatB, dt) => {
+            const cyberThreat = threatA.domain === 'CYBER' ? threatA : threatB;
+            const robotThreat = threatA.domain === 'ROBOT' ? threatA : threatB;
+            if (!cyberThreat || !robotThreat) return;
             const rProps = robotThreat.roboticProperties;
             if (rProps && cyberThreat.severity > 0.6) {
                  // High severity cyber attacks can increase robot autonomy (e.g., hack them to be more independent)
@@ -44,7 +56,10 @@ const CROSS_DOMAIN_INTERACTIONS = {
     },
     "QUANTUM-INFO": {
         narrativeEvent: "QUANTUM_DISINFORMATION_BREAKTHROUGH",
-        effect: (qThreat, infoThreat, dt) => {
+        effect: (threatA, threatB, dt) => {
+            const qThreat = threatA.domain === 'QUANTUM' ? threatA : threatB;
+            const infoThreat = threatA.domain === 'INFO' ? threatA : threatB;
+            if (!qThreat || !infoThreat) return;
             const qProps = qThreat.quantumProperties;
             const iProps = infoThreat.informationProperties;
             // Quantum computing can dramatically improve deepfake quality
@@ -52,6 +67,41 @@ const CROSS_DOMAIN_INTERACTIONS = {
                  const qualityGain = qProps.coherenceTime * 0.005 * dt;
                  iProps.deepfakeQuality = Math.min(1, (iProps.deepfakeQuality || 0) + qualityGain);
             }
+        }
+    },
+    "BIO-CYBER": {
+        narrativeEvent: "BIO_CYBER_SYNERGY",
+        effect: (threatA, threatB, dt) => {
+            const bioThreat = threatA.domain === 'BIO' ? threatA : threatB;
+            const cyberThreat = threatA.domain === 'CYBER' ? threatA : threatB;
+            if (!bioThreat || !cyberThreat) return;
+            // Biological vectors make cyber attacks more severe
+            const severityIncrease = 0.0015 * bioThreat.severity * dt;
+            cyberThreat.severity = Math.min(1.0, cyberThreat.severity + severityIncrease);
+        }
+    },
+    "ROBOT-INFO": {
+        narrativeEvent: "ROBOT_INFO_SYNERGY",
+        effect: (threatA, threatB, dt) => {
+            const robotThreat = threatA.domain === 'ROBOT' ? threatA : threatB;
+            const infoThreat = threatA.domain === 'INFO' ? threatA : threatB;
+            if (!robotThreat || !infoThreat) return;
+            // Robotic networks (bots) amplify information spread
+            const spreadRateIncrease = 0.0025 * robotThreat.severity * dt;
+            infoThreat.spreadRate = Math.min(1.0, (infoThreat.spreadRate || 0) + spreadRateIncrease);
+        }
+    },
+    "RAD-ENV": {
+        narrativeEvent: "RAD_ENV_SYNERGY",
+        effect: (threatA, threatB, dt) => {
+            const radThreat = threatA.domain === 'RAD' ? threatA : threatB;
+            const envThreat = threatA.domain === 'ENV' ? threatA : threatB;
+            if (!radThreat || !envThreat) return;
+            // Environmental events (e.g., storms) exacerbate radiological threats
+            const severityIncrease = 0.002 * envThreat.severity * dt;
+            const spreadRateIncrease = 0.003 * envThreat.severity * dt;
+            radThreat.severity = Math.min(1.0, radThreat.severity + severityIncrease);
+            radThreat.spreadRate = Math.min(1.0, (radThreat.spreadRate || 0) + spreadRateIncrease);
         }
     }
 };
