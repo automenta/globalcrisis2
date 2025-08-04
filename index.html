@@ -139,7 +139,18 @@
 <body>
     <div id="goals-panel"></div>
     <div id="threat-info"></div>
+    <div id="agent-panel" style="position: absolute; top: 250px; right: 10px; background: rgba(0, 0, 0, 0.7); color: white; padding: 10px; border-radius: 5px; font-family: sans-serif; width: 200px;">
+        <h3>Agent Command</h3>
+        <button id="recruit-agent-button" style="width: 100%;" title="Recruit a new covert agent. Requires a friendly region to be selected.">Recruit Agent (1500F, 500I)</button>
+        <ul id="agent-list" style="list-style: none; padding: 0; margin-top: 10px; max-height: 150px; overflow-y: auto;">
+            <!-- Agent statuses will be populated here by main.js -->
+        </ul>
+    </div>
     <div id="player-panel">
+        <div style="padding-bottom: 10px; border-bottom: 1px solid #555; margin-bottom: 10px;">
+            <input type="checkbox" id="casual-mode-checkbox" checked>
+            <label for="casual-mode-checkbox">Casual Mode</label>
+        </div>
         <h3 id="faction-name">Faction Name</h3>
         <div id="resource-display">
             <p><strong>Funds:</strong> <span id="funds-value">0</span></p>
@@ -228,6 +239,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/25.0.0/tween.umd.js"></script>
     <script src="src/building.js"></script>
     <script src="src/unit.js"></script>
+    <script src="src/agent.js"></script>
     <script src="src/events.js"></script>
     <script src="src/world.js"></script>
     <script src="src/audio.js"></script>

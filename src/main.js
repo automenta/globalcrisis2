@@ -125,7 +125,12 @@ const uiState = {
 const narrativeManager = new NarrativeManager();
 
 // Instantiate the world state
-const worldState = new WorldState(scene, uiState, narrativeManager);
+const casualModeCheckbox = document.getElementById('casual-mode-checkbox');
+const worldState = new WorldState(scene, uiState, narrativeManager, casualModeCheckbox.checked);
+
+casualModeCheckbox.addEventListener('change', () => {
+    alert("Casual Mode setting will apply on next new game.");
+});
 
 // Instantiate the event manager
 const eventManager = new EventManager(worldState);
@@ -169,6 +174,72 @@ const playerPanel = {
     intel: document.getElementById('intel-value'),
     tech: document.getElementById('tech-value'),
 };
+
+const agentPanel = {
+    recruitButton: document.getElementById('recruit-agent-button'),
+    list: document.getElementById('agent-list'),
+};
+
+function updateAgentPanel() {
+    const agents = worldState.agents.filter(a => a.factionId === worldState.playerFaction.id);
+    agentPanel.list.innerHTML = ''; // Clear existing list
+
+    if (agents.length === 0) {
+        agentPanel.list.innerHTML = '<li>No active agents.</li>';
+        return;
+    }
+
+    agents.forEach(agent => {
+        const missionStatus = agent.mission ? `${agent.mission.type} (${(agent.mission.progress * 100).toFixed(0)}%)` : 'Idle';
+        const li = document.createElement('li');
+        li.style.marginBottom = '10px';
+
+        const statusText = document.createElement('span');
+        statusText.textContent = `Agent ${agent.id} (${agent.region.name}): ${missionStatus}`;
+        li.appendChild(statusText);
+
+        if (!agent.mission) {
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.marginTop = '5px';
+
+            for (const actionId in AgentActions) {
+                const action = AgentActions[actionId];
+                if (action.isAvailable(agent)) {
+                    const button = document.createElement('button');
+                    button.textContent = action.name;
+                    button.title = action.description;
+                    button.style.fontSize = '10px';
+                    button.style.padding = '2px 4px';
+                    button.style.marginRight = '5px';
+                    button.addEventListener('click', () => {
+                        action.execute(agent);
+                    });
+                    buttonContainer.appendChild(button);
+                }
+            }
+            li.appendChild(buttonContainer);
+        }
+
+        agentPanel.list.appendChild(li);
+    });
+}
+
+agentPanel.recruitButton.addEventListener('click', () => {
+    if (selectedThreat) {
+        const region = worldState.getRegionForThreat(selectedThreat);
+        if (region && region.owner === 'PLAYER') {
+            if (worldState.addAgent(region)) {
+                // successfully added
+            } else {
+                alert("Not enough resources to recruit an agent.");
+            }
+        } else {
+            alert("Select a player-controlled region to recruit an agent.");
+        }
+    } else {
+        alert("Select a player-controlled region to recruit an agent.");
+    }
+});
 
 function updatePlayerPanel() {
     if (worldState.playerFaction) {
@@ -271,6 +342,17 @@ function updateWeatherPanel() {
     }
 }
 
+function getRecommendedAction(threat) {
+    if (!threat) return null;
+    if (threat.investigationProgress < 1.0) {
+        return 'investigate';
+    }
+    if (threat.type === 'REAL') {
+        return 'mitigate';
+    }
+    return null;
+}
+
 function updateThreatPanel() {
     if (!selectedThreat) {
         threatInfoPanel.style.display = 'none';
@@ -337,6 +419,7 @@ function updateThreatPanel() {
     const actionButtonsContainer = document.getElementById('action-buttons');
 
     // --- Dynamically Generate Action Buttons ---
+    const recommendedActionId = getRecommendedAction(threat);
     const region = worldState.getRegionForThreat(threat); // Get the region for context
     for (const actionId in PlayerActions) {
         const action = PlayerActions[actionId];
@@ -353,6 +436,11 @@ function updateThreatPanel() {
             }
             button.textContent = `${action.name}${costText ? ` (${costText})` : ''}`;
             button.title = action.description;
+
+            if (action.id === recommendedActionId) {
+                button.style.boxShadow = '0 0 10px #fff, 0 0 20px #fff, 0 0 30px #00aaff, 0 0 40px #00aaff';
+                button.style.borderColor = '#00aaff';
+            }
 
             button.addEventListener('click', () => {
                 // Store investigation status before executing action
@@ -865,6 +953,7 @@ function animate() {
     updateNarrativeLog();
     updateGoalsPanel();
     updateResearchPanel();
+    updateAgentPanel();
 
     // Animate camera if needed
     if (isCameraAnimating) {

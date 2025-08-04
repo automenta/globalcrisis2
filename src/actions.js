@@ -164,3 +164,34 @@ const PlayerActions = {
 
 // In a real ES6 module system, we would use `export default PlayerActions;`
 // For now, this file establishes the structure.
+
+const AgentActions = {
+    'infiltrate_region': {
+        id: 'infiltrate_region',
+        name: 'Infiltrate Region',
+        description: 'Gather intelligence in the current region, boosting intel and revealing hidden threats.',
+        isAvailable: (agent) => !agent.mission,
+        execute: (agent) => agent.startMission('INFILTRATE')
+    },
+    'sabotage_infrastructure': {
+        id: 'sabotage_infrastructure',
+        name: 'Sabotage Infrastructure',
+        description: 'Damage the economic infrastructure of the current region.',
+        isAvailable: (agent) => !agent.mission && agent.region.owner === 'technocrats',
+        execute: (agent) => agent.startMission('SABOTAGE')
+    },
+    'incite_unrest': {
+        id: 'incite_unrest',
+        name: 'Incite Unrest',
+        description: 'Lower the stability in the current region, potentially causing it to flip to neutral.',
+        isAvailable: (agent) => !agent.mission && agent.region.owner === 'technocrats',
+        execute: (agent) => agent.startMission('INCITE_UNREST')
+    },
+    'steal_technology': {
+        id: 'steal_technology',
+        name: 'Steal Technology',
+        description: 'Attempt to steal valuable research data from the AI faction in this region.',
+        isAvailable: (agent) => !agent.mission && agent.region.owner === 'technocrats',
+        execute: (agent) => agent.startMission('STEAL_TECH')
+    }
+};

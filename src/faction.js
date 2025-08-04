@@ -16,6 +16,10 @@ class Faction {
             intel: resources.intel || 0,
             tech: resources.tech || 0,
         };
+        // Base counter-intelligence strength. Can be modified by tech, events, etc.
+        this.counterIntel = 0.1;
+        // Timer for AI decision-making, to prevent decisions every frame
+        this.decisionTimer = 0;
     }
 
     /**

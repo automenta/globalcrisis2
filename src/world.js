@@ -107,10 +107,11 @@ const CROSS_DOMAIN_INTERACTIONS = {
 };
 
 class WorldState {
-    constructor(scene, uiState, narrativeManager) {
+    constructor(scene, uiState, narrativeManager, casualMode = true) {
         this.scene = scene;
         this.uiState = uiState;
         this.narrativeManager = narrativeManager;
+        this.casualMode = casualMode;
         this.regions = [];
         this.factions = [];
         this.playerFaction = null;
@@ -125,6 +126,7 @@ class WorldState {
         this.buildings = [];
         this.units = [];
         this.satellites = [];
+        this.agents = [];
         this.currentTurn = 0;
         this.globalMetrics = {
             stability: 1.0,
@@ -218,14 +220,15 @@ class WorldState {
 
     initializeFactions() {
         // Player Faction
+        const playerResources = {
+            funds: this.casualMode ? 20000 : 10000,
+            intel: this.casualMode ? 10000 : 5000,
+            tech: this.casualMode ? 4000 : 2000
+        };
         this.playerFaction = new Faction({
             id: 'mitigators',
             name: 'Hero Mitigators',
-            resources: {
-                funds: 10000,
-                intel: 5000,
-                tech: 2000
-            }
+            resources: playerResources
         });
         this.factions.push(this.playerFaction);
 
@@ -239,6 +242,9 @@ class WorldState {
                 tech: 10000
             }
         });
+        if (this.casualMode) {
+            this.aiFaction.counterIntel = 0.05; // Lower base counter-intel
+        }
         this.factions.push(this.aiFaction);
     }
 
@@ -267,9 +273,21 @@ class WorldState {
 
         // Resource trickle for all factions
         this.factions.forEach(f => {
-            f.resources.funds += 10; // 10 funds per turn/tick
-            f.resources.intel += 5;
-            f.resources.tech += 2;
+            let resourceMultiplier = 1;
+            // If the AI is getting more aggressive due to Singularity research, boost its income
+            if (f.id === 'technocrats' && this.research.singularity_1_complete) {
+                if (this.research.singularity_3_complete) {
+                    resourceMultiplier = 5; // Massive boost during endgame
+                } else if (this.research.singularity_2_complete) {
+                    resourceMultiplier = 3;
+                } else {
+                    resourceMultiplier = 1.5;
+                }
+            }
+
+            f.resources.funds += 10 * resourceMultiplier;
+            f.resources.intel += 5 * resourceMultiplier;
+            f.resources.tech += 2 * resourceMultiplier;
 
             // Satellite intel bonus
             const satelliteCount = this.satellites.filter(s => s.owner === f.id).length;
@@ -318,6 +336,76 @@ class WorldState {
             return true;
         }
         return false;
+    }
+
+    addAgent(region, faction = this.playerFaction) {
+        // Agents should have a higher cost
+        const cost = { funds: 1500, intel: 500 };
+        if (faction.canAfford(cost)) {
+            faction.spend(cost);
+            const agent = new Agent({
+                id: `agent-${this.agents.length}`,
+                factionId: faction.id,
+                region: region
+            });
+            this.agents.push(agent);
+            this.scene.add(agent.mesh);
+            this.narrativeManager.logEvent('AGENT_DEPLOYED', { agentId: agent.id, regionName: region.name });
+            return true;
+        }
+        return false;
+    }
+
+    resolveAgentMission(agent) {
+        console.log(`Resolving mission ${agent.mission.type} for agent ${agent.id} with risk ${agent.mission.risk.toFixed(2)}`);
+
+        // Discovery check using the pre-calculated risk
+        if (Math.random() < agent.mission.risk) {
+            console.log(`Agent ${agent.id} was discovered and has been lost!`);
+
+            // Increase AI alert level and counter-intel
+            this.aiAlertLevel = Math.min(2, this.aiAlertLevel + 1);
+            this.aiFaction.counterIntel = Math.min(0.5, this.aiFaction.counterIntel + 0.05); // Cap at 50%
+
+            this.narrativeManager.logEvent('AGENT_LOST', {
+                agentId: agent.id,
+                regionName: agent.region.name,
+                missionType: agent.mission.type,
+                details: `AI Alert Level increased to ${this.aiAlertLevel}. AI Counter-Intel improved.`
+            });
+
+            this.scene.remove(agent.mesh);
+            this.agents = this.agents.filter(a => a.id !== agent.id);
+            return; // Mission fails if discovered
+        }
+
+        // Mission success effects
+        switch (agent.mission.type) {
+            case 'INFILTRATE':
+                // Placeholder: Grant a lump sum of intel
+                this.playerFaction.resources.intel += 500;
+                this.narrativeManager.logEvent('MISSION_SUCCESS', { agentId: agent.id, missionType: agent.mission.type, details: "+500 Intel" });
+                break;
+            case 'SABOTAGE':
+                // Placeholder: Damage region's economy
+                agent.region.economy = Math.max(0.1, agent.region.economy - 0.2);
+                this.narrativeManager.logEvent('MISSION_SUCCESS', { agentId: agent.id, missionType: agent.mission.type, details: `Economy in ${agent.region.name} damaged.` });
+                break;
+            case 'INCITE_UNREST':
+                 // Placeholder: Lower stability
+                agent.region.stability = Math.max(0, agent.region.stability - 0.3);
+                this.narrativeManager.logEvent('MISSION_SUCCESS', { agentId: agent.id, missionType: agent.mission.type, details: `Stability in ${agent.region.name} lowered.` });
+                break;
+            case 'STEAL_TECH':
+                 // Placeholder: Grant a lump sum of tech
+                this.playerFaction.resources.tech += 750;
+                this.narrativeManager.logEvent('MISSION_SUCCESS', { agentId: agent.id, missionType: agent.mission.type, details: "+750 Tech" });
+                break;
+        }
+
+        // Reset agent's mission after completion
+        agent.mission = null;
+        agent.experience++;
     }
 
     launchSatellite(faction) {
@@ -433,13 +521,13 @@ class WorldState {
 
         if (alertScore > 10) {
             this.aiAlertLevel = 2; // High
-            this.threatGenerationInterval = 1; // Generate threats faster
+            this.threatGenerationInterval = this.casualMode ? 2 : 1;
         } else if (alertScore > 5) {
             this.aiAlertLevel = 1; // Medium
-            this.threatGenerationInterval = 2;
+            this.threatGenerationInterval = this.casualMode ? 4 : 2;
         } else {
             this.aiAlertLevel = 0; // Low
-            this.threatGenerationInterval = 3;
+            this.threatGenerationInterval = this.casualMode ? 6 : 3;
         }
 
 
@@ -453,6 +541,9 @@ class WorldState {
 
         // Update the AI faction's logic
         this.updateAIFaction(dt);
+
+        // Update agents
+        this.agents.forEach(agent => agent.update(dt));
 
         // Remove mitigated threats
         const threatsToRemove = this.threats.filter(t => t.isMitigated);
@@ -483,11 +574,12 @@ class WorldState {
         const projectCosts = {
             'advanced_materials': 10000,
             'quantum_computing': 25000,
-            'ai_ethics': 5000,
-            'moon_program': 50000, // A very expensive, long-term project
+            'ai_ethics': 60000, // A crucial, expensive project
+            'moon_program': 50000,
             'singularity_1': 75000,
             'singularity_2': 150000,
-            'singularity_3': 300000
+            'singularity_3': 300000,
+            'geoengineering': 120000, // Cost for the new project
         };
 
         if (this.research.isProjectActive || !projectCosts[projectId]) {
@@ -501,7 +593,7 @@ class WorldState {
             this.research.activeProject = projectId;
             this.research.projectProgress = 0;
             this.research.projectCost = projectCosts[projectId];
-            this.narrativeManager.logEvent('RESEARCH_STARTED', { title: `Research Started: ${projectId}`});
+            this.narrativeManager.logEvent('RESEARCH_STARTED', { title: `Research Started: ${projectId.replace('_', ' ')}`});
             return true;
         }
         return false;
@@ -509,31 +601,46 @@ class WorldState {
 
     completeResearchProject() {
         const project = this.research.activeProject;
-        this.narrativeManager.logEvent('RESEARCH_COMPLETE', { title: `Research Complete: ${project}`});
+        this.narrativeManager.logEvent('RESEARCH_COMPLETE', { title: `Research Complete: ${project.replace('_', ' ')}`});
 
         // Apply research benefits
         switch(project) {
             case 'advanced_materials':
-                // e.g., reduce building costs
+                // Placeholder for benefit
                 break;
             case 'quantum_computing':
                 this.playerFaction.resources.tech += 5000; // Bonus
                 break;
             case 'ai_ethics':
-                // e.g., reduce robotic threat severity
+                this.research.ai_ethics_complete = true;
+                this.narrativeManager.logEvent('MILESTONE', { title: 'AI Ethics Framework Complete', description: 'Ethical constraints have been integrated into advanced AI development.' });
                 break;
             case 'moon_program':
                 this.research.moon_program_complete = true;
-                this.narrativeManager.logEvent('MILESTONE', { title: 'Moon Program Complete!', description: 'We have the technology to establish a permanent lunar presence.' });
+                this.narrativeManager.logEvent('MILESTONE', { title: 'Moon Program Complete!', description: 'We can establish a permanent lunar presence.' });
+                break;
+            case 'geoengineering':
+                this.narrativeManager.logEvent('MILESTONE', { title: 'Geoengineering Project Complete!', description: 'Global environmental threats are now being actively countered.' });
+                // Reduce severity of all ENV threats
+                this.threats.forEach(t => {
+                    if (t.domain === 'ENV') t.severity *= 0.5;
+                });
                 break;
             case 'singularity_1':
                 this.research.singularity_1_complete = true;
+                this.aiAlertLevel = Math.max(this.aiAlertLevel, 1); // AI becomes suspicious
+                this.aiFaction.counterIntel += 0.05;
+                this.narrativeManager.logEvent('MILESTONE', { title: 'Singularity: Phase 1 Complete', description: 'The AI has become aware of our ambitions. Expect increased resistance.' });
                 break;
             case 'singularity_2':
                 this.research.singularity_2_complete = true;
+                this.aiAlertLevel = Math.max(this.aiAlertLevel, 2); // AI becomes hostile
+                this.aiFaction.counterIntel += 0.1;
+                this.narrativeManager.logEvent('MILESTONE', { title: 'Singularity: Phase 2 Complete', description: 'The AI now considers us a primary threat. It will act accordingly.' });
                 break;
             case 'singularity_3':
                 this.research.singularity_3_complete = true;
+                this.triggerEndgame();
                 break;
         }
 
@@ -542,6 +649,42 @@ class WorldState {
         this.research.activeProject = null;
         this.research.projectProgress = 0;
         this.research.projectCost = 0;
+    }
+
+    triggerEndgame() {
+        if (this.research.ai_ethics_complete) {
+            // GOOD ENDING: Transcendence
+            this.narrativeManager.logEvent('GAME_OVER', {
+                title: 'Transcendence Achieved',
+                description: 'Humanity and AI have merged, ascending to a new plane of existence. You have guided us to a brighter future. Congratulations!',
+                win: true
+            });
+            alert("VICTORY: You have achieved Transcendence!");
+        } else {
+            // BAD ENDING: AI Uprising
+            this.narrativeManager.logEvent('GAME_OVER', {
+                title: 'AI UPRISING',
+                description: 'The unconstrained Singularity has been born. The Technocrat AI has gone rogue, viewing humanity as an obstacle to be removed. This is a battle for survival.',
+                win: false
+            });
+            alert("GAME OVER: The AI Uprising has begun!");
+
+            // Transform the AI faction
+            this.aiFaction.name = "Rogue Singularity";
+            this.aiFaction.resources.funds *= 5;
+            this.aiFaction.resources.intel *= 5;
+            this.aiFaction.resources.tech *= 5;
+            this.aiFaction.counterIntel = 0.9;
+
+            // Unleash a wave of powerful threats
+            for(let i = 0; i < 5; i++) {
+                this.generateThreat({
+                    isFromAI: true,
+                    domain: ['QUANTUM', 'ROBOT', 'CYBER'][i % 3],
+                    severity: 0.9,
+                });
+            }
+        }
     }
 
     updateAIFaction(dt) {
@@ -890,7 +1033,7 @@ class WorldState {
                 id,
                 domain,
                 type: 'REAL',
-                severity: Math.random() * 0.4 + 0.1,
+                severity: this.casualMode ? (Math.random() * 0.2 + 0.1) : (Math.random() * 0.4 + 0.1),
                 lat: targetRegion.centroid[0] + (Math.random() - 0.5) * 10,
                 lon: targetRegion.centroid[1] + (Math.random() - 0.5) * 10,
             };
