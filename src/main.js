@@ -160,7 +160,7 @@ function updateThreatPanel() {
     const typeDisplay = isInvestigated ? threat.type : 'UNKNOWN';
 
     threatInfoPanel.style.display = 'block';
-    threatInfoPanel.innerHTML = `
+    let innerHTML = `
         <h3>Threat Details</h3>
         <p><strong>ID:</strong> ${threat.id}</p>
         <p><strong>Domain:</strong> ${threat.domain}</p>
@@ -169,8 +169,50 @@ function updateThreatPanel() {
         <p><strong>Location:</strong> ${threat.lat.toFixed(2)}, ${threat.lon.toFixed(2)}</p>
         <p><strong>Visibility:</strong> ${(threat.visibility * 100).toFixed(0)}%</p>
         <p><strong>Investigation:</strong> ${(threat.investigationProgress * 100).toFixed(0)}%</p>
-        <div id="action-buttons"></div>
     `;
+
+    // --- Domain-Specific Details ---
+    if (isInvestigated) {
+        let domainDetails = '<h4>Domain-Specifics</h4>';
+        let hasDetails = false;
+
+        if (threat.domain === 'QUANTUM' && threat.quantumProperties) {
+            const qp = threat.quantumProperties;
+            if (qp.coherenceTime !== undefined) {
+                const coherenceStatus = qp.coherenceTime < 0 ? 'Collapsed' : qp.coherenceTime.toFixed(2);
+                domainDetails += `<p><strong>Coherence Time:</strong> ${coherenceStatus}</p>`;
+                hasDetails = true;
+            }
+        }
+        if (threat.domain === 'ROBOT' && threat.roboticProperties) {
+            const rp = threat.roboticProperties;
+            domainDetails += `<p><strong>Collective Intel:</strong> ${(rp.collectiveIntelligence || 0).toFixed(2)}</p>`;
+            if (rp.emergentBehaviors && rp.emergentBehaviors.length > 0) {
+                domainDetails += `<p><strong>Behaviors:</strong> ${rp.emergentBehaviors.join(', ')}</p>`;
+            }
+            hasDetails = true;
+        }
+        if (threat.domain === 'SPACE' && threat.spaceProperties) {
+            const sp = threat.spaceProperties;
+            if (sp.altitude !== undefined) {
+                domainDetails += `<p><strong>Altitude:</strong> ${sp.altitude.toFixed(2)} km</p>`;
+                hasDetails = true;
+            }
+        }
+        if (threat.domain === 'INFO' && threat.informationProperties) {
+            const ip = threat.informationProperties;
+            domainDetails += `<p><strong>Spread Rate:</strong> ${threat.spreadRate.toFixed(2)}</p>`;
+            hasDetails = true;
+        }
+
+        if (hasDetails) {
+            innerHTML += domainDetails;
+        }
+    }
+
+
+    innerHTML += '<div id="action-buttons"></div>';
+    threatInfoPanel.innerHTML = innerHTML;
 
     const actionButtonsContainer = document.getElementById('action-buttons');
 
@@ -191,6 +233,19 @@ function updateThreatPanel() {
             <button id="mitigate-button">Mitigate (500 Funds, 200 Tech)</button>
         `;
     }
+
+    // Add domain-specific action buttons
+    if (isInvestigated && threat.domain === 'INFO') {
+        actionButtonsContainer.innerHTML += `
+            <button id="counter-intel-button">Deploy Counter-Intel (250 Intel, 100 Funds)</button>
+        `;
+    }
+    if (isInvestigated && threat.domain === 'ECON') {
+        actionButtonsContainer.innerHTML += `
+            <button id="stabilize-markets-button">Stabilize Markets (1000 Funds)</button>
+        `;
+    }
+
 
     // Add event listeners
     const investigateButton = document.getElementById('investigate-button');
@@ -215,6 +270,26 @@ function updateThreatPanel() {
                 audioManager.playSound('mitigate');
                 // The threat might be removed, so update panel will handle the rest
                 // No need to call it here explicitly if mitigate handles it
+            }
+        });
+    }
+
+    const counterIntelButton = document.getElementById('counter-intel-button');
+    if (counterIntelButton) {
+        counterIntelButton.addEventListener('click', () => {
+            if (threat.deployCounterIntel(worldState.playerFaction)) {
+                // Maybe add a new sound for this later
+                updateThreatPanel(); // Re-render to show updated spread rate
+            }
+        });
+    }
+
+    const stabilizeMarketsButton = document.getElementById('stabilize-markets-button');
+    if (stabilizeMarketsButton) {
+        stabilizeMarketsButton.addEventListener('click', () => {
+            if (threat.stabilizeMarkets(worldState.playerFaction)) {
+                // Maybe add a new sound for this later
+                updateThreatPanel(); // Re-render to show updated severity
             }
         });
     }

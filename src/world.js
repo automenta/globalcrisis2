@@ -178,6 +178,14 @@ class WorldState {
                 // Decrease stability based on threat severity
                 const stabilityDecrease = threat.severity * 0.001; // Adjust this factor
                 region.stability = Math.max(0, region.stability - stabilityDecrease);
+
+                // --- New Domain-Specific World-State Logic ---
+                if (threat.domain === "INFO") {
+                    this.updateMisinformationImpact(threat, region, dt);
+                }
+                if (threat.domain === "ECON") {
+                    this.propagateFinancialContagion(threat, dt);
+                }
             }
         });
 
@@ -197,6 +205,9 @@ class WorldState {
 
         // Handle threat spreading
         this.handleThreatSpreading(dt);
+
+        // Handle threat-environment interactions
+        this.handleThreatEnvironmentInteractions(dt);
 
         // Handle cross-domain interactions
         this.handleCrossDomainInteractions(dt);
@@ -236,6 +247,51 @@ class WorldState {
         }
     }
 
+    propagateFinancialContagion(threat, dt) {
+        if (threat.domain !== "ECON" || !threat.economicProperties) return;
+
+        const volatility = threat.economicProperties.marketCrashPotential || 0;
+        const marketIndex = this.globalMetrics.economy;
+        const networkEffect = 1 + (marketIndex * 0.2);
+        // We use dt to make the change gradual
+        const severityIncrease = threat.severity * volatility * networkEffect * (dt / 10); // dt adjusted
+        threat.severity = Math.min(1, threat.severity + severityIncrease);
+    }
+
+    updateMisinformationImpact(threat, region, dt) {
+        if (threat.domain !== "INFO" || !threat.informationProperties) return;
+
+        const { polarizationFactor = 0, deepfakeQuality = 0 } = threat.informationProperties;
+        const vulnerability = 1 - region.population.psychodynamics.trust;
+
+        const spreadRateChange = (0.4 * polarizationFactor + 0.3 * deepfakeQuality + 0.3 * vulnerability) * (dt / 10);
+        threat.spreadRate = Math.min(1, (threat.spreadRate || 0) + spreadRateChange);
+
+        // Educational metric decay
+        const resistanceDecay = 0.15 * threat.severity * (dt / 10);
+        region.educationMetrics.misinformationResistance = Math.max(0, region.educationMetrics.misinformationResistance - resistanceDecay);
+
+        // Trust decay
+        const trustDecay = (polarizationFactor * 0.1 + deepfakeQuality * 0.2) * threat.severity * (dt / 10);
+        region.population.psychodynamics.trust = Math.max(0, region.population.psychodynamics.trust - trustDecay);
+    }
+
+    handleThreatEnvironmentInteractions(dt) {
+        this.threats.forEach(threat => {
+            if (threat.isMitigated) return;
+
+            const region = this.getRegionForThreat(threat);
+            if (!region || !region.weather) return;
+
+            // Radiological-Weather Interaction
+            if (threat.domain === "RAD" && region.weather.type === "RADIOLOGICAL_FALLOUT") {
+                threat.spreadRate = Math.min(1, threat.spreadRate + (1.5 * dt / 60)); // Spread rate increases
+                threat.severity = Math.min(1, threat.severity + (0.3 * dt / 60)); // Severity increases
+                console.log(`NARRATIVE_EVENT: RAD_FALLOUT_AMPLIFY, threatId: ${threat.id}, region: ${region.id}`);
+            }
+        });
+    }
+
     handleCrossDomainInteractions(dt) {
         for (let i = 0; i < this.threats.length; i++) {
             for (let j = i + 1; j < this.threats.length; j++) {
@@ -260,6 +316,24 @@ class WorldState {
                     }
                     if (threatB.domain === "ECON" && threatA.domain === "INFO") {
                         threatA.severity = Math.min(1.0, threatA.severity + 0.001 * threatB.severity);
+                    }
+
+                    // Rule 3: Quantum-Robotic Interaction
+                    const processQuantumRobotic = (qThreat, rThreat) => {
+                        const qProps = qThreat.quantumProperties;
+                        const rProps = rThreat.roboticProperties;
+                        if (qProps && rProps && (qProps.entanglementLevel || 0) > 0.7) {
+                            rProps.adaptationRate = (rProps.adaptationRate || 1) * (1 + (0.5 * dt / 60));
+                            rProps.collectiveIntelligence = Math.min(1, (rProps.collectiveIntelligence || 0) + (qProps.entanglementLevel * 0.3 * dt / 60));
+                            console.log(`NARRATIVE_EVENT: QUANTUM_ROBOTIC_ENHANCEMENT, quantumThreat: ${qThreat.id}, roboticThreat: ${rThreat.id}`);
+                        }
+                    };
+
+                    if (threatA.domain === "QUANTUM" && threatB.domain === "ROBOT") {
+                        processQuantumRobotic(threatA, threatB);
+                    }
+                    if (threatB.domain === "QUANTUM" && threatA.domain === "ROBOT") {
+                        processQuantumRobotic(threatB, threatA);
                     }
                 }
             }
@@ -397,7 +471,41 @@ class WorldState {
             const lat = Math.random() * 180 - 90;
             const lon = Math.random() * 360 - 180;
 
-            const threat = new Threat({ id, domain, type, severity, lat, lon });
+            let threatProps = { id, domain, type, severity, lat, lon };
+
+            // Add domain-specific properties based on the generated domain
+            switch (domain) {
+                case 'QUANTUM':
+                    threatProps.quantumProperties = {
+                        coherenceTime: 5 + Math.random() * 5, // e.g., 5-10
+                        entanglementLevel: Math.random()
+                    };
+                    break;
+                case 'ROBOT':
+                    threatProps.roboticProperties = {
+                        adaptationRate: Math.random() * 0.5,
+                        collectiveIntelligence: Math.random() * 0.2
+                    };
+                    break;
+                case 'SPACE':
+                    threatProps.spaceProperties = {
+                        orbitalDebrisPotential: Math.random()
+                    };
+                    break;
+                case 'INFO':
+                    threatProps.informationProperties = {
+                        polarizationFactor: Math.random(),
+                        deepfakeQuality: Math.random()
+                    };
+                    break;
+                case 'ECON':
+                    threatProps.economicProperties = {
+                        marketCrashPotential: Math.random()
+                    };
+                    break;
+            }
+
+            const threat = new Threat(threatProps);
 
             this.addThreat(threat);
             this.scene.add(threat.mesh);

@@ -23,6 +23,17 @@ class Region {
         // Weather will be managed by the WeatherSystem
         this.weather = null;
 
+        // Properties for new simulation logic
+        this.population = {
+            density: Math.random(), // placeholder for now
+            psychodynamics: {
+                trust: 1.0 // Initial trust
+            }
+        };
+        this.educationMetrics = {
+            misinformationResistance: 1.0 // Initial resistance
+        };
+
         // 3D representation
         this.mesh = this.createMesh();
         this.weatherMesh = this.createWeatherMesh();
