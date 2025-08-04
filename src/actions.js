@@ -80,5 +80,32 @@ const PlayerActions = {
     }
 };
 
+    // --- GLOBAL/PROACTIVE ACTIONS ---
+    'fund_research': {
+        id: 'fund_research',
+        name: 'Fund Research',
+        description: 'Invest in a long-term research project to gain a technological advantage.',
+        resourceCost: { tech: 2000 },
+        isAvailable: (threat, worldState) => !worldState.research.isProjectActive, // Example condition
+        execute: (threat, faction, worldState) => worldState.startResearchProject('advanced_materials')
+    },
+    'diplomatic_mission': {
+        id: 'diplomatic_mission',
+        name: 'Launch Diplomatic Mission',
+        description: 'Send a diplomatic mission to a region to improve stability and trust.',
+        resourceCost: { funds: 1500 },
+        isAvailable: (threat) => true, // Available for any region
+        execute: (threat, faction, worldState, region) => region.startDiplomaticMission()
+    },
+    'awareness_campaign': {
+        id: 'awareness_campaign',
+        name: 'Public Awareness Campaign',
+        description: 'Launch a campaign to counter misinformation in a region.',
+        resourceCost: { funds: 500, intel: 200 },
+        isAvailable: (threat) => true, // Available for any region
+        execute: (threat, faction, worldState, region) => region.startAwarenessCampaign()
+    }
+};
+
 // In a real ES6 module system, we would use `export default PlayerActions;`
 // For now, this file establishes the structure.

@@ -98,3 +98,81 @@ const DomainLogic = {
         }
     }
 };
+
+const GlobalGoals = [
+    {
+        id: 'global_internet_access',
+        title: 'Global Internet Access',
+        description: 'Achieve 100% internet access across all regions.',
+        isCompleted: false,
+        progress: (worldState) => {
+            const totalRegions = worldState.regions.length;
+            const connectedRegions = worldState.regions.filter(r => r.attributes.internetAccess >= 1.0).length;
+            return connectedRegions / totalRegions;
+        },
+        reward: (worldState) => {
+            worldState.playerFaction.resources.tech += 5000;
+            worldState.narrativeManager.logEvent('GOAL_COMPLETE', { title: 'Global Internet Access', description: 'The world is now fully connected.' });
+        }
+    },
+    {
+        id: 'eradicate_disease_x',
+        title: 'Eradicate Disease X',
+        description: 'Completely eradicate a specific persistent disease from the world.',
+        isCompleted: false,
+        progress: (worldState) => {
+            const diseaseThreats = worldState.threats.filter(t => t.domain === 'BIO' && t.subType === 'DISEASE_X');
+            return diseaseThreats.length === 0 ? 1.0 : 0.0;
+        },
+        reward: (worldState) => {
+            worldState.playerFaction.resources.funds += 10000;
+            worldState.globalMetrics.stability += 0.2;
+            worldState.narrativeManager.logEvent('GOAL_COMPLETE', { title: 'Disease X Eradicated', description: 'The world is healthier and more stable.' });
+        }
+    },
+    {
+        id: 'moon_base',
+        title: 'Establish Moon Base',
+        description: 'Build a permanent, self-sustaining base on the moon.',
+        isCompleted: false,
+        progress: (worldState) => {
+            // This would require a more complex check, e.g., checking for a specific research project and resource investment.
+            // For now, we'll just return 0.
+            return 0.0;
+        },
+        reward: (worldState) => {
+            worldState.playerFaction.resources.tech += 10000;
+            worldState.globalMetrics.trust += 0.2;
+            worldState.narrativeManager.logEvent('GOAL_COMPLETE', { title: 'Moon Base Established', description: 'Humanity has taken a giant leap.' });
+        }
+    }
+];
+
+class GoalManager {
+    constructor(worldState) {
+        this.worldState = worldState;
+        this.goals = GlobalGoals;
+    }
+
+    update(dt) {
+        this.goals.forEach(goal => {
+            if (!goal.isCompleted) {
+                const progress = goal.progress(this.worldState);
+                if (progress >= 1.0) {
+                    goal.isCompleted = true;
+                    goal.reward(this.worldState);
+                }
+            }
+        });
+    }
+
+    getGoalsState() {
+        return this.goals.map(goal => ({
+            id: goal.id,
+            title: goal.title,
+            description: goal.description,
+            isCompleted: goal.isCompleted,
+            progress: goal.isCompleted ? 1.0 : goal.progress(this.worldState)
+        }));
+    }
+}

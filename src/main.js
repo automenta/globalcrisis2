@@ -127,6 +127,12 @@ const narrativeManager = new NarrativeManager();
 // Instantiate the world state
 const worldState = new WorldState(scene, uiState, narrativeManager);
 
+// Instantiate the event manager
+const eventManager = new EventManager(worldState);
+
+// Instantiate the goal manager
+const goalManager = new GoalManager(worldState);
+
 // UI Controls
 const togglePlumesButton = document.getElementById('toggle-plumes-button');
 togglePlumesButton.addEventListener('click', () => {
@@ -228,6 +234,24 @@ function updateNarrativeLog() {
     narrativeLogPanel.innerHTML = logHTML;
     narrativeLogPanel.scrollTop = narrativeLogPanel.scrollHeight; // Auto-scroll to bottom
     lastChronicleCount = chronicles.length;
+}
+
+const goalsPanel = document.getElementById('goals-panel');
+function updateGoalsPanel() {
+    const goalsState = goalManager.getGoalsState();
+    let goalsHTML = '<h3>Global Goals</h3>';
+    goalsState.forEach(goal => {
+        const progressPercent = (goal.progress * 100).toFixed(0);
+        goalsHTML += `
+            <div class="goal-entry">
+                <strong>${goal.title}</strong>
+                <div class="goal-progress-bar">
+                    <div class="goal-progress" style="width: ${progressPercent}%;">${progressPercent}%</div>
+                </div>
+            </div>
+        `;
+    });
+    goalsPanel.innerHTML = goalsHTML;
 }
 
 function updateWeatherPanel() {
@@ -713,11 +737,14 @@ function animate() {
 
     // Update game state
     worldState.update(deltaTime);
+    eventManager.update(deltaTime);
+    goalManager.update(deltaTime);
 
     // Update UI Panels
     updatePlayerPanel();
     updateWeatherPanel();
     updateNarrativeLog();
+    updateGoalsPanel();
 
     // Animate camera if needed
     if (isCameraAnimating) {

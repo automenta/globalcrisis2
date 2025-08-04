@@ -134,8 +134,13 @@ class WorldState {
         this.threatGenerationTimer = 0;
         this.threatGenerationInterval = 3; // seconds
         this.research = {
-            advancedAgents: false
+            advancedAgents: false,
+            isProjectActive: false,
+            activeProject: null,
+            projectProgress: 0,
+            projectCost: 0
         };
+        this.aiGoal = null;
     }
 
     initializeTravelRoutes() {
@@ -194,13 +199,13 @@ class WorldState {
 
     initializeRegions() {
         const regionsData = [
-            { id: 'na', name: 'North America', centroid: [40, -100], radius: 3000, attributes: { climateVulnerability: 0.4, temperature: 15, economy: 1.0 } },
-            { id: 'sa', name: 'South America', centroid: [-20, -60], radius: 2500, attributes: { climateVulnerability: 0.6, temperature: 25, economy: 0.8 } },
-            { id: 'eu', name: 'Europe', centroid: [50, 15], radius: 2000, attributes: { climateVulnerability: 0.3, temperature: 10, economy: 1.0 } },
-            { id: 'af', name: 'Africa', centroid: [0, 20], radius: 3000, attributes: { climateVulnerability: 0.8, temperature: 30, economy: 0.6 } },
-            { id: 'as', name: 'Asia', centroid: [40, 90], radius: 4000, attributes: { climateVulnerability: 0.7, temperature: 20, economy: 0.9 } },
-            { id: 'oc', name: 'Oceania', centroid: [-25, 135], radius: 2000, attributes: { climateVulnerability: 0.5, temperature: 22, economy: 0.9 } },
-            { id: 'an', name: 'Antarctica', centroid: [-90, 0], radius: 2000, attributes: { climateVulnerability: 0.9, temperature: -50, economy: 0.1 } },
+            { id: 'na', name: 'North America', centroid: [40, -100], radius: 3000, attributes: { climateVulnerability: 0.4, temperature: 15, economy: 1.0, internetAccess: Math.random() } },
+            { id: 'sa', name: 'South America', centroid: [-20, -60], radius: 2500, attributes: { climateVulnerability: 0.6, temperature: 25, economy: 0.8, internetAccess: Math.random() } },
+            { id: 'eu', name: 'Europe', centroid: [50, 15], radius: 2000, attributes: { climateVulnerability: 0.3, temperature: 10, economy: 1.0, internetAccess: Math.random() } },
+            { id: 'af', name: 'Africa', centroid: [0, 20], radius: 3000, attributes: { climateVulnerability: 0.8, temperature: 30, economy: 0.6, internetAccess: Math.random() } },
+            { id: 'as', name: 'Asia', centroid: [40, 90], radius: 4000, attributes: { climateVulnerability: 0.7, temperature: 20, economy: 0.9, internetAccess: Math.random() } },
+            { id: 'oc', name: 'Oceania', centroid: [-25, 135], radius: 2000, attributes: { climateVulnerability: 0.5, temperature: 22, economy: 0.9, internetAccess: Math.random() } },
+            { id: 'an', name: 'Antarctica', centroid: [-90, 0], radius: 2000, attributes: { climateVulnerability: 0.9, temperature: -50, economy: 0.1, internetAccess: Math.random() } },
         ];
 
         regionsData.forEach(data => {
@@ -360,6 +365,7 @@ class WorldState {
         let totalStability = 0;
         let totalEconomy = 0;
         this.regions.forEach(region => {
+            region.update(dt);
             // Stability drain from low economy
             if (region.economy < 0.5) {
                 region.stability = Math.max(0, region.stability - (0.5 - region.economy) * 0.0005);
@@ -432,6 +438,62 @@ class WorldState {
             });
             this.threats = this.threats.filter(t => !t.isMitigated);
         }
+
+        // Update research project
+        if (this.research.isProjectActive) {
+            this.research.projectProgress += this.playerFaction.resources.tech / this.research.projectCost;
+            if (this.research.projectProgress >= 1) {
+                this.completeResearchProject();
+            }
+        }
+    }
+
+    startResearchProject(projectId) {
+        const projectCosts = {
+            'advanced_materials': 10000,
+            'quantum_computing': 25000,
+            'ai_ethics': 5000
+        };
+
+        if (this.research.isProjectActive || !projectCosts[projectId]) {
+            return false;
+        }
+
+        const cost = { tech: projectCosts[projectId] };
+        if (this.playerFaction.canAfford(cost)) {
+            this.playerFaction.spend(cost);
+            this.research.isProjectActive = true;
+            this.research.activeProject = projectId;
+            this.research.projectProgress = 0;
+            this.research.projectCost = projectCosts[projectId];
+            this.narrativeManager.logEvent('RESEARCH_STARTED', { title: `Research Started: ${projectId}`});
+            return true;
+        }
+        return false;
+    }
+
+    completeResearchProject() {
+        const project = this.research.activeProject;
+        this.narrativeManager.logEvent('RESEARCH_COMPLETE', { title: `Research Complete: ${project}`});
+
+        // Apply research benefits
+        switch(project) {
+            case 'advanced_materials':
+                // e.g., reduce building costs
+                break;
+            case 'quantum_computing':
+                this.playerFaction.resources.tech += 5000; // Bonus
+                break;
+            case 'ai_ethics':
+                // e.g., reduce robotic threat severity
+                break;
+        }
+
+        // Reset research state
+        this.research.isProjectActive = false;
+        this.research.activeProject = null;
+        this.research.projectProgress = 0;
+        this.research.projectCost = 0;
     }
 
     propagateFinancialContagion(threat, dt) {
@@ -629,11 +691,36 @@ class WorldState {
      * Creates a new threat. Can be called by AI or by cheats.
      * @param {object} [options] - Optional parameters for threat creation.
      */
+    selectAIGoal() {
+        const goals = [
+            { id: 'destabilize_region', weight: 10 },
+            { id: 'disrupt_economy', weight: 10 },
+            { id: 'tech_supremacy', weight: 5 },
+            { id: 'counter_player', weight: 15 }
+        ];
+
+        const totalWeight = goals.reduce((sum, goal) => sum + goal.weight, 0);
+        let random = Math.random() * totalWeight;
+
+        for (const goal of goals) {
+            random -= goal.weight;
+            if (random <= 0) {
+                this.aiGoal = goal.id;
+                console.log(`New AI Goal: ${this.aiGoal}`);
+                return;
+            }
+        }
+    }
+
     generateThreat(options = {}) {
         let threatProps = {};
         const id = `threat-${this.currentTurn}-${this.threats.length}`;
 
         if (options.isFromAI) {
+            if (!this.aiGoal) {
+                this.selectAIGoal();
+            }
+
             const cost = { funds: 1000, tech: 500 };
             if (!this.aiFaction.canAfford(cost)) {
                 console.log(`AI Faction ${this.aiFaction.name} cannot afford to create a new threat.`);
@@ -642,12 +729,39 @@ class WorldState {
             this.aiFaction.spend(cost);
             console.log(`AI Faction ${this.aiFaction.name} spent resources to create a new threat.`);
 
-            const technocratDomains = ["CYBER", "ROBOT", "QUANTUM", "ECON", "INFO", "WMD"];
             let domain;
-            if (Math.random() < 0.75) {
-                domain = technocratDomains[Math.floor(Math.random() * technocratDomains.length)];
-            } else {
-                domain = threatDomains[Math.floor(Math.random() * threatDomains.length)];
+            let targetRegion;
+
+            switch (this.aiGoal) {
+                case 'destabilize_region':
+                    domain = ['GEO', 'INFO', 'BIO'][Math.floor(Math.random() * 3)];
+                    targetRegion = this.regions.reduce((prev, curr) => prev.stability < curr.stability ? prev : curr);
+                    break;
+                case 'disrupt_economy':
+                    domain = ['ECON', 'CYBER'][Math.floor(Math.random() * 2)];
+                    targetRegion = this.regions.reduce((prev, curr) => prev.economy > curr.economy ? prev : curr);
+                    break;
+                case 'tech_supremacy':
+                    domain = ['QUANTUM', 'ROBOT'][Math.floor(Math.random() * 2)];
+                    targetRegion = this.regions[Math.floor(Math.random() * this.regions.length)];
+                    break;
+                case 'counter_player':
+                    domain = ['CYBER', 'INFO', 'WMD'][Math.floor(Math.random() * 3)];
+                    const playerRegions = this.regions.filter(r => r.owner === 'PLAYER');
+                    if (playerRegions.length > 0) {
+                        targetRegion = playerRegions[Math.floor(Math.random() * playerRegions.length)];
+                    } else {
+                        targetRegion = this.regions.reduce((prev, curr) => prev.stability > curr.stability ? prev : curr);
+                    }
+                    break;
+                default:
+                    domain = threatDomains[Math.floor(Math.random() * threatDomains.length)];
+                    targetRegion = this.regions[Math.floor(Math.random() * this.regions.length)];
+            }
+
+            // Once a goal is acted upon, there's a chance to select a new one next turn
+            if (Math.random() < 0.3) {
+                this.aiGoal = null;
             }
 
             threatProps = {
@@ -655,8 +769,8 @@ class WorldState {
                 domain,
                 type: 'REAL',
                 severity: Math.random() * 0.4 + 0.1,
-                lat: Math.random() * 180 - 90,
-                lon: Math.random() * 360 - 180,
+                lat: targetRegion.centroid[0] + (Math.random() - 0.5) * 10,
+                lon: targetRegion.centroid[1] + (Math.random() - 0.5) * 10,
             };
 
         } else {

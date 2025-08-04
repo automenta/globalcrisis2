@@ -45,6 +45,45 @@ class Region {
         this.mesh = this.createMesh();
         this.weatherMesh = this.createWeatherMesh();
         this.mesh.add(this.weatherMesh); // Add weather mesh as a child
+
+        this.activeMission = null; // 'diplomatic' or 'awareness'
+        this.missionProgress = 0;
+        this.missionDuration = 30; // seconds
+    }
+
+    startDiplomaticMission() {
+        if (this.activeMission) return false;
+        this.activeMission = 'diplomatic';
+        this.missionProgress = 0;
+        return true;
+    }
+
+    startAwarenessCampaign() {
+        if (this.activeMission) return false;
+        this.activeMission = 'awareness';
+        this.missionProgress = 0;
+        return true;
+    }
+
+    update(dt) {
+        if (this.activeMission) {
+            this.missionProgress += dt;
+            if (this.missionProgress >= this.missionDuration) {
+                this.completeMission();
+            }
+        }
+    }
+
+    completeMission() {
+        if (this.activeMission === 'diplomatic') {
+            this.stability = Math.min(1.0, this.stability + 0.1);
+            this.population.psychodynamics.trust = Math.min(1.0, this.population.psychodynamics.trust + 0.1);
+        } else if (this.activeMission === 'awareness') {
+            this.educationMetrics.misinformationResistance = Math.min(1.0, this.educationMetrics.misinformationResistance + 0.2);
+        }
+
+        this.activeMission = null;
+        this.missionProgress = 0;
     }
 
     updateMeshColor(envDamage = 0) {
