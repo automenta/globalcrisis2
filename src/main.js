@@ -21,24 +21,11 @@ scene.add(earth);
 // Position the camera
 camera.position.z = 10;
 
-const threats = [];
-const threatDomains = ["CYBER", "BIO", "GEO", "ENV", "INFO", "SPACE", "WMD", "ECON", "QUANTUM", "RAD", "ROBOT"];
-const threatTypes = ["REAL", "FAKE", "UNKNOWN"];
+// Instantiate the world state
+const worldState = new WorldState();
 
-function generateThreat() {
-    const id = threats.length;
-    const domain = threatDomains[Math.floor(Math.random() * threatDomains.length)];
-    const type = threatTypes[Math.floor(Math.random() * threatTypes.length)];
-    const severity = Math.random();
-    const lat = Math.random() * 180 - 90;
-    const lon = Math.random() * 360 - 180;
-
-    const threat = new Threat(id, domain, type, severity, lat, lon);
-    threats.push(threat);
-    scene.add(threat.mesh);
-}
-
-setInterval(generateThreat, 3000);
+// Generate threats periodically
+setInterval(() => worldState.generateThreat(scene), 3000);
 
 // Add controls
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -59,12 +46,14 @@ function onMouseClick(event) {
 
     raycaster.setFromCamera(mouse, camera);
 
-    const threatMeshes = threats.map(t => t.mesh);
+    // Use worldState to get threats for raycasting
+    const allThreats = worldState.getThreats();
+    const threatMeshes = allThreats.map(t => t.mesh);
     const intersects = raycaster.intersectObjects(threatMeshes);
 
     if (intersects.length > 0) {
         const intersectedMesh = intersects[0].object;
-        const threat = threats.find(t => t.mesh === intersectedMesh);
+        const threat = allThreats.find(t => t.mesh === intersectedMesh);
         if (threat) {
             threatInfoPanel.style.display = 'block';
             threatInfoPanel.innerHTML = `
