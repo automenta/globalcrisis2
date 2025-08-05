@@ -245,6 +245,79 @@ class VoxelWorld {
     }
 
     /**
+     * Updates a chunk's materials based on climate change and regenerates its mesh if necessary.
+     * @param {Chunk} chunk The chunk to update.
+     * @param {ClimateGrid} climateGrid The climate data for the world.
+     * @returns {boolean} True if the mesh was updated, false otherwise.
+     */
+    updateChunkForClimateChange(chunk, climateGrid) {
+        const newMaterials = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
+        let materialsChanged = false;
+
+        const planetRadius = 60;
+        const seaLevel = 62;
+        const noiseScale = 0.05;
+
+        for (let z = 0; z < CHUNK_SIZE; z++) {
+            for (let y = 0; y < CHUNK_SIZE; y++) {
+                for (let x = 0; x < CHUNK_SIZE; x++) {
+                    const worldX = chunk.position.x * CHUNK_SIZE + x;
+                    const worldY = chunk.position.y * CHUNK_SIZE + y;
+                    const worldZ = chunk.position.z * CHUNK_SIZE + z;
+
+                    const posVec = new THREE.Vector3(worldX, worldY, worldZ);
+                    const distance = posVec.length();
+
+                    const terrainHeight = planetRadius + this.noise.noise3D(
+                        worldX * noiseScale,
+                        worldY * noiseScale,
+                        worldZ * noiseScale
+                    ) * 10;
+
+                    let newMaterial;
+                    const index = x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_SIZE;
+                    const oldMaterial = chunk.getMaterial(x, y, z);
+
+                    if (distance <= terrainHeight) {
+                        // This is a terrain voxel, its material might change.
+                        const { lat, lon } = this.vector3ToLatLon(posVec);
+                        const climateData = climateGrid.getDataAt(lat, lon);
+
+                        if (climateData.temperature < -5) {
+                            newMaterial = MATERIAL_ICE;
+                        } else if (climateData.temperature > 25 && climateData.moisture < 0.33) {
+                            newMaterial = MATERIAL_SAND;
+                        } else if (climateData.temperature > 5 && climateData.moisture >= 0.33) {
+                            newMaterial = MATERIAL_GRASS;
+                        } else {
+                            newMaterial = MATERIAL_ROCK;
+                        }
+                    } else {
+                        // Not a terrain voxel, so the material is the same as before.
+                        newMaterial = oldMaterial;
+                    }
+
+                    newMaterials[index] = newMaterial;
+
+                    if (oldMaterial !== newMaterial) {
+                        materialsChanged = true;
+                    }
+                }
+            }
+        }
+
+        if (materialsChanged) {
+            chunk.materials = newMaterials;
+            // The density of voxels hasn't changed, so the geometry is the same.
+            // We just need to regenerate the mesh to update the vertex colors.
+            this.createMeshForChunk(chunk);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Gets a chunk at a given chunk coordinate.
      * @param {number} cx The chunk x-coordinate.
      * @param {number} cy The chunk y-coordinate.

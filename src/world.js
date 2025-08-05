@@ -148,6 +148,28 @@ class WorldState {
         };
         this.planner = new GOAPPlanner();
         this.aiGoal = null;
+        this.climateUpdateTimer = 0;
+        this.climateUpdateInterval = 2; // Update climate every 2 seconds
+    }
+
+    updateWorldClimate() {
+        this.voxelWorld.chunks.forEach(chunk => {
+            if (!chunk) return;
+
+            const oldMesh = chunk.mesh;
+            const meshWasUpdated = this.voxelWorld.updateChunkForClimateChange(chunk, this.climateGrid);
+
+            if (meshWasUpdated) {
+                if (oldMesh) {
+                    this.scene.remove(oldMesh);
+                    if (oldMesh.geometry) oldMesh.geometry.dispose();
+                    if (oldMesh.material) oldMesh.material.dispose();
+                }
+                if (chunk.mesh) {
+                    this.scene.add(chunk.mesh);
+                }
+            }
+        });
     }
 
     initializeTravelRoutes() {
@@ -481,6 +503,14 @@ class WorldState {
 
         // Update climate and weather systems
         this.climateGrid.update(dt);
+
+        // Periodically update biomes based on seasonal climate change
+        this.climateUpdateTimer += dt;
+        if (this.climateUpdateTimer >= this.climateUpdateInterval) {
+            this.updateWorldClimate();
+            this.climateUpdateTimer = 0;
+        }
+
         this.weatherSystem.update(this.voxelWorld, dt, totalEnvSeverity);
 
         // Update all threats and their impact on regions
