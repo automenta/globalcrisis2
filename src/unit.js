@@ -5,6 +5,10 @@ class Unit {
         this.mesh = this.createMesh(); // Create mesh first to get position
         this.mesh.userData.unit = this;
 
+        // Sensor Range
+        this.baseSensorRange = (this.type === 'AIRCRAFT' || this.type === 'SATELLITE') ? 150 : 50;
+        this.sensorRange = this.baseSensorRange;
+
         // --- NEW: Physics and Movement Component Setup ---
         let physicsOptions;
         switch (this.type) {
@@ -111,6 +115,27 @@ class Unit {
     }
 
     update(dt) {
+        // --- Weather Effects ---
+        const { chunkCoord } = worldState.voxelWorld.worldToVoxel(this.mesh.position.x, this.mesh.position.y, this.mesh.position.z);
+        const chunk = worldState.voxelWorld.getChunk(chunkCoord.x, chunkCoord.y, chunkCoord.z);
+
+        if (chunk && chunk.weather) {
+            const weather = chunk.weather;
+
+            // Apply movement penalty as drag
+            if (weather.movementPenalty > 0) {
+                const dragForce = this.physics.velocity.clone().multiplyScalar(-weather.movementPenalty);
+                this.physics.applyForce(dragForce);
+            }
+
+            // Apply visibility modifier
+            this.sensorRange = this.baseSensorRange * (1 - weather.visibilityModifier);
+        } else {
+            // Reset sensor range if no weather
+            this.sensorRange = this.baseSensorRange;
+        }
+
+
         // For non-orbital units, allow steering
         if (this.physics.movementType !== 'orbital' && this.movement.isActive) {
             this.movement.update(this, dt);

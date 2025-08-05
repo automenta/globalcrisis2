@@ -324,6 +324,7 @@ function onMouseClick(event) {
         }
         moveMode = false;
         document.getElementById('move-agent-button').textContent = 'Move Agent';
+        renderer.domElement.style.cursor = 'default'; // Reset cursor
         return;
     }
 
@@ -401,6 +402,10 @@ function updateRightPanelButtons() {
     const satelliteAction = PlayerActions['launch_satellite'];
     const satelliteButton = document.getElementById('launch-satellite-button');
     satelliteButton.disabled = !actionService.isActionAvailable(satelliteAction, context);
+
+    const weatherControlAction = PlayerActions['weather_control'];
+    const weatherControlButton = document.getElementById('weather-control-button');
+    weatherControlButton.disabled = !actionService.isActionAvailable(weatherControlAction, context);
 }
 
 
@@ -415,8 +420,59 @@ function onMouseDoubleClick(event) {
 }
 window.addEventListener('dblclick', onMouseDoubleClick, false);
 
+// --- Right-click for Movement ---
+window.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+
+    if (!selectedUnit) return;
+
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+
+    const chunkMeshes = [...worldState.voxelWorld.chunks.values()].map(c => c.mesh).filter(m => m);
+    const intersects = raycaster.intersectObjects(chunkMeshes);
+
+    if (intersects.length > 0) {
+        const destination = intersects[0].point;
+        selectedUnit.moveTo(destination);
+
+        // --- Visual Feedback for Move Command ---
+        const indicatorGeo = new THREE.RingGeometry(0.4, 0.5, 32);
+        const indicatorMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+        const moveIndicator = new THREE.Mesh(indicatorGeo, indicatorMat);
+        moveIndicator.position.copy(destination);
+        moveIndicator.lookAt(new THREE.Vector3()); // Orient it to the planet surface
+        scene.add(moveIndicator);
+
+        // Animate the indicator
+        new TWEEN.Tween(moveIndicator.scale)
+            .to({ x: 1.5, y: 1.5, z: 1.5 }, 1000)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .start();
+
+        new TWEEN.Tween(indicatorMat)
+            .to({ opacity: 0 }, 1000)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .onComplete(() => {
+                scene.remove(moveIndicator);
+                indicatorGeo.dispose();
+                indicatorMat.dispose();
+            })
+            .start();
+    }
+});
+
+
 // --- KEYBOARD CONTROLS ---
-// ... keyboard logic remains the same ...
+window.addEventListener('keydown', (event) => {
+    // Cancel move mode with Escape key
+    if (event.key === 'Escape' && moveMode) {
+        moveMode = false;
+        document.getElementById('move-agent-button').textContent = 'Move Agent';
+        renderer.domElement.style.cursor = 'default';
+    }
+});
 
 // --- Button Event Listeners for Global/Regional Actions ---
 document.getElementById('deploy-network-button').addEventListener('click', () => {
@@ -425,6 +481,18 @@ document.getElementById('deploy-network-button').addEventListener('click', () =>
     const context = { worldState, playerFaction: worldState.playerFaction, selectedThreat, selectedRegion: region };
     if (actionService.executeAction(action, context)) {
         // success
+    } else {
+        alert(`Could not perform action: ${action.name}`);
+    }
+    updateRightPanelButtons();
+});
+
+document.getElementById('weather-control-button').addEventListener('click', () => {
+    const action = PlayerActions.weather_control;
+    const region = selectedThreat ? worldState.getRegionForThreat(selectedThreat) : null;
+    const context = { worldState, playerFaction: worldState.playerFaction, selectedThreat, selectedRegion: region };
+    if (actionService.executeAction(action, context)) {
+        alert(`Weather control initiated in ${region.name}.`);
     } else {
         alert(`Could not perform action: ${action.name}`);
     }
@@ -470,6 +538,7 @@ document.getElementById('move-agent-button').addEventListener('click', () => {
     if (selectedUnit) {
         moveMode = true;
         document.getElementById('move-agent-button').textContent = 'Select Target...';
+        renderer.domElement.style.cursor = 'crosshair';
     }
 });
 const researchPanel = document.getElementById('research-panel');

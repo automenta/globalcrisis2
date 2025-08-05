@@ -186,6 +186,18 @@ class Threat {
             this.severity = Math.min(this.severity, 1.0);
         }
 
+        // --- Weather Effects ---
+        const { chunkCoord } = worldState.voxelWorld.worldToVoxel(this.mesh.position.x, this.mesh.position.y, this.mesh.position.z);
+        const chunk = worldState.voxelWorld.getChunk(chunkCoord.x, chunkCoord.y, chunkCoord.z);
+
+        if (chunk && chunk.weather && chunk.weather.threatAmplification) {
+            const amplification = chunk.weather.threatAmplification[this.domain];
+            if (amplification) {
+                // Amplify severity based on the multiplier
+                this.severity = Math.min(1.0, this.severity + 0.01 * (amplification - 1) * dt);
+            }
+        }
+
         // --- Domain-specific update logic ---
         const domainUpdateLogic = DomainLogic[this.domain];
         if (domainUpdateLogic) {
@@ -298,7 +310,7 @@ class Threat {
         const phi = (90 - this.lat) * (Math.PI / 180);
         const theta = (this.lon + 180) * (Math.PI / 180);
 
-        const earthRadius = 5;
+        const earthRadius = 62; // Match the sea level in VoxelWorld
         const x = -(earthRadius * Math.sin(phi) * Math.cos(theta));
         const z = earthRadius * Math.sin(phi) * Math.sin(theta);
         const y = earthRadius * Math.cos(phi);

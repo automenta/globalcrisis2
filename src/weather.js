@@ -10,6 +10,16 @@ const WEATHER_COLORS = {
     "RADIOLOGICAL_FALLOUT": 0x9acd32, // Yellow green
 };
 
+const WEATHER_EFFECTS = {
+    "STORM": { movementPenalty: 0.5, visibilityModifier: 0.5, threatAmplification: { 'ENV': 1.5, 'GEO': 1.2 } },
+    "RAIN": { movementPenalty: 0.2, visibilityModifier: 0.2, threatAmplification: { 'BIO': 1.2 } },
+    "SNOW": { movementPenalty: 0.3, visibilityModifier: 0.4, threatAmplification: {} },
+    "DUST_STORM": { movementPenalty: 0.4, visibilityModifier: 0.7, threatAmplification: { 'RAD': 1.3 } },
+    "ACID_RAIN": { movementPenalty: 0.1, visibilityModifier: 0.1, threatAmplification: { 'BIO': 1.5, 'RAD': 1.2 } },
+    "RADIOLOGICAL_FALLOUT": { movementPenalty: 0, visibilityModifier: 0.1, threatAmplification: { 'RAD': 2.0, 'BIO': 1.3 } },
+    "CLEAR": { movementPenalty: 0, visibilityModifier: 0, threatAmplification: {} }
+};
+
 class WeatherSystem {
     constructor(climateGrid) {
         this.climateGrid = climateGrid;
@@ -63,43 +73,31 @@ class WeatherSystem {
         const climateData = this.climateGrid.getDataAt(lat, lon);
         const { temperature, moisture } = climateData;
 
-        const weather = {
+        // Determine weather type based on climate
+        let potentialWeather = ["CLEAR"];
+        if (temperature <= 0 && moisture > 0.3) potentialWeather.push("SNOW");
+        if (temperature > 0 && moisture > 0.5) potentialWeather.push("RAIN");
+        if (moisture > 0.7) potentialWeather.push("STORM");
+        if (temperature > 25 && moisture < 0.2) potentialWeather.push("DUST_STORM");
+
+        let weatherType = "CLEAR";
+        const climateVulnerability = 0.5; // Placeholder
+        const envFactor = totalEnvSeverity * 0.05;
+        if (Math.random() < (climateVulnerability * 0.1 + envFactor) && potentialWeather.length > 1) {
+            const adverseTypes = potentialWeather.filter(w => w !== "CLEAR");
+            weatherType = adverseTypes[Math.floor(Math.random() * adverseTypes.length)];
+        }
+
+        const effects = WEATHER_EFFECTS[weatherType] || WEATHER_EFFECTS["CLEAR"];
+
+        chunk.weather = {
+            type: weatherType,
             windSpeed: Math.random() * 100, // km/h
             windDirection: Math.random() * 360, // degrees
             duration: 60 + Math.random() * 120, // Lasts 1-3 minutes
-            intensity: Math.random() // 0-1 scale
+            intensity: Math.random(), // 0-1 scale
+            ...effects // Spread the effects into the weather object
         };
-
-        // Determine weather type based on climate
-        let potentialWeather = ["CLEAR"];
-        if (temperature <= 0 && moisture > 0.3) {
-            potentialWeather.push("SNOW");
-        }
-        if (temperature > 0 && moisture > 0.5) {
-            potentialWeather.push("RAIN");
-        }
-        if (moisture > 0.7) {
-            potentialWeather.push("STORM");
-        }
-        if (temperature > 25 && moisture < 0.2) {
-            potentialWeather.push("DUST_STORM");
-        }
-
-        // Use a default climateVulnerability since chunks don't have this attribute.
-        const climateVulnerability = 0.5;
-        const climateFactor = climateVulnerability * 0.1;
-        const envFactor = totalEnvSeverity * 0.05; // Each point of ENV severity adds 5% chance
-        const chanceOfAdverseWeather = climateFactor + envFactor;
-
-        if (Math.random() < chanceOfAdverseWeather && potentialWeather.length > 1) {
-            // Pick a random adverse weather type from the potential list
-            const adverseTypes = potentialWeather.filter(w => w !== "CLEAR");
-            weather.type = adverseTypes[Math.floor(Math.random() * adverseTypes.length)];
-        } else {
-            weather.type = "CLEAR";
-        }
-
-        chunk.weather = weather;
     }
 
     /**
