@@ -48,7 +48,15 @@ class Unit {
                 break;
         }
 
-        this.physics = new PhysicsComponent(physicsOptions);
+        this.physics = {
+            ...physicsOptions,
+            velocity: new THREE.Vector3(),
+            acceleration: new THREE.Vector3(),
+            applyForce: function(force) {
+                const accelerationDelta = force.clone().divideScalar(this.mass);
+                this.acceleration.add(accelerationDelta);
+            }
+        };
         this.movement = new MovementComponent();
         this.status = 'IDLE';
 
@@ -141,8 +149,8 @@ class Unit {
             this.movement.update(this, dt);
         }
 
-        // Update physics component to apply forces and move the mesh
-        this.physics.update(this, dt);
+        // The UnifiedPhysicsEngine now handles the physics update.
+        // this.physics.update(this, dt);
 
         // Update status if movement is complete
         if (this.status === 'MOVING' && !this.movement.isActive) {

@@ -151,6 +151,7 @@ class WorldState {
         this.climateUpdateTimer = 0;
         this.climateUpdateInterval = 2; // Update climate every 2 seconds
         this.pathfindingService = new PathfindingService(this);
+        this.physicsEngine = new UnifiedPhysicsEngine();
 
         this.activeBuffs = []; // For global buffs like satellite disruption
     }
@@ -339,6 +340,9 @@ class WorldState {
     update(dt) {
         this.currentTurn++;
 
+        // Update the unified physics engine
+        this.physicsEngine.update(dt, this);
+
         // Update global buffs
         for (let i = this.activeBuffs.length - 1; i >= 0; i--) {
             const buff = this.activeBuffs[i];
@@ -510,12 +514,34 @@ class WorldState {
         const cost = PlayerActions.launch_satellite.resourceCost;
         if (faction.canAfford(cost)) {
             faction.spend(cost);
-            const satellite = {
-                id: `sat-${this.satellites.length}`,
-                owner: faction.id,
-            };
+
+            // Define orbital parameters
+            const spawnRadius = 80; // km from center of world
+            const id = `sat-${this.satellites.length}`;
+
+            // Create a random spawn position on the sphere
+            const position = new THREE.Vector3(
+                (Math.random() - 0.5) * 2,
+                (Math.random() - 0.5) * 2,
+                (Math.random() - 0.5) * 2
+            ).normalize().multiplyScalar(spawnRadius);
+
+            // Calculate initial velocity for a stable circular orbit
+            // v = sqrt(GM/r), where GM is the game's gravity constant
+            const orbitalSpeed = Math.sqrt(GAME_GRAVITY_CONSTANT / spawnRadius);
+            const velocity = new THREE.Vector3(-position.z, position.y, position.x).normalize().multiplyScalar(orbitalSpeed);
+
+
+            const satellite = new Satellite({
+                id: id,
+                factionId: faction.id,
+                position: position,
+                velocity: velocity,
+            });
+
             this.satellites.push(satellite);
-            this.narrativeManager.logEvent('SATELLITE_LAUNCH', { faction: faction.name });
+            this.scene.add(satellite.mesh);
+            this.narrativeManager.logEvent('SATELLITE_LAUNCH', { faction: faction.name, satId: id });
             return true;
         }
         return false;
@@ -533,9 +559,7 @@ class WorldState {
             case 'AIRCRAFT':
                 cost = { funds: 1000, tech: 400 };
                 break;
-            case 'SATELLITE':
-                cost = { funds: 2000, tech: 1000 };
-                break;
+            // SATELLITE case removed, should only be created via launchSatellite
             default:
                 console.error(`Unknown unit type to build: ${type}`);
                 return false;
