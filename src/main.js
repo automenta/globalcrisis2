@@ -52,65 +52,23 @@ selectionIndicator.visible = false;
 scene.add(selectionIndicator);
 
 
-// Create the Earth
-const textureLoader = new THREE.TextureLoader();
-const dayTexture = textureLoader.load('https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg');
-const specularTexture = textureLoader.load('https://www.solarsystemscope.com/textures/download/2k_earth_specular_map.tif');
-const nightTexture = textureLoader.load('https://www.solarsystemscope.com/textures/download/2k_earth_nightmap.jpg');
-const normalTexture = textureLoader.load('https://www.solarsystemscope.com/textures/download/2k_earth_normal_map.tif');
+// Voxel world setup will happen later
+const voxelWorld = new VoxelWorld();
+const worldSize = 4; // in chunks, e.g., 4x4x4 grid
 
-const geometry = new THREE.SphereGeometry(5, 32, 32);
-const material = new THREE.MeshPhongMaterial({
-    map: dayTexture,
-    specularMap: specularTexture,
-    specular: new THREE.Color('grey'),
-    shininess: 10,
-    emissive: nightTexture,
-    emissiveIntensity: 1,
-    emissiveMap: nightTexture,
-    normalMap: normalTexture
-});
-const earth = new THREE.Mesh(geometry, material);
-scene.add(earth);
-
-// Create clouds
-const cloudTexture = textureLoader.load('https://www.solarsystemscope.com/textures/download/2k_earth_clouds.jpg');
-const cloudGeometry = new THREE.SphereGeometry(5.05, 32, 32);
-const cloudMaterial = new THREE.MeshPhongMaterial({
-    map: cloudTexture,
-    transparent: true,
-    opacity: 0.8
-});
-const clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
-scene.add(clouds);
-
-// Atmospheric glow
-const vertexShader = `
-    varying vec3 vNormal;
-    void main() {
-        vNormal = normalize(normalMatrix * normal);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+for (let cx = -worldSize / 2; cx < worldSize / 2; cx++) {
+    for (let cy = -worldSize / 2; cy < worldSize / 2; cy++) {
+        for (let cz = -worldSize / 2; cz < worldSize / 2; cz++) {
+            const chunk = new Chunk(new THREE.Vector3(cx, cy, cz));
+            voxelWorld.generateChunk(chunk);
+            voxelWorld.createMeshForChunk(chunk);
+            if (chunk.mesh) {
+                scene.add(chunk.mesh);
+            }
+        }
     }
-`;
+}
 
-const fragmentShader = `
-    varying vec3 vNormal;
-    void main() {
-        float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 4.0);
-        gl_FragColor = vec4(0.3, 0.6, 1.0, 1.0) * intensity;
-    }
-`;
-
-const atmosphereGeometry = new THREE.SphereGeometry(5.2, 32, 32);
-const atmosphereMaterial = new THREE.ShaderMaterial({
-    vertexShader: vertexShader,
-    fragmentShader: fragmentShader,
-    side: THREE.BackSide,
-    blending: THREE.AdditiveBlending,
-    transparent: true
-});
-const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
-scene.add(atmosphere);
 
 let climateMesh;
 
@@ -164,7 +122,7 @@ function updateClimateMesh(mesh, climateGrid) {
 
 
 // Position the camera
-camera.position.z = 10;
+camera.position.z = 150;
 
 // UI State
 const uiState = {

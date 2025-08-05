@@ -178,7 +178,7 @@ class WorldState {
                 const geometry = new THREE.BufferGeometry().setFromPoints(points);
                 const material = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 });
                 const curveObject = new THREE.Line(geometry, material);
-                this.scene.add(curveObject);
+                // this.scene.add(curveObject); // Voxel-TODO: Don't add old routes
                 this.travelRoutes.push({ from: fromRegion, to: toRegion, mesh: curveObject });
             }
         });
@@ -216,7 +216,7 @@ class WorldState {
         regionsData.forEach(data => {
             const region = new Region(data);
             this.regions.push(region);
-            this.scene.add(region.mesh);
+            // this.scene.add(region.mesh); // Voxel-TODO: Don't add old regions
         });
     }
 
