@@ -1,5 +1,12 @@
 const CHUNK_SIZE = 32;
 
+const MATERIAL_AIR = 0;
+const MATERIAL_ROCK = 1;
+const MATERIAL_WATER = 2;
+const MATERIAL_ICE = 3;
+const MATERIAL_SAND = 4;
+const MATERIAL_GRASS = 5;
+
 /**
  * Represents a chunk of voxels.
  * A chunk is a cube of voxels of size CHUNK_SIZE x CHUNK_SIZE x CHUNK_SIZE.
@@ -10,9 +17,10 @@ class Chunk {
      */
     constructor(position) {
         this.position = position;
-        // Initialize a 3D array for the voxel data.
-        // A value > 0 can represent solid material, and <= 0 can represent air.
+        // Initialize a 3D array for the voxel data (density).
         this.voxels = new Float32Array(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
+        // Initialize a 3D array for the material type.
+        this.materials = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
         this.mesh = null; // This will hold the Three.js mesh for this chunk.
     }
 
@@ -39,6 +47,30 @@ class Chunk {
         const index = x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_SIZE;
         this.voxels[index] = value;
     }
+
+    /**
+     * Gets the material type at a given local coordinate within the chunk.
+     * @param {number} x The local x-coordinate (0 to CHUNK_SIZE - 1).
+     * @param {number} y The local y-coordinate (0 to CHUNK_SIZE - 1).
+     * @param {number} z The local z-coordinate (0 to CHUNK_SIZE - 1).
+     * @returns {number} The material type.
+     */
+    getMaterial(x, y, z) {
+        const index = x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_SIZE;
+        return this.materials[index];
+    }
+
+    /**
+     * Sets the material type at a given local coordinate within the chunk.
+     * @param {number} x The local x-coordinate (0 to CHUNK_SIZE - 1).
+     * @param {number} y The local y-coordinate (0 to CHUNK_SIZE - 1).
+     * @param {number} z The local z-coordinate (0 to CHUNK_SIZE - 1).
+     * @param {number} value The material type to set.
+     */
+    setMaterial(x, y, z, value) {
+        const index = x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_SIZE;
+        this.materials[index] = value;
+    }
 }
 
 /**
@@ -54,9 +86,11 @@ class VoxelWorld {
     /**
      * Generates the voxel data for a given chunk.
      * @param {Chunk} chunk The chunk to generate data for.
+     * @param {ClimateGrid} climateGrid The climate data for the world.
      */
-    generateChunk(chunk) {
-        const planetRadius = 64; // In voxels
+    generateChunk(chunk, climateGrid) {
+        const planetRadius = 60; // Base radius of the rock sphere
+        const seaLevel = 62;     // Radius of the water sphere
         const noiseScale = 0.05;
 
         for (let z = 0; z < CHUNK_SIZE; z++) {
@@ -66,24 +100,63 @@ class VoxelWorld {
                     const worldY = chunk.position.y * CHUNK_SIZE + y;
                     const worldZ = chunk.position.z * CHUNK_SIZE + z;
 
-                    // Calculate distance from the center of the world (0,0,0)
-                    const distance = Math.sqrt(worldX * worldX + worldY * worldY + worldZ * worldZ);
+                    const posVec = new THREE.Vector3(worldX, worldY, worldZ);
+                    const distance = posVec.length();
 
-                    // Get a noise value
                     const noiseValue = this.noise.noise3D(
                         worldX * noiseScale,
                         worldY * noiseScale,
                         worldZ * noiseScale
                     );
 
-                    // Combine distance and noise to form the planet
-                    // The density is higher closer to the center and perturbed by noise
-                    const density = planetRadius - distance + noiseValue * 10;
+                    const terrainHeight = planetRadius + noiseValue * 10;
+
+                    let density;
+                    let material;
+
+                    if (distance <= terrainHeight) {
+                        // This is inside the terrain
+                        density = terrainHeight - distance;
+
+                        const { lat, lon } = this.vector3ToLatLon(posVec);
+                        const climateData = climateGrid.getDataAt(lat, lon);
+
+                        if (climateData.temperature < -5) {
+                            material = MATERIAL_ICE;
+                        } else if (climateData.temperature > 25 && climateData.moisture < 0.33) {
+                            material = MATERIAL_SAND;
+                        } else if (climateData.temperature > 5 && climateData.moisture >= 0.33) {
+                            material = MATERIAL_GRASS;
+                        } else {
+                            material = MATERIAL_ROCK; // Default rock/dirt
+                        }
+                    } else if (distance <= seaLevel) {
+                        // This is outside the terrain, but inside the water sphere
+                        density = seaLevel - distance;
+                        material = MATERIAL_WATER;
+                    } else {
+                        // This is in the air
+                        density = seaLevel - distance;
+                        material = MATERIAL_AIR;
+                    }
 
                     chunk.setVoxel(x, y, z, density);
+                    chunk.setMaterial(x, y, z, material);
                 }
             }
         }
+    }
+
+    vector3ToLatLon(position) {
+        const radius = position.length();
+        if (radius === 0) return { lat: 0, lon: 0 };
+        const phi = Math.acos(position.y / radius);
+        const theta = Math.atan2(position.z, -position.x);
+
+        const lat = 90 - (phi * 180 / Math.PI);
+        const lon = (theta * 180 / Math.PI) - 180;
+
+        return { lat, lon };
     }
 
     /**
@@ -102,8 +175,37 @@ class VoxelWorld {
             return;
         }
 
+        // --- Vertex Coloring based on Material ---
+        const colors = new Float32Array(geometry.attributes.position.count * 3);
+        const positions = geometry.attributes.position.array;
+
+        const materialColors = {
+            [MATERIAL_ROCK]: new THREE.Color(0x968772), // Brownish rock
+            [MATERIAL_WATER]: new THREE.Color(0x0066ff), // Blue
+            [MATERIAL_ICE]: new THREE.Color(0xe6f2ff),   // Whitish blue
+            [MATERIAL_SAND]: new THREE.Color(0xf0e68c),  // Khaki
+            [MATERIAL_GRASS]: new THREE.Color(0x228b22), // ForestGreen
+        };
+        const defaultColor = new THREE.Color(0xff00ff); // Magenta for errors
+
+        for (let i = 0; i < positions.length; i += 3) {
+            // Clamp coordinates to be safe
+            const x = Math.max(0, Math.min(CHUNK_SIZE - 1, Math.floor(positions[i])));
+            const y = Math.max(0, Math.min(CHUNK_SIZE - 1, Math.floor(positions[i + 1])));
+            const z = Math.max(0, Math.min(CHUNK_SIZE - 1, Math.floor(positions[i + 2])));
+
+            const material = chunk.getMaterial(x, y, z);
+            const color = materialColors[material] || defaultColor;
+
+            colors[i] = color.r;
+            colors[i + 1] = color.g;
+            colors[i + 2] = color.b;
+        }
+
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
         const material = new THREE.MeshStandardMaterial({
-            color: 0x00ff00, // Green for land
+            vertexColors: true,
             roughness: 0.8,
             metalness: 0.2,
         });

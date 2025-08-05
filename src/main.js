@@ -52,73 +52,7 @@ selectionIndicator.visible = false;
 scene.add(selectionIndicator);
 
 
-// Voxel world setup will happen later
-const voxelWorld = new VoxelWorld();
-const worldSize = 4; // in chunks, e.g., 4x4x4 grid
-
-for (let cx = -worldSize / 2; cx < worldSize / 2; cx++) {
-    for (let cy = -worldSize / 2; cy < worldSize / 2; cy++) {
-        for (let cz = -worldSize / 2; cz < worldSize / 2; cz++) {
-            const chunk = new Chunk(new THREE.Vector3(cx, cy, cz));
-            voxelWorld.generateChunk(chunk);
-            voxelWorld.createMeshForChunk(chunk);
-            if (chunk.mesh) {
-                scene.add(chunk.mesh);
-            }
-        }
-    }
-}
-
-
-let climateMesh;
-
-function getTemperatureColor(temp) {
-    // Simple gradient: blue (cold) -> white (mild) -> red (hot)
-    const t = Math.max(0, Math.min(1, (temp + 20) / 50)); // Normalize temp from -20 to 30
-    const color = new THREE.Color();
-    if (t < 0.5) {
-        color.setRGB(0, 1 - (t * 2), 1);
-    } else {
-        color.setRGB(1, 1 - ((t - 0.5) * 2), 0);
-    }
-    return color;
-}
-
-function createClimateMesh(climateGrid) {
-    const geometry = new THREE.SphereGeometry(5.02, climateGrid.width, climateGrid.height);
-    const colors = new Float32Array(geometry.attributes.position.count * 3);
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-    const material = new THREE.MeshBasicMaterial({
-        vertexColors: true,
-        transparent: true,
-        opacity: 0.5,
-        side: THREE.DoubleSide
-    });
-
-    const mesh = new THREE.Mesh(geometry, material);
-    updateClimateMesh(mesh, climateGrid); // Initial color update
-    return mesh;
-}
-
-function updateClimateMesh(mesh, climateGrid) {
-    const colors = mesh.geometry.attributes.color;
-    const positions = mesh.geometry.attributes.position;
-
-    for (let i = 0; i < positions.count; i++) {
-        const p = new THREE.Vector3().fromBufferAttribute(positions, i);
-        const phi = Math.acos(p.y / 5.02);
-        const theta = Math.atan2(p.z, -p.x);
-
-        const lat = 90 - (phi * 180 / Math.PI);
-        const lon = (theta * 180 / Math.PI) - 180;
-
-        const data = climateGrid.getDataAt(lat, lon);
-        const color = getTemperatureColor(data.temperature);
-        colors.setXYZ(i, color.r, color.g, color.b);
-    }
-    colors.needsUpdate = true;
-}
+// Voxel world setup is now handled within the WorldState class
 
 
 // Position the camera
@@ -135,11 +69,6 @@ const narrativeManager = new NarrativeManager();
 // Instantiate the world state
 const casualModeCheckbox = document.getElementById('casual-mode-checkbox');
 const worldState = new WorldState(scene, uiState, narrativeManager, casualModeCheckbox.checked);
-
-// Create and add climate visualization
-climateMesh = createClimateMesh(worldState.climateGrid);
-climateMesh.visible = false; // Initially hidden
-scene.add(climateMesh);
 
 casualModeCheckbox.addEventListener('change', () => {
     alert("Casual Mode setting will apply on next new game.");
@@ -160,10 +89,6 @@ togglePlumesButton.addEventListener('click', () => {
     });
 });
 
-const toggleClimateButton = document.getElementById('toggle-climate-button');
-toggleClimateButton.addEventListener('click', () => {
-    climateMesh.visible = !climateMesh.visible;
-});
 
 // Add controls
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -496,21 +421,23 @@ function onMouseClick(event) {
     mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
 
+    const chunkMeshes = [...worldState.voxelWorld.chunks.values()].map(c => c.mesh).filter(m => m);
+
+    // --- Agent Movement ---
     if (moveMode && selectedUnit) {
-        const regionMeshes = worldState.regions.map(r => r.mesh);
-        const intersects = raycaster.intersectObjects(regionMeshes);
+        const intersects = raycaster.intersectObjects(chunkMeshes);
         if (intersects.length > 0) {
-            const intersectedMesh = intersects[0].object;
-            const targetRegion = worldState.regions.find(r => r.mesh === intersectedMesh);
-            if (targetRegion) {
-                selectedUnit.moveTo(targetRegion);
-            }
+            const point = intersects[0].point;
+            // TODO: Implement agent movement to a specific point.
+            // For now, we just log it. The old logic was tied to regions.
+            console.log(`Agent ${selectedUnit.id} move command to:`, point);
         }
         moveMode = false;
         document.getElementById('move-agent-button').textContent = 'Move Agent';
         return;
     }
 
+    // --- Threat/Unit Selection ---
     const allThreats = worldState.getThreats();
     const threatMeshes = allThreats.map(t => t.mesh);
     const allUnits = worldState.units;
@@ -565,6 +492,15 @@ function onMouseClick(event) {
             document.getElementById('move-agent-button').disabled = false;
         }
     } else {
+        // --- Planet Interaction & Deselection ---
+        const planetIntersects = raycaster.intersectObjects(chunkMeshes);
+        if (planetIntersects.length > 0) {
+             const intersection = planetIntersects[0];
+             console.log('Clicked on planet at world coordinates:', intersection.point);
+             // TODO: This could be a place to open a "location info" panel
+        }
+
+        // If we clicked on the planet or empty space, deselect everything.
         selectedThreat = null;
         selectedUnit = null;
         updateThreatPanel();
@@ -963,9 +899,6 @@ function animate() {
 
     // Update game state
     worldState.update(deltaTime);
-    if (climateMesh.visible) {
-        updateClimateMesh(climateMesh, worldState.climateGrid);
-    }
     eventManager.update(deltaTime);
     goalManager.update(deltaTime);
 
@@ -994,9 +927,6 @@ function animate() {
 
     // Update controls
     controls.update();
-
-    // Animate clouds
-    clouds.rotation.y += 0.0005;
 
     // Render the scene
     composer.render();

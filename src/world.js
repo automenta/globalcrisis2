@@ -122,6 +122,8 @@ class WorldState {
         this.initializeTravelRoutes();
         this.climateGrid = new ClimateGrid();
         this.weatherSystem = new WeatherSystem(this.climateGrid);
+        this.voxelWorld = new VoxelWorld();
+        this.initializeVoxelWorld();
         this.threats = [];
         this.plumes = [];
         this.buildings = [];
@@ -218,6 +220,24 @@ class WorldState {
             this.regions.push(region);
             // this.scene.add(region.mesh); // Voxel-TODO: Don't add old regions
         });
+    }
+
+    initializeVoxelWorld() {
+        const worldSize = 4; // in chunks, e.g., 4x4x4 grid
+
+        for (let cx = -worldSize / 2; cx < worldSize / 2; cx++) {
+            for (let cy = -worldSize / 2; cy < worldSize / 2; cy++) {
+                for (let cz = -worldSize / 2; cz < worldSize / 2; cz++) {
+                    const chunk = new Chunk(new THREE.Vector3(cx, cy, cz));
+                    this.voxelWorld.generateChunk(chunk, this.climateGrid);
+                    this.voxelWorld.createMeshForChunk(chunk);
+                    if (chunk.mesh) {
+                        this.scene.add(chunk.mesh);
+                    }
+                this.voxelWorld.addChunk(chunk);
+                }
+            }
+        }
     }
 
     initializeFactions() {
