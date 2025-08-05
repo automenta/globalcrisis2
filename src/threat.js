@@ -17,6 +17,7 @@ class Threat {
     constructor({
         id,
         domain,
+        subType = null,
         type,
         lat,
         lon,
@@ -42,6 +43,7 @@ class Threat {
     }) {
         this.id = id;
         this.domain = domain;
+        this.subType = subType;
         this.type = type;
         this.lat = lat;
         this.lon = lon;

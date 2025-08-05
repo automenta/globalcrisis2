@@ -143,6 +143,7 @@ class WorldState {
             projectProgress: 0,
             projectCost: 0
         };
+        this.planner = new GOAPPlanner();
         this.aiGoal = null;
     }
 
@@ -294,7 +295,7 @@ class WorldState {
             f.resources.intel += satelliteCount * 10; // 10 extra intel per satellite
         });
 
-        // Income from player-owned regions
+        // Income from player-owned regions and buffs
         this.regions.forEach(region => {
             if (region.owner === 'PLAYER') {
                 let incomeMultiplier = 1;
@@ -305,10 +306,20 @@ class WorldState {
                 if (this.buildings.some(b => b.region === region && b.type === 'RESEARCH_OUTPOST')) {
                     techMultiplier = 3.0; // Research outposts triple tech income
                 }
-                this.playerFaction.resources.funds += region.economy * 10 * incomeMultiplier;
-                this.playerFaction.resources.intel += region.economy * 2 * incomeMultiplier;
-                this.playerFaction.resources.tech += region.economy * 1 * incomeMultiplier * techMultiplier;
+                this.playerFaction.resources.funds += region.economy * 10 * incomeMultiplier * dt;
+                this.playerFaction.resources.intel += region.economy * 2 * incomeMultiplier * dt;
+                this.playerFaction.resources.tech += region.economy * 1 * incomeMultiplier * techMultiplier * dt;
             }
+
+            // Handle region buffs
+            region.activeBuffs.forEach(buff => {
+                if (buff.type === 'INFORMANT_NETWORK') {
+                    const faction = this.factions.find(f => f.id === buff.factionId);
+                    if (faction) {
+                        faction.resources.intel += 5 * dt; // Passive intel gain
+                    }
+                }
+            });
         });
     }
 
@@ -339,73 +350,80 @@ class WorldState {
     }
 
     addAgent(region, faction = this.playerFaction) {
-        // Agents should have a higher cost
         const cost = { funds: 1500, intel: 500 };
         if (faction.canAfford(cost)) {
             faction.spend(cost);
             const agent = new Agent({
                 id: `agent-${this.agents.length}`,
                 factionId: faction.id,
-                region: region
+                region: region,
+                name: `Agent ${this.agents.length + 1}` // Give a default name
             });
             this.agents.push(agent);
             this.scene.add(agent.mesh);
-            this.narrativeManager.logEvent('AGENT_DEPLOYED', { agentId: agent.id, regionName: region.name });
+            this.narrativeManager.logEvent('AGENT_DEPLOYED', { agentId: agent.id, agentName: agent.name, regionName: region.name });
             return true;
         }
         return false;
     }
 
     resolveAgentMission(agent) {
-        console.log(`Resolving mission ${agent.mission.type} for agent ${agent.id} with risk ${agent.mission.risk.toFixed(2)}`);
+        const missionAction = agent.mission.action;
+        console.log(`Resolving mission ${missionAction.name} for agent ${agent.name} with risk ${agent.mission.risk.toFixed(2)}`);
 
-        // Discovery check using the pre-calculated risk
-        if (Math.random() < agent.mission.risk) {
-            console.log(`Agent ${agent.id} was discovered and has been lost!`);
-
-            // Increase AI alert level and counter-intel
-            this.aiAlertLevel = Math.min(2, this.aiAlertLevel + 1);
-            this.aiFaction.counterIntel = Math.min(0.5, this.aiFaction.counterIntel + 0.05); // Cap at 50%
-
-            this.narrativeManager.logEvent('AGENT_LOST', {
-                agentId: agent.id,
+        // Check for mission success
+        if (Math.random() > agent.mission.risk) {
+            // --- MISSION SUCCESS ---
+            const successDetails = missionAction.onSuccess(agent, this);
+            agent.addExperience(missionAction.xpGain);
+            this.narrativeManager.logEvent('MISSION_SUCCESS', {
+                agentName: agent.name,
+                missionName: missionAction.name,
                 regionName: agent.region.name,
-                missionType: agent.mission.type,
-                details: `AI Alert Level increased to ${this.aiAlertLevel}. AI Counter-Intel improved.`
+                details: successDetails
             });
+        } else {
+            // --- MISSION FAILURE ---
+            let failureDetails = 'Mission failed.';
+            if (missionAction.onFailure) {
+                failureDetails = missionAction.onFailure(agent, this);
+            }
 
-            this.scene.remove(agent.mesh);
-            this.agents = this.agents.filter(a => a.id !== agent.id);
-            return; // Mission fails if discovered
+            // Determine fate of agent
+            const fateRoll = Math.random();
+            if (fateRoll < 0.2) { // 20% chance of KIA
+                agent.status = 'KIA';
+                failureDetails += ` Agent ${agent.name} was killed in action.`;
+                this.narrativeManager.logEvent('AGENT_KIA', {
+                    agentName: agent.name,
+                    missionName: missionAction.name,
+                    regionName: agent.region.name,
+                });
+                this.scene.remove(agent.mesh);
+                this.agents = this.agents.filter(a => a.id !== agent.id);
+            } else { // 80% chance of capture
+                agent.status = 'CAPTURED';
+                agent.mesh.visible = false;
+                failureDetails += ` Agent ${agent.name} was captured.`;
+                this.narrativeManager.logEvent('AGENT_CAPTURED', {
+                    agentName: agent.name,
+                    missionName: missionAction.name,
+                    regionName: agent.region.name,
+                });
+            }
+            this.narrativeManager.logEvent('MISSION_FAILURE', {
+                agentName: agent.name,
+                missionName: missionAction.name,
+                regionName: agent.region.name,
+                details: failureDetails
+            });
         }
 
-        // Mission success effects
-        switch (agent.mission.type) {
-            case 'INFILTRATE':
-                // Placeholder: Grant a lump sum of intel
-                this.playerFaction.resources.intel += 500;
-                this.narrativeManager.logEvent('MISSION_SUCCESS', { agentId: agent.id, missionType: agent.mission.type, details: "+500 Intel" });
-                break;
-            case 'SABOTAGE':
-                // Placeholder: Damage region's economy
-                agent.region.economy = Math.max(0.1, agent.region.economy - 0.2);
-                this.narrativeManager.logEvent('MISSION_SUCCESS', { agentId: agent.id, missionType: agent.mission.type, details: `Economy in ${agent.region.name} damaged.` });
-                break;
-            case 'INCITE_UNREST':
-                 // Placeholder: Lower stability
-                agent.region.stability = Math.max(0, agent.region.stability - 0.3);
-                this.narrativeManager.logEvent('MISSION_SUCCESS', { agentId: agent.id, missionType: agent.mission.type, details: `Stability in ${agent.region.name} lowered.` });
-                break;
-            case 'STEAL_TECH':
-                 // Placeholder: Grant a lump sum of tech
-                this.playerFaction.resources.tech += 750;
-                this.narrativeManager.logEvent('MISSION_SUCCESS', { agentId: agent.id, missionType: agent.mission.type, details: "+750 Tech" });
-                break;
+        // Reset agent's mission state if they are still active
+        if (agent.status !== 'CAPTURED' && agent.status !== 'KIA') {
+            agent.mission = null;
+            agent.status = 'IDLE';
         }
-
-        // Reset agent's mission after completion
-        agent.mission = null;
-        agent.experience++;
     }
 
     launchSatellite(faction) {
@@ -456,14 +474,13 @@ class WorldState {
             // If threat is fully mitigated, it will be removed, so no need to process further
             if (threat.isMitigated) return;
 
-            const region = this.getRegionForThreat(threat);
             if (region) {
                 // Economic damage
-                const economicDamage = this.getEconomicDamage(threat) * 0.001;
+                const economicDamage = this.getEconomicDamage(threat) * 0.001 * dt;
                 region.economy = Math.max(0, region.economy - economicDamage);
 
                 // Decrease stability based on threat severity
-                const stabilityDecrease = threat.severity * 0.001; // Adjust this factor
+                const stabilityDecrease = threat.severity * 0.001 * dt; // Adjust this factor
                 region.stability = Math.max(0, region.stability - stabilityDecrease);
 
                 // --- New Domain-Specific World-State Logic ---
@@ -483,7 +500,7 @@ class WorldState {
             region.update(dt);
             // Stability drain from low economy
             if (region.economy < 0.5) {
-                region.stability = Math.max(0, region.stability - (0.5 - region.economy) * 0.0005);
+                region.stability = Math.max(0, region.stability - (0.5 - region.economy) * 0.0005 * dt);
             }
             totalStability += region.stability;
             totalEconomy += region.economy;
@@ -579,7 +596,8 @@ class WorldState {
             'singularity_1': 75000,
             'singularity_2': 150000,
             'singularity_3': 300000,
-            'geoengineering': 120000, // Cost for the new project
+            'geoengineering': 120000,
+            'global_education_initiative': 40000,
         };
 
         if (this.research.isProjectActive || !projectCosts[projectId]) {
@@ -642,6 +660,10 @@ class WorldState {
                 this.research.singularity_3_complete = true;
                 this.triggerEndgame();
                 break;
+            case 'global_education_initiative':
+                this.regions.forEach(r => r.education = Math.min(1.0, r.education + 0.2));
+                this.narrativeManager.logEvent('MILESTONE', { title: 'Global Education Initiative Complete', description: 'Education levels have been significantly boosted worldwide.' });
+                break;
         }
 
         // Reset research state
@@ -691,60 +713,48 @@ class WorldState {
         const ai = this.aiFaction;
         if (!ai) return;
 
-        // AI decision-making happens on a slower tick to save performance and feel more strategic
         ai.decisionTimer = (ai.decisionTimer || 0) + dt;
         if (ai.decisionTimer < 5) { // Make a decision every 5 seconds
             return;
         }
         ai.decisionTimer = 0;
 
-        // 1. Generate Threats (The AI's primary offensive action)
-        // The AI will now generate threats based on its resources and goals, not just a timer.
-        if (ai.canAfford({ funds: 1000, tech: 500 })) {
-             this.generateThreat({ isFromAI: true });
-        }
+        // 1. Define Goals
+        const goals = [
+            { id: 'weaken_player', goal: { playerIsWeaker: true }, priority: this.aiAlertLevel * 2 },
+            { id: 'expand_territory', goal: { aiHasMoreTerritory: true }, priority: 1 },
+            { id: 'strengthen_territory', goal: { aiTerritoryIsStronger: true }, priority: 1 },
+            { id: 'distract_player', goal: { playerIsDistracted: true }, priority: 0.5 },
+        ];
 
+        // 2. Build World State for Planner
+        const plannerWorldState = {
+            hasEnoughResources: ai.resources.funds > 2000, // General check
+            neutralRegionExists: this.regions.some(r => r.owner === 'NEUTRAL'),
+            unfortifiedRegionExists: this.regions.some(r => r.owner === ai.id && !this.buildings.some(b => b.region === r && b.type === 'BASE')),
+            playerIsWeaker: false, // These are goal states, not world states
+            playerIsDistracted: false,
+            aiHasMoreTerritory: false,
+            aiTerritoryIsStronger: false,
+        };
 
-        // 2. Expand by claiming neutral regions
-        const aiRegions = this.regions.filter(r => r.owner === ai.id);
-        const claimableRegions = this.regions.filter(r => {
-            if (r.owner !== 'NEUTRAL') return false;
-            // Check if adjacent to an AI region
-            return this.travelRoutes.some(route =>
-                (route.from.owner === ai.id && route.to === r) ||
-                (route.to.owner === ai.id && route.from === r)
-            );
-        });
+        // 3. Select Goal and Plan
+        // Simple priority-based selection for now
+        goals.sort((a, b) => b.priority - a.priority);
 
-        if (claimableRegions.length > 0) {
-            const cost = { funds: 1500 }; // Cost to claim a region
-            if (ai.canAfford(cost)) {
-                ai.spend(cost);
-                const targetRegion = claimableRegions[0]; // Simple logic: claim the first available
-                targetRegion.setOwner(ai.id);
-                this.narrativeManager.logEvent('REGION_CLAIMED', { faction: ai.name, region: targetRegion.name });
+        for (const g of goals) {
+            const plan = this.planner.plan(plannerWorldState, AI_ACTIONS, g.goal);
+
+            if (plan && plan.length > 0) {
+                console.log(`AI Plan for goal '${g.id}':`, plan.map(p => p.name));
+                // 4. Execute first action of the plan
+                const actionToExecute = plan[0];
+                actionToExecute.run(this);
+                // Break after finding and executing a plan for the highest priority goal
+                return;
             }
         }
-
-        // 3. Build in owned regions
-        aiRegions.forEach(region => {
-            // Prioritize building a base first
-            if (!this.buildings.some(b => b.region === region && b.type === 'BASE')) {
-                const cost = { funds: 1000 };
-                if (ai.canAfford(cost)) {
-                    ai.spend(cost);
-                    this.addBuilding(region, 'BASE', ai); // Need to modify addBuilding to accept owner
-                }
-            }
-            // Then build a sensor
-            else if (!this.buildings.some(b => b.region === region && b.type === 'SENSOR')) {
-                const cost = { funds: 750 };
-                if (ai.canAfford(cost)) {
-                    ai.spend(cost);
-                    this.addBuilding(region, 'SENSOR', ai);
-                }
-            }
-        });
+        console.log("AI could not find a valid plan.");
     }
 
     propagateFinancialContagion(threat, dt) {
@@ -762,17 +772,14 @@ class WorldState {
         if (threat.domain !== "INFO" || !threat.informationProperties) return;
 
         const { polarizationFactor = 0, deepfakeQuality = 0 } = threat.informationProperties;
-        const vulnerability = 1 - region.population.psychodynamics.trust;
+        // Vulnerability is now a combination of trust and education
+        const vulnerability = (1 - region.population.psychodynamics.trust) * (1 - region.education);
 
         const spreadRateChange = (0.4 * polarizationFactor + 0.3 * deepfakeQuality + 0.3 * vulnerability) * (dt / 10);
         threat.spreadRate = Math.min(1, (threat.spreadRate || 0) + spreadRateChange);
 
-        // Educational metric decay
-        const resistanceDecay = 0.15 * threat.severity * (dt / 10);
-        region.educationMetrics.misinformationResistance = Math.max(0, region.educationMetrics.misinformationResistance - resistanceDecay);
-
-        // Trust decay
-        const trustDecay = (polarizationFactor * 0.1 + deepfakeQuality * 0.2) * threat.severity * (dt / 10);
+        // Trust decay is also affected by education
+        const trustDecay = (polarizationFactor * 0.1 + deepfakeQuality * 0.2) * threat.severity * (1 - region.education) * (dt / 10);
         region.population.psychodynamics.trust = Math.max(0, region.population.psychodynamics.trust - trustDecay);
     }
 

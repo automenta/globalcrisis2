@@ -1,14 +1,5 @@
 // src/actions.js
 
-/**
- * This module defines all possible player actions in a data-driven format.
- * The UI (in main.js) will use this data to dynamically generate action buttons
- * for a selected threat, based on the threat's domain, type, and investigation status.
- *
- * This approach is inspired by the Action interface in world.md and makes adding
- * or modifying actions much easier than hardcoding them in the UI logic.
- */
-
 const PlayerActions = {
     // --- GENERIC ACTIONS ---
     'investigate': {
@@ -16,11 +7,7 @@ const PlayerActions = {
         name: 'Investigate',
         description: 'Spend Intel to learn more about an unknown threat.',
         resourceCost: { intel: 100 },
-        // This condition function will be called with the threat as an argument
-        // to determine if the action button should be displayed.
         isAvailable: (threat) => threat.investigationProgress < 1.0,
-        // The effect function is what gets executed when the action is taken.
-        // It's passed the threat and the faction performing the action.
         execute: (threat, faction) => threat.investigate(faction)
     },
     'mitigate': {
@@ -33,10 +20,9 @@ const PlayerActions = {
     },
 
     // --- DOMAIN-SPECIFIC ACTIONS ---
-    // These will be expanded in later steps.
     'counter_intel': {
         id: 'counter_intel',
-        domain: 'INFO', // This action is specific to the INFO domain
+        domain: 'INFO',
         name: 'Deploy Counter-Intel',
         description: 'Reduce the spread rate of an information-based threat.',
         resourceCost: { intel: 250, funds: 100 },
@@ -45,15 +31,13 @@ const PlayerActions = {
     },
     'stabilize_markets': {
         id: 'stabilize_markets',
-        domain: 'ECON', // This action is specific to the ECON domain
+        domain: 'ECON',
         name: 'Stabilize Markets',
         description: 'Use funds to reduce the severity of an economic threat.',
         resourceCost: { funds: 1000 },
         isAvailable: (threat) => threat.domain === 'ECON' && threat.investigationProgress >= 1.0,
         execute: (threat, faction) => threat.stabilizeMarkets(faction)
     },
-
-    // --- NEW ACTIONS for ROBOTICS/QUANTUM will be added here ---
     'robotic_sabotage': {
         id: 'robotic_sabotage',
         domain: 'ROBOT',
@@ -61,7 +45,6 @@ const PlayerActions = {
         description: 'Attempt to sabotage a robotic threat, reducing its collective intelligence.',
         resourceCost: { tech: 400, intel: 200 },
         isAvailable: (threat) => threat.domain === 'ROBOT' && threat.investigationProgress >= 1.0,
-        // The actual logic will be implemented in threat.js in the next step.
         execute: (threat, faction) => threat.sabotageRobotics(faction)
     },
     'induce_decoherence': {
@@ -70,15 +53,9 @@ const PlayerActions = {
         name: 'Induce Decoherence',
         description: 'Use targeted energy to accelerate the collapse of a quantum threat\'s coherence.',
         resourceCost: { tech: 500, funds: 300 },
-        isAvailable: (threat) => {
-            return threat.domain === 'QUANTUM' &&
-                   threat.investigationProgress >= 1.0 &&
-                   threat.quantumProperties.coherenceTime > 0;
-        },
-        // The actual logic will be implemented in threat.js in the next step.
+        isAvailable: (threat) => threat.domain === 'QUANTUM' && threat.investigationProgress >= 1.0 && threat.quantumProperties.coherenceTime > 0,
         execute: (threat, faction) => threat.induceDecoherence(faction)
-    }
-};
+    },
 
     // --- GLOBAL/PROACTIVE ACTIONS ---
     'fund_research': {
@@ -86,7 +63,7 @@ const PlayerActions = {
         name: 'Fund Research',
         description: 'Invest in a long-term research project to gain a technological advantage.',
         resourceCost: { tech: 2000 },
-        isAvailable: (threat, worldState) => !worldState.research.isProjectActive, // Example condition
+        isAvailable: (threat, worldState) => !worldState.research.isProjectActive,
         execute: (threat, faction, worldState) => worldState.startResearchProject('advanced_materials')
     },
     'diplomatic_mission': {
@@ -94,7 +71,7 @@ const PlayerActions = {
         name: 'Launch Diplomatic Mission',
         description: 'Send a diplomatic mission to a region to improve stability and trust.',
         resourceCost: { funds: 1500 },
-        isAvailable: (threat) => true, // Available for any region
+        isAvailable: (threat, worldState, region) => region && !region.activeMission,
         execute: (threat, faction, worldState, region) => region.startDiplomaticMission()
     },
     'awareness_campaign': {
@@ -102,7 +79,7 @@ const PlayerActions = {
         name: 'Public Awareness Campaign',
         description: 'Launch a campaign to counter misinformation in a region.',
         resourceCost: { funds: 500, intel: 200 },
-        isAvailable: (threat) => true, // Available for any region
+        isAvailable: (threat, worldState, region) => region && !region.activeMission,
         execute: (threat, faction, worldState, region) => region.startAwarenessCampaign()
     },
     'deploy_network_infrastructure': {
@@ -110,12 +87,7 @@ const PlayerActions = {
         name: 'Deploy Network Infrastructure',
         description: 'Invest in a region to improve its internet access, boosting tech generation and goal progress.',
         resourceCost: { funds: 800, tech: 400 },
-        isAvailable: (threat, worldState, region) => {
-            // This is a region action, so it doesn't depend on a threat.
-            // Let's assume it's available from a region's own menu, not the threat panel.
-            // For now, we'll just check if the region's internet access is not yet maxed out.
-            return region && region.attributes.internetAccess < 1.0;
-        },
+        isAvailable: (threat, worldState, region) => region && region.attributes.internetAccess < 1.0,
         execute: (threat, faction, worldState, region) => region.deployNetworkInfrastructure(faction)
     },
     'launch_satellite': {
@@ -123,11 +95,7 @@ const PlayerActions = {
         name: 'Launch Recon Satellite',
         description: 'Launch a satellite to provide a permanent global boost to Intel generation.',
         resourceCost: { funds: 2500, tech: 5000 },
-        isAvailable: (threat, worldState) => {
-            // A global action, not tied to a threat or region.
-            // Let's say we can have a max of 5 satellites.
-            return worldState.satellites.length < 5;
-        },
+        isAvailable: (threat, worldState) => worldState.satellites.filter(s => s.owner === worldState.playerFaction.id).length < 5,
         execute: (threat, faction, worldState) => worldState.launchSatellite(faction)
     },
     'initiate_quarantine': {
@@ -135,9 +103,7 @@ const PlayerActions = {
         name: 'Initiate Quarantine',
         description: 'Enforce a regional quarantine to slow the spread of biological threats.',
         resourceCost: { funds: 700 },
-        isAvailable: (threat, worldState, region) => {
-            return threat.domain === 'BIO' && region.owner === 'PLAYER' && !region.activeBuffs.includes('QUARANTINE');
-        },
+        isAvailable: (threat, worldState, region) => threat && threat.domain === 'BIO' && region.owner === 'PLAYER' && !region.activeBuffs.some(b => b.type === 'QUARANTINE'),
         execute: (threat, faction, worldState, region) => region.initiateQuarantine(faction)
     },
     'scrub_network': {
@@ -145,9 +111,7 @@ const PlayerActions = {
         name: 'Scrub Network',
         description: 'Deploy a deep-clean of the regional network to reduce the severity of cyber threats.',
         resourceCost: { tech: 600 },
-        isAvailable: (threat, worldState, region) => {
-            return threat.domain === 'CYBER' && region.owner === 'PLAYER' && !region.activeBuffs.includes('NETWORK_SCRUB');
-        },
+        isAvailable: (threat, worldState, region) => threat && threat.domain === 'CYBER' && region.owner === 'PLAYER' && !region.activeBuffs.some(b => b.type === 'NETWORK_SCRUB'),
         execute: (threat, faction, worldState, region) => region.scrubNetwork(faction)
     },
     'counter_propaganda': {
@@ -155,43 +119,119 @@ const PlayerActions = {
         name: 'Launch Counter-Propaganda',
         description: 'Launch a targeted campaign to counter specific disinformation threats.',
         resourceCost: { intel: 500 },
-        isAvailable: (threat, worldState, region) => {
-            return threat.domain === 'INFO' && region.owner === 'PLAYER' && !region.activeBuffs.includes('COUNTER_PROPAGANDA');
-        },
+        isAvailable: (threat, worldState, region) => threat && threat.domain === 'INFO' && region.owner === 'PLAYER' && !region.activeBuffs.some(b => b.type === 'COUNTER_PROPAGANDA'),
         execute: (threat, faction, worldState, region) => region.launchCounterPropaganda(faction)
+    },
+    'invest_in_education': {
+        id: 'invest_in_education',
+        name: 'Invest in Education',
+        description: 'Invest in a region to improve its education level, making it more resistant to misinformation.',
+        resourceCost: { funds: 2000 },
+        isAvailable: (threat, worldState, region) => region && region.owner === 'PLAYER' && region.education < 1.0,
+        execute: (threat, faction, worldState, region) => {
+            if (faction.canAfford({ funds: 2000 })) {
+                faction.spend({ funds: 2000 });
+                region.education = Math.min(1.0, region.education + 0.1);
+                return true;
+            }
+            return false;
+        }
     }
 };
 
-// In a real ES6 module system, we would use `export default PlayerActions;`
-// For now, this file establishes the structure.
-
 const AgentActions = {
-    'infiltrate_region': {
-        id: 'infiltrate_region',
-        name: 'Infiltrate Region',
-        description: 'Gather intelligence in the current region, boosting intel and revealing hidden threats.',
-        isAvailable: (agent) => !agent.mission,
-        execute: (agent) => agent.startMission('INFILTRATE')
+    'gather_intel': {
+        id: 'gather_intel',
+        name: 'Gather Intelligence',
+        description: 'Gather general intelligence in the region. Low risk, low reward.',
+        baseRisk: 0.05,
+        duration: 20, // seconds
+        xpGain: 10,
+        requiredAbilities: [],
+        isAvailable: (agent) => agent.status === 'IDLE',
+        onSuccess: (agent, worldState) => {
+            const faction = worldState.factions.find(f => f.id === agent.factionId);
+            const intelGained = 100 + (agent.level * 10);
+            faction.resources.intel += intelGained;
+            return `Gained ${intelGained} Intel.`;
+        }
     },
-    'sabotage_infrastructure': {
-        id: 'sabotage_infrastructure',
+    'steal_tech': {
+        id: 'steal_tech',
+        name: 'Steal Technology',
+        description: 'Attempt to steal valuable technology from the ruling faction in the region.',
+        baseRisk: 0.20,
+        duration: 45,
+        xpGain: 50,
+        requiredAbilities: ['CYBER_SPECIALIST'],
+        isAvailable: (agent) => agent.status === 'IDLE' && agent.region.owner !== agent.factionId && agent.region.owner !== 'NEUTRAL',
+        onSuccess: (agent, worldState) => {
+            const faction = worldState.factions.find(f => f.id === agent.factionId);
+            const techGained = 250 + (agent.level * 25);
+            faction.resources.tech += techGained;
+            return `Stole ${techGained} Tech.`;
+        }
+    },
+    'sabotage': {
+        id: 'sabotage',
         name: 'Sabotage Infrastructure',
-        description: 'Damage the economic infrastructure of the current region.',
-        isAvailable: (agent) => !agent.mission && agent.region.owner === 'technocrats',
-        execute: (agent) => agent.startMission('SABOTAGE')
+        description: 'Sabotage key infrastructure in the region, reducing its economic output.',
+        baseRisk: 0.25,
+        duration: 60,
+        xpGain: 60,
+        requiredAbilities: ['DEMOLITIONS_EXPERT'],
+        isAvailable: (agent) => agent.status === 'IDLE' && agent.region.owner !== agent.factionId && agent.region.owner !== 'NEUTRAL',
+        onSuccess: (agent, worldState) => {
+            agent.region.economy = Math.max(0.1, agent.region.economy - 0.2);
+            return `Economy in ${agent.region.name} damaged.`;
+        }
     },
     'incite_unrest': {
         id: 'incite_unrest',
         name: 'Incite Unrest',
-        description: 'Lower the stability in the current region, potentially causing it to flip to neutral.',
-        isAvailable: (agent) => !agent.mission && agent.region.owner === 'technocrats',
-        execute: (agent) => agent.startMission('INCITE_UNREST')
+        description: 'Spread propaganda and sow discord to lower stability in the region.',
+        baseRisk: 0.15,
+        duration: 40,
+        xpGain: 40,
+        requiredAbilities: ['PROPAGANDA_SPECIALIST'],
+        isAvailable: (agent) => agent.status === 'IDLE' && agent.region.owner !== agent.factionId && agent.region.owner !== 'NEUTRAL',
+        onSuccess: (agent, worldState) => {
+            agent.region.stability = Math.max(0, agent.region.stability - 0.3);
+            return `Stability in ${agent.region.name} lowered.`;
+        }
     },
-    'steal_technology': {
-        id: 'steal_technology',
-        name: 'Steal Technology',
-        description: 'Attempt to steal valuable research data from the AI faction in this region.',
-        isAvailable: (agent) => !agent.mission && agent.region.owner === 'technocrats',
-        execute: (agent) => agent.startMission('STEAL_TECH')
+    'counter_espionage': {
+        id: 'counter_espionage',
+        name: 'Counter-Espionage',
+        description: 'Patrol the region to detect and neutralize enemy agents.',
+        baseRisk: 0.10,
+        duration: 50,
+        xpGain: 70,
+        requiredAbilities: ['COUNTER_INTELLIGENCE'],
+        isAvailable: (agent) => agent.status === 'IDLE' && agent.region.owner === agent.factionId,
+        onSuccess: (agent, worldState) => {
+            const enemyAgents = worldState.agents.filter(a => a.factionId !== agent.factionId && a.region === agent.region);
+            if (enemyAgents.length > 0) {
+                const targetAgent = enemyAgents[Math.floor(Math.random() * enemyAgents.length)];
+                targetAgent.status = 'CAPTURED';
+                targetAgent.mesh.visible = false; // Hide captured agent
+                return `Captured enemy agent ${targetAgent.name}!`;
+            }
+            return 'No enemy agents found in the region.';
+        }
+    },
+    'recruit_informant': {
+        id: 'recruit_informant',
+        name: 'Recruit Informant',
+        description: 'Recruit an informant in the region to provide a passive intel boost.',
+        baseRisk: 0.30,
+        duration: 70,
+        xpGain: 80,
+        requiredAbilities: ['CHARISMA'],
+        isAvailable: (agent) => agent.status === 'IDLE' && agent.region.owner !== agent.factionId && agent.region.owner !== 'NEUTRAL',
+        onSuccess: (agent, worldState) => {
+            agent.region.addBuff('INFORMANT_NETWORK', 300, agent.factionId); // 300 seconds (5 minutes) of passive intel
+            return `Informant network established in ${agent.region.name}.`;
+        }
     }
 };

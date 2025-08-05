@@ -133,6 +133,15 @@ const DomainLogic = {
             // Its severity grows as it infects more systems
             threat.severity = Math.min(1, threat.severity + 0.02 * dt);
         }
+
+        // Ransomware subtype logic
+        if (threat.subType === 'RANSOMWARE' && region) {
+            const owner = worldState.factions.find(f => f.id === region.owner);
+            if (owner) {
+                const fundsDrained = threat.severity * 100 * dt;
+                owner.resources.funds = Math.max(0, owner.resources.funds - fundsDrained);
+            }
+        }
     },
 
     INFO: (threat, dt) => {
@@ -318,6 +327,22 @@ const GlobalGoals = [
         reward: (worldState) => {
             worldState.narrativeManager.logEvent('GOAL_COMPLETE', { title: 'Singularity', description: 'Human consciousness has ascended. The simulation has been won.' });
             // This could be a true "win" condition that ends the game.
+        }
+    },
+    {
+        id: 'achieve_global_education',
+        title: 'Achieve Global Education',
+        description: 'Achieve an average education level of 95% across all regions.',
+        isCompleted: false,
+        progress: (worldState) => {
+            const totalEducation = worldState.regions.reduce((sum, r) => sum + r.education, 0);
+            const avgEducation = totalEducation / worldState.regions.length;
+            return avgEducation / 0.95;
+        },
+        reward: (worldState) => {
+            worldState.playerFaction.resources.tech += 10000;
+            worldState.globalMetrics.trust += 0.2;
+            worldState.narrativeManager.logEvent('GOAL_COMPLETE', { title: 'An Enlightened World', description: 'The world has achieved a new level of enlightenment and understanding.' });
         }
     }
 ];

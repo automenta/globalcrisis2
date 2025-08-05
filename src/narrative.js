@@ -66,5 +66,10 @@ class NarrativeManager {
         };
 
         this.chronicles.push(chronicle);
+
+        // Handle the onTrigger effect if it exists
+        if (rule.onTrigger) {
+            rule.onTrigger(worldState, triggeringEvent);
+        }
     }
 }
