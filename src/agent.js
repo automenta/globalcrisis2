@@ -1,3 +1,12 @@
+const ALL_ABILITIES = [
+    'CYBER_SPECIALIST',
+    'DEMOLITIONS_EXPERT',
+    'PROPAGANDA_SPECIALIST',
+    'COUNTER_INTELLIGENCE',
+    'CHARISMA',
+    'STEALTH_EXPERT'
+];
+
 class Agent {
     constructor({
         id,
@@ -91,7 +100,16 @@ class Agent {
         if (this.experience >= xpForNextLevel) {
             this.level++;
             this.experience = 0; // Reset for next level
-            // Potentially grant new ability on level up
+
+            // Grant a new ability on level up, if available
+            const unlearnedAbilities = ALL_ABILITIES.filter(a => !this.abilities.includes(a));
+            if (unlearnedAbilities.length > 0) {
+                const newAbility = unlearnedAbilities[Math.floor(Math.random() * unlearnedAbilities.length)];
+                this.abilities.push(newAbility);
+                console.log(`Agent ${this.name} has learned ${newAbility}!`);
+                worldState.narrativeManager.logEvent('AGENT_ABILITY_GAIN', { agentId: this.id, agentName: this.name, ability: newAbility });
+            }
+
             console.log(`Agent ${this.name} has reached level ${this.level}!`);
             worldState.narrativeManager.logEvent('AGENT_LEVEL_UP', { agentId: this.id, agentName: this.name, newLevel: this.level });
         }

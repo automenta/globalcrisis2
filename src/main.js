@@ -212,7 +212,8 @@ function updateAgentPanel() {
                     button.style.padding = '2px 4px';
                     button.style.marginRight = '5px';
                     button.addEventListener('click', () => {
-                        action.execute(agent);
+                        // This was a bug, AgentActions don't have execute(). They are started on the agent.
+                        agent.startMission(action);
                     });
                     buttonContainer.appendChild(button);
                 }
