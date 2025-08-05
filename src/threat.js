@@ -443,4 +443,27 @@ class Threat {
         }
         return false;
     }
+
+    // --- New Action Methods for RADIOLOGICAL ---
+    radiologicalCleanup(faction) {
+        const cost = PlayerActions.radiological_cleanup.resourceCost;
+        if (faction.canAfford(cost)) {
+            faction.spend(cost);
+            this.severity = Math.max(0, this.severity - 0.3); // Reduce severity by a flat 0.3
+            console.log(`Radiological cleanup operation for threat ${this.id} successful. Severity reduced.`);
+            return true;
+        }
+        return false;
+    }
+
+    radContain(faction) {
+        const cost = PlayerActions.rad_contain.resourceCost;
+        if (faction.canAfford(cost)) {
+            faction.spend(cost);
+            this.spreadRate = Math.max(0, this.spreadRate - 0.5); // Drastically reduce spread rate
+            console.log(`Radiological threat ${this.id} contained. Spread rate reduced.`);
+            return true;
+        }
+        return false;
+    }
 }

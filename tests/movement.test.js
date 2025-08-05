@@ -56,15 +56,22 @@ describe('Movement System', () => {
     it('should complete the path and stop moving', () => {
         agent.moveTo(endPos);
 
-        // Agent's speed is 2.0 units/sec. The path is ~10 units long.
-        // So it should take about 5 seconds. We'll simulate for 10 to be safe.
-        for (let i = 0; i < 10; i++) {
-            worldState.update(1.0);
+        // With the new physics engine, speed is not constant.
+        // We need to simulate for long enough for the agent to accelerate and reach the target.
+        // 30 seconds should be more than enough time.
+        for (let i = 0; i < 30; i++) {
+            // Only update if the agent is still moving
+            if (agent.movement.isActive) {
+                worldState.update(1.0);
+            } else {
+                break;
+            }
         }
 
         expect(agent.movement.isActive).toBe(false);
         expect(agent.status).toBe('IDLE');
-        // The agent should be very close to the end position
-        expect(agent.mesh.position.distanceTo(endPos)).toBeLessThan(0.1);
+        // The agent should be very close to the end position.
+        // The arrival threshold in the movement component is 0.5.
+        expect(agent.mesh.position.distanceTo(endPos)).toBeLessThan(agent.movement.arrivalThreshold + 0.1);
     });
 });

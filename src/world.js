@@ -151,7 +151,30 @@ class WorldState {
         this.climateUpdateTimer = 0;
         this.climateUpdateInterval = 2; // Update climate every 2 seconds
         this.pathfindingService = new PathfindingService(this);
+
+        this.activeBuffs = []; // For global buffs like satellite disruption
     }
+
+    // --- NEW ACTION-RELATED METHODS ---
+
+    initiateWeatherControl(region, weatherType) {
+        if (!region || !weatherType) return false;
+        console.log(`Player initiated weather control in ${region.name}, setting to ${weatherType}.`);
+        this.weatherSystem.setWeatherInRegion(region, weatherType);
+        return true;
+    }
+
+    disruptAiSatellites(duration) {
+        if (!this.activeBuffs.some(b => b.type === 'AI_SATELLITE_DISRUPTION')) {
+            this.activeBuffs.push({ type: 'AI_SATELLITE_DISRUPTION', duration });
+            console.log(`AI satellite communications disrupted for ${duration} seconds.`);
+            this.narrativeManager.logEvent('AI_SATELLITES_DISRUPTED', { duration });
+            return true;
+        }
+        return false;
+    }
+
+    // --- END NEW METHODS ---
 
     updateWorldClimate() {
         this.voxelWorld.chunks.forEach(chunk => {
@@ -316,6 +339,16 @@ class WorldState {
     update(dt) {
         this.currentTurn++;
 
+        // Update global buffs
+        for (let i = this.activeBuffs.length - 1; i >= 0; i--) {
+            const buff = this.activeBuffs[i];
+            buff.duration -= dt;
+            if (buff.duration <= 0) {
+                this.activeBuffs.splice(i, 1);
+                console.log(`Global buff ${buff.type} has expired.`);
+            }
+        }
+
         // Resource trickle for all factions
         this.factions.forEach(f => {
             let resourceMultiplier = 1;
@@ -335,8 +368,11 @@ class WorldState {
             f.resources.tech += 2 * resourceMultiplier;
 
             // Satellite intel bonus
-            const satelliteCount = this.satellites.filter(s => s.owner === f.id).length;
-            f.resources.intel += satelliteCount * 10; // 10 extra intel per satellite
+            const isDisrupted = f.id === 'technocrats' && this.activeBuffs.some(b => b.type === 'AI_SATELLITE_DISRUPTION');
+            if (!isDisrupted) {
+                const satelliteCount = this.satellites.filter(s => s.owner === f.id).length;
+                f.resources.intel += satelliteCount * 10; // 10 extra intel per satellite
+            }
         });
 
         // Income from player-owned regions and buffs
@@ -486,14 +522,35 @@ class WorldState {
     }
 
     addUnit(region, type) {
-        const cost = { funds: 500 };
+        let cost;
+        switch (type) {
+            case 'AGENT':
+                cost = { funds: 500, intel: 100 };
+                break;
+            case 'GROUND_VEHICLE':
+                cost = { funds: 800, tech: 200 };
+                break;
+            case 'AIRCRAFT':
+                cost = { funds: 1000, tech: 400 };
+                break;
+            case 'SATELLITE':
+                cost = { funds: 2000, tech: 1000 };
+                break;
+            default:
+                console.error(`Unknown unit type to build: ${type}`);
+                return false;
+        }
+
         if (this.playerFaction.canAfford(cost)) {
             this.playerFaction.spend(cost);
             const unit = new Unit({ region, type });
             this.units.push(unit);
             this.scene.add(unit.mesh);
+            this.narrativeManager.logEvent('UNIT_BUILT', { type, regionName: region.name });
             return true;
         }
+
+        alert(`Not enough resources to build ${type}.`);
         return false;
     }
 
@@ -528,12 +585,19 @@ class WorldState {
             if (threat.isMitigated) return;
 
             if (region) {
+                // Check for fortification against GEO threats
+                let damageMultiplier = 1.0;
+                if (threat.domain === 'GEO' && region.activeBuffs.some(b => b.type === 'FORTIFIED')) {
+                    damageMultiplier = 0.2; // Fortification reduces damage by 80%
+                    console.log(`Region ${region.name} is fortified. GEO threat damage reduced.`);
+                }
+
                 // Economic damage
-                const economicDamage = this.getEconomicDamage(threat) * 0.001 * dt;
+                const economicDamage = this.getEconomicDamage(threat) * 0.001 * dt * damageMultiplier;
                 region.economy = Math.max(0, region.economy - economicDamage);
 
                 // Decrease stability based on threat severity
-                const stabilityDecrease = threat.severity * 0.001 * dt; // Adjust this factor
+                const stabilityDecrease = threat.severity * 0.001 * dt * damageMultiplier; // Adjust this factor
                 region.stability = Math.max(0, region.stability - stabilityDecrease);
 
                 // --- New Domain-Specific World-State Logic ---

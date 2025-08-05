@@ -1,141 +1,262 @@
-// src/actions.js
+// src/actions.js - Refactored for a declarative system
 
 const PlayerActions = {
-    // --- GENERIC ACTIONS ---
+    // --- GENERIC ACTIONS (Target: THREAT) ---
     'investigate': {
         id: 'investigate',
         name: 'Investigate',
         description: 'Spend Intel to learn more about an unknown threat.',
+        targetType: 'THREAT',
         resourceCost: { intel: 100 },
-        isAvailable: (threat) => threat.investigationProgress < 1.0,
-        execute: (threat, faction) => threat.investigate(faction)
+        availability: [
+            { type: 'threat_property', property: 'investigationProgress', comparison: 'lt', value: 1.0 }
+        ],
+        effects: [
+            { type: 'call_method', method: 'investigate', params: ['playerFaction'] }
+        ]
     },
     'mitigate': {
         id: 'mitigate',
         name: 'Mitigate',
         description: 'Spend Funds and Tech to reduce the severity of a REAL threat.',
+        targetType: 'THREAT',
         resourceCost: { funds: 500, tech: 200 },
-        isAvailable: (threat) => threat.investigationProgress >= 1.0 && threat.type === 'REAL',
-        execute: (threat, faction) => threat.mitigate(faction)
+        availability: [
+            { type: 'threat_property', property: 'investigationProgress', comparison: 'gte', value: 1.0 },
+            { type: 'threat_property', property: 'type', comparison: 'eq', value: 'REAL' }
+        ],
+        effects: [
+            { type: 'call_method', method: 'mitigate', params: ['playerFaction'] }
+        ]
     },
 
-    // --- DOMAIN-SPECIFIC ACTIONS ---
+    // --- DOMAIN-SPECIFIC ACTIONS (Target: THREAT) ---
     'counter_intel': {
         id: 'counter_intel',
-        domain: 'INFO',
         name: 'Deploy Counter-Intel',
         description: 'Reduce the spread rate of an information-based threat.',
+        targetType: 'THREAT',
         resourceCost: { intel: 250, funds: 100 },
-        isAvailable: (threat) => threat.domain === 'INFO' && threat.investigationProgress >= 1.0,
-        execute: (threat, faction) => threat.deployCounterIntel(faction)
+        availability: [
+            { type: 'threat_property', property: 'domain', comparison: 'eq', value: 'INFO' },
+            { type: 'threat_property', property: 'investigationProgress', comparison: 'gte', value: 1.0 }
+        ],
+        effects: [
+            { type: 'call_method', method: 'deployCounterIntel', params: ['playerFaction'] }
+        ]
     },
     'stabilize_markets': {
         id: 'stabilize_markets',
-        domain: 'ECON',
         name: 'Stabilize Markets',
         description: 'Use funds to reduce the severity of an economic threat.',
+        targetType: 'THREAT',
         resourceCost: { funds: 1000 },
-        isAvailable: (threat) => threat.domain === 'ECON' && threat.investigationProgress >= 1.0,
-        execute: (threat, faction) => threat.stabilizeMarkets(faction)
+        availability: [
+            { type: 'threat_property', property: 'domain', comparison: 'eq', value: 'ECON' },
+            { type: 'threat_property', property: 'investigationProgress', comparison: 'gte', value: 1.0 }
+        ],
+        effects: [
+            { type: 'call_method', method: 'stabilizeMarkets', params: ['playerFaction'] }
+        ]
     },
     'robotic_sabotage': {
         id: 'robotic_sabotage',
-        domain: 'ROBOT',
         name: 'Robotic Sabotage',
         description: 'Attempt to sabotage a robotic threat, reducing its collective intelligence.',
+        targetType: 'THREAT',
         resourceCost: { tech: 400, intel: 200 },
-        isAvailable: (threat) => threat.domain === 'ROBOT' && threat.investigationProgress >= 1.0,
-        execute: (threat, faction) => threat.sabotageRobotics(faction)
+        availability: [
+            { type: 'threat_property', property: 'domain', comparison: 'eq', value: 'ROBOT' },
+            { type: 'threat_property', property: 'investigationProgress', comparison: 'gte', value: 1.0 }
+        ],
+        effects: [
+            { type: 'call_method', method: 'sabotageRobotics', params: ['playerFaction'] }
+        ]
     },
     'induce_decoherence': {
         id: 'induce_decoherence',
-        domain: 'QUANTUM',
         name: 'Induce Decoherence',
         description: 'Use targeted energy to accelerate the collapse of a quantum threat\'s coherence.',
+        targetType: 'THREAT',
         resourceCost: { tech: 500, funds: 300 },
-        isAvailable: (threat) => threat.domain === 'QUANTUM' && threat.investigationProgress >= 1.0 && threat.quantumProperties.coherenceTime > 0,
-        execute: (threat, faction) => threat.induceDecoherence(faction)
+        availability: [
+            { type: 'threat_property', property: 'domain', comparison: 'eq', value: 'QUANTUM' },
+            { type: 'threat_property', property: 'investigationProgress', comparison: 'gte', value: 1.0 },
+            { type: 'threat_property', property: 'quantumProperties.coherenceTime', comparison: 'gt', value: 0 }
+        ],
+        effects: [
+            { type: 'call_method', method: 'induceDecoherence', params: ['playerFaction'] }
+        ]
     },
 
-    // --- GLOBAL/PROACTIVE ACTIONS ---
-    'fund_research': {
-        id: 'fund_research',
-        name: 'Fund Research',
-        description: 'Invest in a long-term research project to gain a technological advantage.',
-        resourceCost: { tech: 2000 },
-        isAvailable: (threat, worldState) => !worldState.research.isProjectActive,
-        execute: (threat, faction, worldState) => worldState.startResearchProject('advanced_materials')
-    },
-    'diplomatic_mission': {
-        id: 'diplomatic_mission',
-        name: 'Launch Diplomatic Mission',
-        description: 'Send a diplomatic mission to a region to improve stability and trust.',
-        resourceCost: { funds: 1500 },
-        isAvailable: (threat, worldState, region) => region && !region.activeMission,
-        execute: (threat, faction, worldState, region) => region.startDiplomaticMission()
-    },
-    'awareness_campaign': {
-        id: 'awareness_campaign',
-        name: 'Public Awareness Campaign',
-        description: 'Launch a campaign to counter misinformation in a region.',
-        resourceCost: { funds: 500, intel: 200 },
-        isAvailable: (threat, worldState, region) => region && !region.activeMission,
-        execute: (threat, faction, worldState, region) => region.startAwarenessCampaign()
-    },
+    // --- REGIONAL ACTIONS (Target: REGION) ---
     'deploy_network_infrastructure': {
         id: 'deploy_network_infrastructure',
         name: 'Deploy Network Infrastructure',
         description: 'Invest in a region to improve its internet access, boosting tech generation and goal progress.',
+        targetType: 'REGION',
         resourceCost: { funds: 800, tech: 400 },
-        isAvailable: (threat, worldState, region) => region && region.attributes.internetAccess < 1.0,
-        execute: (threat, faction, worldState, region) => region.deployNetworkInfrastructure(faction)
-    },
-    'launch_satellite': {
-        id: 'launch_satellite',
-        name: 'Launch Recon Satellite',
-        description: 'Launch a satellite to provide a permanent global boost to Intel generation.',
-        resourceCost: { funds: 2500, tech: 5000 },
-        isAvailable: (threat, worldState) => worldState.satellites.filter(s => s.owner === worldState.playerFaction.id).length < 5,
-        execute: (threat, faction, worldState) => worldState.launchSatellite(faction)
+        availability: [
+            { type: 'region_property', property: 'attributes.internetAccess', comparison: 'lt', value: 1.0 }
+        ],
+        effects: [
+            { type: 'call_method_on_target', method: 'deployNetworkInfrastructure', params: ['playerFaction'] }
+        ]
     },
     'initiate_quarantine': {
         id: 'initiate_quarantine',
         name: 'Initiate Quarantine',
         description: 'Enforce a regional quarantine to slow the spread of biological threats.',
+        targetType: 'REGION',
         resourceCost: { funds: 700 },
-        isAvailable: (threat, worldState, region) => threat && threat.domain === 'BIO' && region.owner === 'PLAYER' && !region.activeBuffs.some(b => b.type === 'QUARANTINE'),
-        execute: (threat, faction, worldState, region) => region.initiateQuarantine(faction)
+        availability: [
+            { type: 'selected_threat_property', property: 'domain', comparison: 'eq', value: 'BIO' },
+            { type: 'region_property', property: 'owner', comparison: 'eq', value: 'PLAYER' },
+            { type: 'region_has_buff', buffType: 'QUARANTINE', comparison: 'eq', value: false }
+        ],
+        effects: [
+            { type: 'call_method_on_target', method: 'initiateQuarantine', params: ['playerFaction'] }
+        ]
     },
     'scrub_network': {
         id: 'scrub_network',
         name: 'Scrub Network',
         description: 'Deploy a deep-clean of the regional network to reduce the severity of cyber threats.',
+        targetType: 'REGION',
         resourceCost: { tech: 600 },
-        isAvailable: (threat, worldState, region) => threat && threat.domain === 'CYBER' && region.owner === 'PLAYER' && !region.activeBuffs.some(b => b.type === 'NETWORK_SCRUB'),
-        execute: (threat, faction, worldState, region) => region.scrubNetwork(faction)
+        availability: [
+            { type: 'selected_threat_property', property: 'domain', comparison: 'eq', value: 'CYBER' },
+            { type: 'region_property', property: 'owner', comparison: 'eq', value: 'PLAYER' },
+            { type: 'region_has_buff', buffType: 'NETWORK_SCRUB', comparison: 'eq', value: false }
+        ],
+        effects: [
+            { type: 'call_method_on_target', method: 'scrubNetwork', params: ['playerFaction'] }
+        ]
     },
     'counter_propaganda': {
         id: 'counter_propaganda',
         name: 'Launch Counter-Propaganda',
         description: 'Launch a targeted campaign to counter specific disinformation threats.',
+        targetType: 'REGION',
         resourceCost: { intel: 500 },
-        isAvailable: (threat, worldState, region) => threat && threat.domain === 'INFO' && region.owner === 'PLAYER' && !region.activeBuffs.some(b => b.type === 'COUNTER_PROPAGANDA'),
-        execute: (threat, faction, worldState, region) => region.launchCounterPropaganda(faction)
+        availability: [
+            { type: 'selected_threat_property', property: 'domain', comparison: 'eq', value: 'INFO' },
+            { type: 'region_property', property: 'owner', comparison: 'eq', value: 'PLAYER' },
+            { type: 'region_has_buff', buffType: 'COUNTER_PROPAGANDA', comparison: 'eq', value: false }
+        ],
+        effects: [
+            { type: 'call_method_on_target', method: 'launchCounterPropaganda', params: ['playerFaction'] }
+        ]
     },
     'invest_in_education': {
         id: 'invest_in_education',
         name: 'Invest in Education',
         description: 'Invest in a region to improve its education level, making it more resistant to misinformation.',
+        targetType: 'REGION',
         resourceCost: { funds: 2000 },
-        isAvailable: (threat, worldState, region) => region && region.owner === 'PLAYER' && region.education < 1.0,
-        execute: (threat, faction, worldState, region) => {
-            if (faction.canAfford({ funds: 2000 })) {
-                faction.spend({ funds: 2000 });
-                region.education = Math.min(1.0, region.education + 0.1);
-                return true;
-            }
-            return false;
-        }
+        availability: [
+            { type: 'region_property', property: 'owner', comparison: 'eq', value: 'PLAYER' },
+            { type: 'region_property', property: 'education', comparison: 'lt', value: 1.0 }
+        ],
+        effects: [
+            // This requires a custom method on the Region class to handle the logic
+            { type: 'call_method_on_target', method: 'investInEducation', params: ['playerFaction'] }
+        ]
+    },
+
+
+    // --- GLOBAL ACTIONS (Target: GLOBAL) ---
+    'launch_satellite': {
+        id: 'launch_satellite',
+        name: 'Launch Recon Satellite',
+        description: 'Launch a satellite to provide a permanent global boost to Intel generation.',
+        targetType: 'GLOBAL',
+        resourceCost: { funds: 2500, tech: 5000 },
+        availability: [
+            { type: 'world_property_count', property: 'satellites', filter: { property: 'owner', comparison: 'eq', value: 'PLAYER' }, comparison: 'lt', value: 5 }
+        ],
+        effects: [
+            { type: 'call_method_on_world', method: 'launchSatellite', params: ['playerFaction'] }
+        ]
+    },
+
+    // --- NEW ACTIONS FROM EXTENSION ---
+
+    // RADIOLOGICAL (Threat Target)
+    'radiological_cleanup': {
+        id: 'radiological_cleanup',
+        name: 'Radiological Cleanup',
+        description: 'Decontaminate areas affected by radiation, reducing threat severity.',
+        targetType: 'THREAT',
+        resourceCost: { funds: 800, tech: 300 }, // manpower cost is not a resource, will ignore for now
+        availability: [
+            { type: 'threat_property', property: 'domain', comparison: 'eq', value: 'RAD' },
+            { type: 'threat_property', property: 'investigationProgress', comparison: 'gte', value: 1.0 }
+        ],
+        effects: [
+            { type: 'call_method', method: 'radiologicalCleanup', params: ['playerFaction'] }
+        ]
+    },
+    'rad_contain': {
+        id: 'rad_contain',
+        name: 'Contain Radiation',
+        description: 'Deploy shielding to contain radiological contamination and prevent spread.',
+        targetType: 'THREAT',
+        resourceCost: { funds: 300, tech: 100 },
+        availability: [
+            { type: 'threat_property', property: 'domain', comparison: 'eq', value: 'RAD' },
+            { type: 'threat_property', property: 'investigationProgress', comparison: 'gte', value: 1.0 }
+        ],
+        effects: [
+            { type: 'call_method', method: 'radContain', params: ['playerFaction'] }
+        ]
+    },
+
+    // ENVIRONMENTAL (Region Target)
+    'weather_control': {
+        id: 'weather_control',
+        name: 'Weather Control',
+        description: 'Manipulate local weather patterns for strategic advantage.',
+        targetType: 'REGION',
+        resourceCost: { funds: 1000, tech: 800 },
+        availability: [
+            { type: 'region_property', property: 'owner', comparison: 'eq', value: 'PLAYER' }
+        ],
+        effects: [
+            { type: 'call_method_on_world', method: 'initiateWeatherControl', params: ['selectedRegion', 'CLEAR'] } // Default to clearing weather
+        ]
+    },
+
+    // GEOLOGICAL (Region Target)
+    'fortify_region': {
+        id: 'fortify_region',
+        name: 'Fortify Region',
+        description: 'Reinforce infrastructure to grant a temporary buff against GEO-domain threats.',
+        targetType: 'REGION',
+        resourceCost: { funds: 1500, tech: 500 },
+        availability: [
+            { type: 'region_property', property: 'owner', comparison: 'eq', value: 'PLAYER' },
+            { type: 'region_has_buff', buffType: 'FORTIFIED', comparison: 'eq', value: false }
+        ],
+        effects: [
+            { type: 'call_method_on_target', method: 'addBuff', params: ['FORTIFIED', 300] } // 300 seconds = 5 minutes
+        ]
+    },
+
+    // SPACE (Global Target)
+    'disrupt_satellite_comms': {
+        id: 'disrupt_satellite_comms',
+        name: 'Disrupt Satellite Comms',
+        description: 'Jam AI satellite communications, temporarily disabling their intel bonus.',
+        targetType: 'GLOBAL',
+        resourceCost: { intel: 2000, tech: 1500 },
+        availability: [
+            { type: 'world_property_count', property: 'satellites', filter: { property: 'owner', comparison: 'eq', value: 'AI' }, comparison: 'gt', value: 0 },
+            { type: 'world_has_buff', buffType: 'AI_SATELLITE_DISRUPTION', comparison: 'eq', value: false }
+        ],
+        effects: [
+            { type: 'call_method_on_world', method: 'disruptAiSatellites', params: [180] } // Disrupt for 180 seconds (3 minutes)
+        ]
     }
 };
 
@@ -232,6 +353,24 @@ const AgentActions = {
         onSuccess: (agent, worldState) => {
             agent.region.addBuff('INFORMANT_NETWORK', 300, agent.factionId); // 300 seconds (5 minutes) of passive intel
             return `Informant network established in ${agent.region.name}.`;
+        }
+    },
+    'dismantle_wmd_program': {
+        id: 'dismantle_wmd_program',
+        name: 'Dismantle WMD Program',
+        description: 'Attempt to find and dismantle a WMD program in an enemy region. High risk, high reward.',
+        baseRisk: 0.40,
+        duration: 120, // 2 minutes
+        xpGain: 200,
+        requiredAbilities: ['DEMOLITIONS_EXPERT', 'COUNTER_INTELLIGENCE'], // Requires multiple skills
+        isAvailable: (agent) => agent.status === 'IDLE' && agent.region.owner === 'technocrats', // Only in AI territory
+        onSuccess: (agent, worldState) => {
+            const wmdThreats = worldState.threats.filter(t => t.domain === 'WMD' && worldState.getRegionForThreat(t) === agent.region);
+            if (wmdThreats.length > 0) {
+                wmdThreats.forEach(t => t.severity *= 0.5); // Halve severity
+                return `Successfully sabotaged WMD program in ${agent.region.name}!`;
+            }
+            return `No active WMD program was found in ${agent.region.name}, but the mission provided valuable intel.`;
         }
     }
 };

@@ -210,4 +210,16 @@ class Region {
         mesh.visible = false;
         return mesh;
     }
+
+    investInEducation(faction) {
+        const cost = PlayerActions.invest_in_education.resourceCost;
+        if (faction.canAfford(cost)) {
+            faction.spend(cost);
+            this.education = Math.min(1.0, this.education + 0.1);
+            console.log(`Education investment in ${this.name} successful. New level: ${this.education.toFixed(2)}`);
+            return true;
+        }
+        console.log(`Faction ${faction.name} cannot afford to invest in education in ${this.name}.`);
+        return false;
+    }
 }

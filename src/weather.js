@@ -101,4 +101,39 @@ class WeatherSystem {
 
         chunk.weather = weather;
     }
+
+    /**
+     * Overrides the weather for all chunks within a given region.
+     * @param {Region} region The region to affect.
+     * @param {string} weatherType The type of weather to set (e.g., "CLEAR").
+     */
+    setWeatherInRegion(region, weatherType) {
+        if (!WEATHER_TYPES.includes(weatherType)) {
+            console.error(`Invalid weather type specified for control: ${weatherType}`);
+            return;
+        }
+
+        // Find all chunks within this region
+        // This is a simplified approach; a more robust solution would use spatial partitioning.
+        worldState.voxelWorld.chunks.forEach(chunk => {
+            const chunkCenterWorldPos = new THREE.Vector3(
+                (chunk.position.x + 0.5) * CHUNK_SIZE,
+                (chunk.position.y + 0.5) * CHUNK_SIZE,
+                (chunk.position.z + 0.5) * CHUNK_SIZE
+            );
+            const { lat, lon } = this.vector3ToLatLon(chunkCenterWorldPos);
+
+            // A simple distance check to see if the chunk is in the region
+            const distance = worldState.greatCircleDistance(lat, lon, region.centroid[0], region.centroid[1]);
+            if (distance <= region.radius) {
+                chunk.weather = {
+                    type: weatherType,
+                    windSpeed: Math.random() * 20, // Gentle winds for controlled weather
+                    windDirection: Math.random() * 360,
+                    duration: 180, // Lasts for 3 minutes
+                    intensity: 0.5
+                };
+            }
+        });
+    }
 }

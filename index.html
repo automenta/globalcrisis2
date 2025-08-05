@@ -208,12 +208,17 @@
     <button id="toggle-cheat-panel" style="position: absolute; top: 10px; right: 220px; width: 30px; height: 30px; background-color: #555; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">C</button>
 
     <!-- Build Panel -->
-    <div id="build-panel" style="display: none; position: absolute; top: 150px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-family: sans-serif; width: 200px;">
+    <div id="build-panel" style="display: none; position: absolute; top: 150px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-family: sans-serif; width: 250px;">
         <h3>Build Menu</h3>
-        <button id="build-base-button">Build Base (1000 Funds)</button><br>
-        <button id="build-agent-button">Build Agent (500 Funds)</button><br>
-        <button id="build-sensor-button">Build Sensor Tower (750 Funds)</button><br>
+        <button id="build-base-button">Build Base (1000F)</button><br>
+        <button id="build-sensor-button">Build Sensor Tower (750F)</button><br>
         <button id="build-research-outpost-button">Build Research Outpost (1200F, 500T)</button>
+        <hr>
+        <h4>Units</h4>
+        <button id="build-agent-button">Build Agent (500F, 100I)</button><br>
+        <button id="build-vehicle-button">Build Ground Vehicle (800F, 200T)</button><br>
+        <button id="build-aircraft-button">Build Aircraft (1000F, 400T)</button><br>
+        <button id="build-satellite-unit-button">Build Satellite (2000F, 1000T)</button><br>
     </div>
 
     <!-- Research Panel -->
@@ -242,12 +247,14 @@
     <script src="src/weather.js"></script>
     <script src="src/climate.js"></script>
     <script src="src/actions.js"></script>
+    <script src="src/action_service.js"></script>
     <script src="src/chronicle_rules.js"></script>
     <script src="src/narrative.js"></script>
     <script src="src/domain_logic.js"></script>
     <script src="src/threat.js"></script>
     <script src="src/plume.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/25.0.0/tween.umd.js"></script>
+    <script src="src/physics_component.js"></script>
     <script src="src/movement_component.js"></script>
     <script src="src/pathfinding_service.js"></script>
     <script src="src/building.js"></script>

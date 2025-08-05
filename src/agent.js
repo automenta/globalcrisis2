@@ -7,7 +7,7 @@ const ALL_ABILITIES = [
     'STEALTH_EXPERT'
 ];
 
-class Agent {
+class Agent extends Unit {
     constructor({
         id,
         factionId,
@@ -18,37 +18,26 @@ class Agent {
         abilities = [],
         status = 'IDLE', // IDLE, ON_MISSION, CAPTURED, KIA
     }) {
+        // Call the parent Unit constructor
+        super({ region, type: 'AGENT' });
+
+        // Agent-specific properties
         this.id = id;
         this.factionId = factionId;
-        this.region = region;
+        // this.region is already set by super()
         this.name = name;
         this.level = level;
         this.experience = experience;
-        this.abilities = abilities; // e.g., ['CYBER_SPECIALIST', 'STEALTH_EXPERT']
+        this.abilities = abilities;
+        // this.status is handled by the Unit class, but we can override it
         this.status = status;
         this.mission = null; // Will hold the full mission object from AgentActions
 
-        // 3D representation
-        const geometry = new THREE.ConeGeometry(0.1, 0.4, 6);
-        const material = new THREE.MeshPhongMaterial({ color: 0x88aaff, emissive: 0x88aaff, emissiveIntensity: 0.6 });
-        this.mesh = new THREE.Mesh(geometry, material);
+        // Customize the mesh color for agents
+        this.mesh.material.color.set(0x88aaff); // Blueish color for agents
         this.mesh.userData.agent = this; // Link mesh back to agent object
 
-        // Movement Component
-        this.movement = new MovementComponent({ speed: 2.0 });
-
-        this.updatePosition();
-
         this.mesh.visible = this.factionId === 'player'; // Only show player's agents
-    }
-
-    updatePosition() {
-        if (this.region) {
-            const position = worldState.latLonToVector3(this.region.centroid[0], this.region.centroid[1]);
-            this.mesh.position.copy(position);
-            this.mesh.lookAt(new THREE.Vector3(0, 0, 0));
-            this.mesh.rotateX(Math.PI / 2);
-        }
     }
 
     startMission(missionAction) {
@@ -118,33 +107,19 @@ class Agent {
         }
     }
 
-    moveTo(targetPoint) {
-        if (this.status === 'ON_MISSION') {
-            console.warn(`Agent ${this.name} is on a mission and cannot move.`);
-            return;
-        }
-        const path = worldState.pathfindingService.calculatePath(this.mesh.position, targetPoint, 'GROUND');
-        this.movement.setPath(path);
-        this.status = 'MOVING';
-    }
+    // moveTo is now inherited from Unit
 
     update(dt) {
+        // Call the parent update method to handle physics and movement
+        super.update(dt);
+
+        // Handle agent-specific logic (missions)
         if (this.status === 'ON_MISSION' && this.mission) {
             const missionDuration = this.mission.action.duration || 30; // default 30s
             this.mission.progress += dt / missionDuration;
 
             if (this.mission.progress >= 1) {
                 worldState.resolveAgentMission(this);
-            }
-        }
-
-        // Update movement
-        if (this.movement.isActive) {
-            this.movement.update(this, dt);
-            if (!this.movement.isActive) {
-                // Movement just finished
-                this.status = 'IDLE';
-                // TODO: Update agent's current region based on its new position
             }
         }
     }
