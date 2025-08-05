@@ -1,115 +1,8 @@
-const threatDomains = ["CYBER", "BIO", "GEO", "ENV", "INFO", "SPACE", "WMD", "ECON", "QUANTUM", "RAD", "ROBOT"];
-const threatTypes = ["REAL", "FAKE", "UNKNOWN"];
-
-const CROSS_DOMAIN_INTERACTIONS = {
-    "CYBER-RAD": {
-        narrativeEvent: "CYBER_RAD_SYNERGY",
-        effect: (threatA, threatB, dt) => {
-            const cyberThreat = threatA.domain === 'CYBER' ? threatA : threatB;
-            const radThreat = threatA.domain === 'RAD' ? threatA : threatB;
-            if (!cyberThreat || !radThreat) return;
-            radThreat.severity = Math.min(1.0, radThreat.severity + 0.001 * cyberThreat.severity);
-            cyberThreat.severity = Math.min(1.0, cyberThreat.severity + 0.0005 * radThreat.severity);
-        }
-    },
-    "ECON-INFO": {
-        narrativeEvent: "ECON_INFO_SYNERGY",
-        effect: (threatA, threatB, dt) => {
-            const econThreat = threatA.domain === 'ECON' ? threatA : threatB;
-            const infoThreat = threatA.domain === 'INFO' ? threatA : threatB;
-            if (!econThreat || !infoThreat) return;
-            // Economic trouble makes people more susceptible to misinformation
-            infoThreat.spreadRate = Math.min(1.0, (infoThreat.spreadRate || 0) + 0.002 * econThreat.severity);
-            // Misinformation can amplify economic panic
-            econThreat.severity = Math.min(1.0, econThreat.severity + 0.001 * infoThreat.severity);
-        }
-    },
-    "QUANTUM-ROBOT": {
-        narrativeEvent: "QUANTUM_ROBOTIC_ENHANCEMENT",
-        effect: (threatA, threatB, dt) => {
-            const qThreat = threatA.domain === 'QUANTUM' ? threatA : threatB;
-            const rThreat = threatA.domain === 'ROBOT' ? threatA : threatB;
-            if (!qThreat || !rThreat) return;
-            const qProps = qThreat.quantumProperties;
-            const rProps = rThreat.roboticProperties;
-            if (qProps && rProps && (qProps.entanglementLevel || 0) > 0.7) {
-                rProps.adaptationRate = (rProps.adaptationRate || 1) * (1 + (0.5 * dt / 60));
-                rProps.collectiveIntelligence = Math.min(1, (rProps.collectiveIntelligence || 0) + (qProps.entanglementLevel * 0.3 * dt / 60));
-            }
-        }
-    },
-    "CYBER-ROBOT": {
-        narrativeEvent: "CYBER_ROBOT_HACK",
-        effect: (threatA, threatB, dt) => {
-            const cyberThreat = threatA.domain === 'CYBER' ? threatA : threatB;
-            const robotThreat = threatA.domain === 'ROBOT' ? threatA : threatB;
-            if (!cyberThreat || !robotThreat) return;
-            const rProps = robotThreat.roboticProperties;
-            if (rProps && cyberThreat.severity > 0.6) {
-                 // High severity cyber attacks can increase robot autonomy (e.g., hack them to be more independent)
-                 const autonomyGain = (cyberThreat.severity - 0.6) * 0.01 * dt;
-                 if(rProps.autonomyDegrees) {
-                    rProps.autonomyDegrees.decisionLevel = Math.min(1, rProps.autonomyDegrees.decisionLevel + autonomyGain);
-                 }
-            }
-        }
-    },
-    "QUANTUM-INFO": {
-        narrativeEvent: "QUANTUM_DISINFORMATION_BREAKTHROUGH",
-        effect: (threatA, threatB, dt) => {
-            const qThreat = threatA.domain === 'QUANTUM' ? threatA : threatB;
-            const infoThreat = threatA.domain === 'INFO' ? threatA : threatB;
-            if (!qThreat || !infoThreat) return;
-            const qProps = qThreat.quantumProperties;
-            const iProps = infoThreat.informationProperties;
-            // Quantum computing can dramatically improve deepfake quality
-            if (qProps && iProps && qProps.coherenceTime > 3) {
-                 const qualityGain = qProps.coherenceTime * 0.005 * dt;
-                 iProps.deepfakeQuality = Math.min(1, (iProps.deepfakeQuality || 0) + qualityGain);
-            }
-        }
-    },
-    "BIO-CYBER": {
-        narrativeEvent: "BIO_CYBER_SYNERGY",
-        effect: (threatA, threatB, dt) => {
-            const bioThreat = threatA.domain === 'BIO' ? threatA : threatB;
-            const cyberThreat = threatA.domain === 'CYBER' ? threatA : threatB;
-            if (!bioThreat || !cyberThreat) return;
-            // Biological vectors make cyber attacks more severe
-            const severityIncrease = 0.0015 * bioThreat.severity * dt;
-            cyberThreat.severity = Math.min(1.0, cyberThreat.severity + severityIncrease);
-        }
-    },
-    "ROBOT-INFO": {
-        narrativeEvent: "ROBOT_INFO_SYNERGY",
-        effect: (threatA, threatB, dt) => {
-            const robotThreat = threatA.domain === 'ROBOT' ? threatA : threatB;
-            const infoThreat = threatA.domain === 'INFO' ? threatA : threatB;
-            if (!robotThreat || !infoThreat) return;
-            // Robotic networks (bots) amplify information spread
-            const spreadRateIncrease = 0.0025 * robotThreat.severity * dt;
-            infoThreat.spreadRate = Math.min(1.0, (infoThreat.spreadRate || 0) + spreadRateIncrease);
-        }
-    },
-    "RAD-ENV": {
-        narrativeEvent: "RAD_ENV_SYNERGY",
-        effect: (threatA, threatB, dt) => {
-            const radThreat = threatA.domain === 'RAD' ? threatA : threatB;
-            const envThreat = threatA.domain === 'ENV' ? threatA : threatB;
-            if (!radThreat || !envThreat) return;
-            // Environmental events (e.g., storms) exacerbate radiological threats
-            const severityIncrease = 0.002 * envThreat.severity * dt;
-            const spreadRateIncrease = 0.003 * envThreat.severity * dt;
-            radThreat.severity = Math.min(1.0, radThreat.severity + severityIncrease);
-            radThreat.spreadRate = Math.min(1.0, (radThreat.spreadRate || 0) + spreadRateIncrease);
-        }
-    }
-};
+import { threatDomains, threatTypes, CROSS_DOMAIN_INTERACTIONS } from './constants.js';
 
 class WorldState {
-    constructor(scene, uiState, narrativeManager, casualMode = true) {
+    constructor(scene, narrativeManager, casualMode = true) {
         this.scene = scene;
-        this.uiState = uiState;
         this.narrativeManager = narrativeManager;
         this.casualMode = casualMode;
         this.regions = [];
@@ -341,6 +234,7 @@ class WorldState {
      * @param {THREE.Vector3} cameraPosition The position of the camera.
      */
     update(dt, cameraPosition) {
+        let threatsToRemove = [];
         this.currentTurn++;
 
         // Update LODs
@@ -675,9 +569,6 @@ class WorldState {
         // Update narrative manager
         this.narrativeManager.update(this);
 
-        // Update visualizations
-        this.updateVisualization(dt);
-
         // Update AI Alert Level
         const mitigatedThreats = this.threats.filter(t => t.wasMitigatedByPlayer).length;
         const playerRegions = this.regions.filter(r => r.owner === 'PLAYER').length;
@@ -713,16 +604,14 @@ class WorldState {
         this.units.forEach(unit => unit.update(dt));
 
         // Remove mitigated threats
-        const threatsToRemove = this.threats.filter(t => t.isMitigated);
+        threatsToRemove = this.threats.filter(t => t.isMitigated);
         if (threatsToRemove.length > 0) {
             threatsToRemove.forEach(threat => {
                 this.scene.remove(threat.mesh);
-                // If the removed threat was selected, deselect it
-                if (typeof selectedThreat !== 'undefined' && selectedThreat === threat) {
-                    selectedThreat = null;
-                    if (typeof updateThreatPanel !== 'undefined') {
-                        updateThreatPanel();
-                    }
+                const plumeToRemove = this.plumes.find(p => p.threat === threat);
+                if (plumeToRemove) {
+                    this.scene.remove(plumeToRemove.mesh);
+                    this.plumes = this.plumes.filter(p => p.threat !== threat);
                 }
             });
             this.threats = this.threats.filter(t => !t.isMitigated);
@@ -735,6 +624,8 @@ class WorldState {
                 this.completeResearchProject();
             }
         }
+
+        return { threatsRemoved: threatsToRemove };
     }
 
     startResearchProject(projectId) {
@@ -989,8 +880,8 @@ class WorldState {
         return CROSS_DOMAIN_INTERACTIONS[key1] || CROSS_DOMAIN_INTERACTIONS[key2] || null;
     }
 
-    updateVisualization(dt) {
-        if (this.uiState.isClimateVisible) {
+    updateVisualization(dt, isClimateVisible) {
+        if (isClimateVisible) {
             this.voxelWorld.chunks.forEach(chunk => {
                 if (!chunk.mesh || !chunk.mesh.material.uniforms) return;
 
@@ -1275,7 +1166,8 @@ class WorldState {
 
         if (threatProps.domain === "RAD") {
             const plume = new RadiologicalPlume(threat, this.scene);
-            plume.mesh.visible = this.uiState.arePlumesVisible;
+            // The UIManager will now control plume visibility based on its own state.
+            // We ensure the plume is created and added, and the UIManager will handle visibility toggling.
             this.plumes.push(plume);
         }
     }
