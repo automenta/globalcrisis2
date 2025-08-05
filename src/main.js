@@ -61,6 +61,7 @@ camera.position.z = 150;
 // UI State
 const uiState = {
     arePlumesVisible: true,
+    isClimateVisible: false, // Start with climate overlay off
 };
 
 // Instantiate the narrative manager
@@ -87,6 +88,11 @@ togglePlumesButton.addEventListener('click', () => {
     worldState.plumes.forEach(plume => {
         plume.mesh.visible = uiState.arePlumesVisible;
     });
+});
+
+const toggleClimateButton = document.getElementById('toggle-climate-button');
+toggleClimateButton.addEventListener('click', () => {
+    uiState.isClimateVisible = !uiState.isClimateVisible;
 });
 
 
@@ -121,6 +127,22 @@ const playerPanel = {
 const agentPanel = {
     recruitButton: document.getElementById('recruit-agent-button'),
     list: document.getElementById('agent-list'),
+};
+
+const locationInfoPanel = {
+    panel: document.getElementById('location-info-panel'),
+    material: document.getElementById('location-material'),
+    temp: document.getElementById('location-temp'),
+    moisture: document.getElementById('location-moisture'),
+};
+
+const materialNames = {
+    0: 'Air',
+    1: 'Rock',
+    2: 'Water',
+    3: 'Ice',
+    4: 'Sand',
+    5: 'Grass'
 };
 
 function updateAgentPanel() {
@@ -270,17 +292,21 @@ function updateGoalsPanel() {
 }
 
 function updateWeatherPanel() {
-    if (!selectedThreat) {
+    if (!selectedThreat || !selectedThreat.mesh) {
         weatherPanel.panel.style.display = 'none';
         return;
     }
 
-    const region = worldState.getRegionForThreat(selectedThreat);
-    if (region && region.weather) {
+    // Get the chunk at the threat's position
+    const threatPosition = selectedThreat.mesh.position;
+    const { chunkCoord } = worldState.voxelWorld.worldToVoxel(threatPosition.x, threatPosition.y, threatPosition.z);
+    const chunk = worldState.voxelWorld.getChunk(chunkCoord.x, chunkCoord.y, chunkCoord.z);
+
+    if (chunk && chunk.weather) {
         weatherPanel.panel.style.display = 'block';
-        weatherPanel.type.textContent = region.weather.type;
-        weatherPanel.windSpeed.textContent = region.weather.windSpeed.toFixed(1);
-        weatherPanel.windDir.textContent = region.weather.windDirection.toFixed(0);
+        weatherPanel.type.textContent = chunk.weather.type;
+        weatherPanel.windSpeed.textContent = chunk.weather.windSpeed.toFixed(1);
+        weatherPanel.windDir.textContent = chunk.weather.windDirection.toFixed(0);
     } else {
         weatherPanel.panel.style.display = 'none';
     }
@@ -448,6 +474,9 @@ function onMouseClick(event) {
         const intersectedMesh = intersects[0].object;
         audioManager.playSound('click');
 
+        // Hide location panel when selecting a threat/unit
+        locationInfoPanel.panel.style.display = 'none';
+
         const newlySelectedThreat = allThreats.find(t => t.mesh === intersectedMesh);
         const newlySelectedUnit = allUnits.find(u => u.mesh === intersectedMesh);
 
@@ -493,14 +522,7 @@ function onMouseClick(event) {
         }
     } else {
         // --- Planet Interaction & Deselection ---
-        const planetIntersects = raycaster.intersectObjects(chunkMeshes);
-        if (planetIntersects.length > 0) {
-             const intersection = planetIntersects[0];
-             console.log('Clicked on planet at world coordinates:', intersection.point);
-             // TODO: This could be a place to open a "location info" panel
-        }
-
-        // If we clicked on the planet or empty space, deselect everything.
+        // Deselect any active threat/unit first
         selectedThreat = null;
         selectedUnit = null;
         updateThreatPanel();
@@ -512,6 +534,37 @@ function onMouseClick(event) {
         document.getElementById('deploy-network-button').disabled = true;
         document.getElementById('build-button').disabled = true;
         document.getElementById('move-agent-button').disabled = true;
+
+        const planetIntersects = raycaster.intersectObjects(chunkMeshes);
+        if (planetIntersects.length > 0) {
+             const intersection = planetIntersects[0];
+             const point = intersection.point;
+
+             // Get voxel data
+             const { chunkCoord, localCoord } = worldState.voxelWorld.worldToVoxel(point.x, point.y, point.z);
+             const chunk = worldState.voxelWorld.getChunk(chunkCoord.x, chunkCoord.y, chunkCoord.z);
+             if (chunk) {
+                 const materialId = chunk.getMaterial(
+                     Math.floor(localCoord.x),
+                     Math.floor(localCoord.y),
+                     Math.floor(localCoord.z)
+                 );
+                 const materialName = materialNames[materialId] || 'Unknown';
+
+                 // Get climate data
+                 const { lat, lon } = worldState.voxelWorld.vector3ToLatLon(point);
+                 const climateData = worldState.climateGrid.getDataAt(lat, lon);
+
+                 // Update and show panel
+                 locationInfoPanel.panel.style.display = 'block';
+                 locationInfoPanel.material.textContent = materialName;
+                 locationInfoPanel.temp.textContent = climateData.temperature.toFixed(1);
+                 locationInfoPanel.moisture.textContent = climateData.moisture.toFixed(2);
+             }
+        } else {
+            // If we clicked on empty space, hide the location panel
+            locationInfoPanel.panel.style.display = 'none';
+        }
     }
 }
 

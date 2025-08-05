@@ -481,7 +481,7 @@ class WorldState {
 
         // Update climate and weather systems
         this.climateGrid.update(dt);
-        this.weatherSystem.update(this.regions, dt, totalEnvSeverity);
+        this.weatherSystem.update(this.voxelWorld, dt, totalEnvSeverity);
 
         // Update all threats and their impact on regions
         this.threats.forEach(threat => {
@@ -862,29 +862,43 @@ class WorldState {
     }
 
     updateVisualization(dt) {
-        // Calculate environmental damage per region
-        const envDamage = new Map(this.regions.map(r => [r.id, 0]));
-        this.threats.forEach(t => {
-            if (t.domain === "ENV") {
-                const region = this.getRegionForThreat(t);
-                if (region) {
-                    envDamage.set(region.id, envDamage.get(region.id) + t.severity);
+        if (this.uiState.isClimateVisible) {
+            this.voxelWorld.chunks.forEach(chunk => {
+                if (!chunk.mesh || !chunk.mesh.material.uniforms) return;
+
+                // Calculate the chunk's center world position to sample climate data
+                const chunkCenterWorldPos = new THREE.Vector3(
+                    (chunk.position.x + 0.5) * CHUNK_SIZE,
+                    (chunk.position.y + 0.5) * CHUNK_SIZE,
+                    (chunk.position.z + 0.5) * CHUNK_SIZE
+                );
+
+                const { lat, lon } = this.voxelWorld.vector3ToLatLon(chunkCenterWorldPos);
+                const climateData = this.climateGrid.getDataAt(lat, lon);
+
+                // Map temperature to a color (blue for cold, white for neutral, red for hot)
+                const temp = climateData.temperature;
+                const tempColor = new THREE.Color();
+                if (temp < 0) {
+                    tempColor.setHSL(0.66, 1.0, 0.5); // Blue
+                } else if (temp > 25) {
+                    tempColor.setHSL(0.0, 1.0, 0.5); // Red
+                } else {
+                    tempColor.setHSL(0.0, 0.0, 1.0); // White for temperate
                 }
-            }
-        });
 
-        this.regions.forEach(region => {
-            // Update region color based on stability and env damage
-            region.updateMeshColor(envDamage.get(region.id) || 0);
-
-            // Update weather visibility
-            if (region.weather && region.weather.type !== "CLEAR") {
-                region.weatherMesh.visible = true;
-                region.weatherMesh.material.color.set(WEATHER_COLORS[region.weather.type]);
-            } else {
-                region.weatherMesh.visible = false;
-            }
-        });
+                // Update shader uniforms
+                chunk.mesh.material.uniforms.overlayColor.value = tempColor;
+                chunk.mesh.material.uniforms.overlayIntensity.value = 0.4; // A good default intensity
+            });
+        } else {
+            // If the view is toggled off, reset the intensity to 0
+            this.voxelWorld.chunks.forEach(chunk => {
+                if (chunk.mesh && chunk.mesh.material.uniforms) {
+                    chunk.mesh.material.uniforms.overlayIntensity.value = 0.0;
+                }
+            });
+        }
     }
 
     getRegionForThreat(threat) {

@@ -22,6 +22,7 @@ class Chunk {
         // Initialize a 3D array for the material type.
         this.materials = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
         this.mesh = null; // This will hold the Three.js mesh for this chunk.
+        this.weather = null; // To store weather data for this chunk
     }
 
     /**
@@ -204,10 +205,32 @@ class VoxelWorld {
 
         geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-        const material = new THREE.MeshStandardMaterial({
-            vertexColors: true,
-            roughness: 0.8,
-            metalness: 0.2,
+        const vertexShader = `
+            varying vec3 vColor;
+            void main() {
+                vColor = color;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            varying vec3 vColor;
+            uniform vec3 overlayColor;
+            uniform float overlayIntensity;
+            void main() {
+                vec3 finalColor = mix(vColor, overlayColor, overlayIntensity);
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+        `;
+
+        const material = new THREE.ShaderMaterial({
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            uniforms: {
+                overlayColor: { value: new THREE.Color(0xff0000) },
+                overlayIntensity: { value: 0.0 } // Start with no overlay
+            },
+            vertexColors: true
         });
 
         const mesh = new THREE.Mesh(geometry, material);

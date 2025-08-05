@@ -13,33 +13,54 @@ const WEATHER_COLORS = {
 class WeatherSystem {
     constructor(climateGrid) {
         this.climateGrid = climateGrid;
+        // This helper function is needed to convert chunk positions to lat/lon.
+        // It's duplicated from voxel.js to avoid a major refactoring of constructor dependencies.
+        this.vector3ToLatLon = function(position) {
+            const radius = position.length();
+            if (radius === 0) return { lat: 0, lon: 0 };
+            const phi = Math.acos(position.y / radius);
+            const theta = Math.atan2(position.z, -position.x);
+
+            const lat = 90 - (phi * 180 / Math.PI);
+            const lon = (theta * 180 / Math.PI) - 180;
+
+            return { lat, lon };
+        }
     }
 
     /**
-     * Updates the weather for all regions.
-     * @param {Region[]} regions - The array of regions to update.
+     * Updates the weather for all chunks in the voxel world.
+     * @param {VoxelWorld} voxelWorld - The voxel world containing the chunks.
      * @param {number} dt - Delta time.
      * @param {number} totalEnvSeverity - The sum of severity of all ENV threats.
      */
-    update(regions, dt, totalEnvSeverity = 0) {
-        regions.forEach(region => {
+    update(voxelWorld, dt, totalEnvSeverity = 0) {
+        voxelWorld.chunks.forEach(chunk => {
             // If there's no weather or the duration is over, try to generate new weather
-            if (!region.weather || region.weather.duration <= 0) {
-                this.generateWeatherForRegion(region, totalEnvSeverity);
+            if (!chunk.weather || chunk.weather.duration <= 0) {
+                this.generateWeatherForChunk(chunk, totalEnvSeverity);
             } else {
                 // Otherwise, just tick down the duration
-                region.weather.duration -= dt;
+                chunk.weather.duration -= dt;
             }
         });
     }
 
     /**
-     * Generates a new weather state for a single region based on climate data.
-     * @param {Region} region - The region to generate weather for.
+     * Generates a new weather state for a single chunk based on climate data.
+     * @param {Chunk} chunk - The chunk to generate weather for.
      * @param {number} totalEnvSeverity - The sum of severity of all ENV threats.
      */
-    generateWeatherForRegion(region, totalEnvSeverity) {
-        const climateData = this.climateGrid.getDataAt(region.centroid[0], region.centroid[1]);
+    generateWeatherForChunk(chunk, totalEnvSeverity) {
+        // Calculate the world position of the chunk's center
+        const chunkCenterWorldPos = new THREE.Vector3(
+            (chunk.position.x + 0.5) * CHUNK_SIZE,
+            (chunk.position.y + 0.5) * CHUNK_SIZE,
+            (chunk.position.z + 0.5) * CHUNK_SIZE
+        );
+
+        const { lat, lon } = this.vector3ToLatLon(chunkCenterWorldPos);
+        const climateData = this.climateGrid.getDataAt(lat, lon);
         const { temperature, moisture } = climateData;
 
         const weather = {
@@ -64,8 +85,9 @@ class WeatherSystem {
             potentialWeather.push("DUST_STORM");
         }
 
-        // Higher vulnerability and higher ENV threat severity increase chance of adverse weather
-        const climateFactor = region.attributes.climateVulnerability * 0.1;
+        // Use a default climateVulnerability since chunks don't have this attribute.
+        const climateVulnerability = 0.5;
+        const climateFactor = climateVulnerability * 0.1;
         const envFactor = totalEnvSeverity * 0.05; // Each point of ENV severity adds 5% chance
         const chanceOfAdverseWeather = climateFactor + envFactor;
 
@@ -77,10 +99,6 @@ class WeatherSystem {
             weather.type = "CLEAR";
         }
 
-        // Special case for radiological fallout, can happen anywhere if RAD threats are present
-        // This part is not implemented yet, as it requires access to the full threat list.
-        // We can add it later if needed.
-
-        region.weather = weather;
+        chunk.weather = weather;
     }
 }
