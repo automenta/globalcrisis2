@@ -11,8 +11,8 @@ const WEATHER_COLORS = {
 };
 
 class WeatherSystem {
-    constructor() {
-        // This could hold global weather parameters in the future
+    constructor(climateGrid) {
+        this.climateGrid = climateGrid;
     }
 
     /**
@@ -34,10 +34,14 @@ class WeatherSystem {
     }
 
     /**
-     * Generates a new weather state for a single region.
+     * Generates a new weather state for a single region based on climate data.
      * @param {Region} region - The region to generate weather for.
+     * @param {number} totalEnvSeverity - The sum of severity of all ENV threats.
      */
     generateWeatherForRegion(region, totalEnvSeverity) {
+        const climateData = this.climateGrid.getDataAt(region.centroid[0], region.centroid[1]);
+        const { temperature, moisture } = climateData;
+
         const weather = {
             windSpeed: Math.random() * 100, // km/h
             windDirection: Math.random() * 360, // degrees
@@ -45,17 +49,37 @@ class WeatherSystem {
             intensity: Math.random() // 0-1 scale
         };
 
+        // Determine weather type based on climate
+        let potentialWeather = ["CLEAR"];
+        if (temperature <= 0 && moisture > 0.3) {
+            potentialWeather.push("SNOW");
+        }
+        if (temperature > 0 && moisture > 0.5) {
+            potentialWeather.push("RAIN");
+        }
+        if (moisture > 0.7) {
+            potentialWeather.push("STORM");
+        }
+        if (temperature > 25 && moisture < 0.2) {
+            potentialWeather.push("DUST_STORM");
+        }
+
         // Higher vulnerability and higher ENV threat severity increase chance of adverse weather
         const climateFactor = region.attributes.climateVulnerability * 0.1;
         const envFactor = totalEnvSeverity * 0.05; // Each point of ENV severity adds 5% chance
         const chanceOfAdverseWeather = climateFactor + envFactor;
 
-        if (Math.random() < chanceOfAdverseWeather) {
-            // Pick a random adverse weather type
-            weather.type = WEATHER_TYPES[Math.floor(Math.random() * (WEATHER_TYPES.length - 1)) + 1];
+        if (Math.random() < chanceOfAdverseWeather && potentialWeather.length > 1) {
+            // Pick a random adverse weather type from the potential list
+            const adverseTypes = potentialWeather.filter(w => w !== "CLEAR");
+            weather.type = adverseTypes[Math.floor(Math.random() * adverseTypes.length)];
         } else {
             weather.type = "CLEAR";
         }
+
+        // Special case for radiological fallout, can happen anywhere if RAD threats are present
+        // This part is not implemented yet, as it requires access to the full threat list.
+        // We can add it later if needed.
 
         region.weather = weather;
     }

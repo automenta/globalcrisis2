@@ -120,7 +120,8 @@ class WorldState {
         this.travelRoutes = [];
         this.initializeRegions();
         this.initializeTravelRoutes();
-        this.weatherSystem = new WeatherSystem();
+        this.climateGrid = new ClimateGrid();
+        this.weatherSystem = new WeatherSystem(this.climateGrid);
         this.threats = [];
         this.plumes = [];
         this.buildings = [];
@@ -458,7 +459,8 @@ class WorldState {
             .filter(t => t.domain === "ENV")
             .reduce((sum, t) => sum + t.severity, 0);
 
-        // Update weather system
+        // Update climate and weather systems
+        this.climateGrid.update(dt);
         this.weatherSystem.update(this.regions, dt, totalEnvSeverity);
 
         // Update all threats and their impact on regions

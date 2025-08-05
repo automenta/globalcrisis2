@@ -112,6 +112,56 @@ const atmosphereMaterial = new THREE.ShaderMaterial({
 const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
 scene.add(atmosphere);
 
+let climateMesh;
+
+function getTemperatureColor(temp) {
+    // Simple gradient: blue (cold) -> white (mild) -> red (hot)
+    const t = Math.max(0, Math.min(1, (temp + 20) / 50)); // Normalize temp from -20 to 30
+    const color = new THREE.Color();
+    if (t < 0.5) {
+        color.setRGB(0, 1 - (t * 2), 1);
+    } else {
+        color.setRGB(1, 1 - ((t - 0.5) * 2), 0);
+    }
+    return color;
+}
+
+function createClimateMesh(climateGrid) {
+    const geometry = new THREE.SphereGeometry(5.02, climateGrid.width, climateGrid.height);
+    const colors = new Float32Array(geometry.attributes.position.count * 3);
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const material = new THREE.MeshBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.5,
+        side: THREE.DoubleSide
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+    updateClimateMesh(mesh, climateGrid); // Initial color update
+    return mesh;
+}
+
+function updateClimateMesh(mesh, climateGrid) {
+    const colors = mesh.geometry.attributes.color;
+    const positions = mesh.geometry.attributes.position;
+
+    for (let i = 0; i < positions.count; i++) {
+        const p = new THREE.Vector3().fromBufferAttribute(positions, i);
+        const phi = Math.acos(p.y / 5.02);
+        const theta = Math.atan2(p.z, -p.x);
+
+        const lat = 90 - (phi * 180 / Math.PI);
+        const lon = (theta * 180 / Math.PI) - 180;
+
+        const data = climateGrid.getDataAt(lat, lon);
+        const color = getTemperatureColor(data.temperature);
+        colors.setXYZ(i, color.r, color.g, color.b);
+    }
+    colors.needsUpdate = true;
+}
+
 
 // Position the camera
 camera.position.z = 10;
@@ -127,6 +177,11 @@ const narrativeManager = new NarrativeManager();
 // Instantiate the world state
 const casualModeCheckbox = document.getElementById('casual-mode-checkbox');
 const worldState = new WorldState(scene, uiState, narrativeManager, casualModeCheckbox.checked);
+
+// Create and add climate visualization
+climateMesh = createClimateMesh(worldState.climateGrid);
+climateMesh.visible = false; // Initially hidden
+scene.add(climateMesh);
 
 casualModeCheckbox.addEventListener('change', () => {
     alert("Casual Mode setting will apply on next new game.");
@@ -145,6 +200,11 @@ togglePlumesButton.addEventListener('click', () => {
     worldState.plumes.forEach(plume => {
         plume.mesh.visible = uiState.arePlumesVisible;
     });
+});
+
+const toggleClimateButton = document.getElementById('toggle-climate-button');
+toggleClimateButton.addEventListener('click', () => {
+    climateMesh.visible = !climateMesh.visible;
 });
 
 // Add controls
@@ -945,6 +1005,9 @@ function animate() {
 
     // Update game state
     worldState.update(deltaTime);
+    if (climateMesh.visible) {
+        updateClimateMesh(climateMesh, worldState.climateGrid);
+    }
     eventManager.update(deltaTime);
     goalManager.update(deltaTime);
 
