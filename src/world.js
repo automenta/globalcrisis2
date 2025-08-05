@@ -277,11 +277,13 @@ class WorldState {
                 for (let cz = -worldSize / 2; cz < worldSize / 2; cz++) {
                     const chunk = new Chunk(new THREE.Vector3(cx, cy, cz));
                     this.voxelWorld.generateChunk(chunk, this.climateGrid);
-                    this.voxelWorld.createMeshForChunk(chunk);
-                    if (chunk.mesh) {
-                        this.scene.add(chunk.mesh);
+                    for (let lod = 0; lod < this.voxelWorld.numLods; lod++) {
+                        this.voxelWorld.createMeshForChunk(chunk, lod);
+                        if (chunk.meshes[lod]) {
+                            this.scene.add(chunk.meshes[lod]);
+                        }
                     }
-                this.voxelWorld.addChunk(chunk);
+                    this.voxelWorld.addChunk(chunk);
                 }
             }
         }
@@ -336,9 +338,13 @@ class WorldState {
     /**
      * The main simulation update logic.
      * @param {number} dt Delta time in seconds.
+     * @param {THREE.Vector3} cameraPosition The position of the camera.
      */
-    update(dt) {
+    update(dt, cameraPosition) {
         this.currentTurn++;
+
+        // Update LODs
+        this.voxelWorld.updateLods(cameraPosition);
 
         // Update the unified physics engine
         this.physicsEngine.update(dt, this);

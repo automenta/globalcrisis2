@@ -159,6 +159,15 @@
         </div>
         <button id="toggle-plumes-button" style="width: 100%; margin-top: 10px;" title="Toggle visibility of radiological plumes">Toggle Plumes</button>
         <button id="toggle-climate-button" style="width: 100%; margin-top: 5px;" title="Toggle visibility of climate data">Toggle Climate</button>
+        <div id="power-mode-selector" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #555;">
+            <strong>Power Mode:</strong><br>
+            <input type="radio" id="power-low" name="power-mode" value="low">
+            <label for="power-low">Low</label>
+            <input type="radio" id="power-medium" name="power-mode" value="medium" checked>
+            <label for="power-medium">Medium</label>
+            <input type="radio" id="power-high" name="power-mode" value="high">
+            <label for="power-high">High</label>
+        </div>
         <button id="claim-region-button" style="width: 100%; margin-top: 5px;" title="Claim the region of the selected threat" disabled>Claim Region</button>
         <button id="deploy-network-button" style="width: 100%; margin-top: 5px;" title="Deploy network infrastructure in the selected region" disabled>Deploy Network (800F, 400T)</button>
         <button id="weather-control-button" style="width: 100%; margin-top: 5px;" title="Attempt to clear the weather in the selected region." disabled>Weather Control (1kF, 800T)</button>

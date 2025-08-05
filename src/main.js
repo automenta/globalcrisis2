@@ -86,6 +86,13 @@ toggleClimateButton.addEventListener('click', () => {
     uiState.isClimateVisible = !uiState.isClimateVisible;
 });
 
+const powerModeSelector = document.getElementById('power-mode-selector');
+powerModeSelector.addEventListener('change', (event) => {
+    if (event.target.name === 'power-mode') {
+        worldState.voxelWorld.setPowerMode(event.target.value);
+    }
+});
+
 // Add camera controls
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -314,7 +321,7 @@ function onMouseClick(event) {
     mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
 
-    const chunkMeshes = [...worldState.voxelWorld.chunks.values()].map(c => c.mesh).filter(m => m);
+    const chunkMeshes = scene.children.filter(obj => obj.userData.isChunkMesh && obj.visible);
 
     // --- Agent Movement ---
     if (moveMode && selectedUnit) {
@@ -430,7 +437,7 @@ window.addEventListener('contextmenu', (event) => {
     mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
 
-    const chunkMeshes = [...worldState.voxelWorld.chunks.values()].map(c => c.mesh).filter(m => m);
+    const chunkMeshes = scene.children.filter(obj => obj.userData.isChunkMesh && obj.visible);
     const intersects = raycaster.intersectObjects(chunkMeshes);
 
     if (intersects.length > 0) {
@@ -719,7 +726,7 @@ function animate() {
     // ...
 
     // Update game state
-    worldState.update(deltaTime);
+    worldState.update(deltaTime, camera.position);
     eventManager.update(deltaTime);
     goalManager.update(deltaTime);
 
