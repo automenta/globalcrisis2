@@ -35,4 +35,18 @@ ThreatForge is an actively developed project with a clear roadmap and robust tes
 
 *   **Roadmap**: The initial `v1.0` release focuses on establishing core threat domains (cyber, biological, environmental, quantum, radiological, and robotic). Future expansions and new content will primarily be introduced via community-driven modifications and official add-ons.
 *   **Testing**: Comprehensive automated testing is in place to validate cross-domain interactions, ensuring that complex threat scenarios behave as expected. This includes rigorous testing for emergent behaviors, game balance, and physics accuracy.
+
+### Headless Testing
+
+This project uses Puppeteer to run headless tests. To run the tests, you need to have Node.js and npm installed.
+
+1.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+2.  **Run tests:**
+    ```bash
+    npm test
+    ```
+
 *   **Deployment**: The primary deployment method is as a browser-installable Progressive Web App (PWA). For desktop users who prefer a standalone application, an optional Electron wrapper is provided, bundling the PWA into a native executable.
