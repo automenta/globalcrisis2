@@ -732,8 +732,6 @@ class WorldState {
             hasEnoughResources: ai.resources.funds > 2000, // A general check for having some buffer
             neutralRegionExists: this.regions.some(r => r.owner === 'NEUTRAL'),
             unfortifiedRegionExists: this.regions.some(r => r.owner === ai.id && !this.buildings.some(b => b.region === r && b.type === 'BASE')),
-            playerIsWeaker: false, // This is a goal state, not a world state
-            playerIsDistracted: false, // This is a goal state
             aiHasMoreTerritory: this.regions.filter(r => r.owner === ai.id).length > this.regions.filter(r => r.owner === this.playerFaction.id).length,
             aiTerritoryIsStronger: !this.regions.some(r => r.owner === ai.id && !this.buildings.some(b => b.region === r && b.type === 'BASE')),
         };

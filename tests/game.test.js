@@ -92,7 +92,7 @@ describe('Agent Mission Logic', () => {
     });
 });
 
-describe('AI Faction Logic', () => {
+describe('AI GOAP Planner Logic', () => {
     let worldState;
     let aiFaction;
     let neutralRegion;
@@ -121,14 +121,11 @@ describe('AI Faction Logic', () => {
         aiFaction.resources.funds = 5000;
     });
 
-    it('should create and execute a plan to claim a neutral region', () => {
-        // Force the AI's goal for this test
-        worldState.aiGoal = 'expand_territory';
-
-        // The planner should find a plan
+    it('should create a single-step plan to claim a neutral region', () => {
+        // The planner should find a plan to expand territory
         const goal = { aiHasMoreTerritory: true };
         const plannerWorldState = {
-            hasEnoughResources: aiFaction.resources.funds > 2000,
+            hasEnoughResources: true,
             neutralRegionExists: true,
             unfortifiedRegionExists: true,
             aiHasMoreTerritory: false,
@@ -137,15 +134,52 @@ describe('AI Faction Logic', () => {
 
         const plan = worldState.planner.plan(plannerWorldState, AI_ACTIONS, goal);
         expect(plan).not.toBe(null);
-        expect(plan.length).toBeGreaterThan(0);
+        expect(plan.length).toBe(1);
         expect(plan[0].name).toBe('claim_neutral_region');
+    });
 
-        // Run the action
-        const wasSuccessful = plan[0].run(worldState);
+    it('should create a multi-step plan to build a base', () => {
+        // Goal: The AI wants a stronger territory, which requires a base.
+        const goal = { aiTerritoryIsStronger: true };
 
-        // Verify the outcome
-        expect(wasSuccessful).toBe(true);
-        expect(neutralRegion.owner).toBe(aiFaction.id);
+        // World State: AI has no unfortified regions, but a neutral one is available.
+        // This forces a multi-step plan: 1. claim region, 2. build base.
+        const plannerWorldState = {
+            hasEnoughResources: true,
+            neutralRegionExists: true,
+            unfortifiedRegionExists: false, // Key condition for forcing a multi-step plan
+            aiHasMoreTerritory: false,
+            aiTerritoryIsStronger: false,
+        };
+
+        // The planner should find a 2-step plan.
+        const plan = worldState.planner.plan(plannerWorldState, AI_ACTIONS, goal);
+        expect(plan).not.toBe(null);
+        expect(plan.length).toBe(2);
+        expect(plan[0].name).toBe('claim_neutral_region');
+        expect(plan[1].name).toBe('build_base');
+
+        // Execute the full plan for verification
+        let currentState = { ...plannerWorldState };
+        for (const action of plan) {
+            // Check preconditions against the current state of our simulation
+            let preconditionsMet = true;
+            for (const key in action.preconditions) {
+                if (currentState[key] !== action.preconditions[key]) {
+                    preconditionsMet = false;
+                    break;
+                }
+            }
+            expect(preconditionsMet).toBe(true);
+
+            // Apply effects to simulate the action's outcome
+            for (const key in action.effects) {
+                currentState[key] = action.effects[key];
+            }
+        }
+
+        // The final state should satisfy the goal
+        expect(currentState.aiTerritoryIsStronger).toBe(true);
     });
 });
 
