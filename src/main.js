@@ -454,9 +454,8 @@ function onMouseClick(event) {
         const intersects = raycaster.intersectObjects(chunkMeshes);
         if (intersects.length > 0) {
             const point = intersects[0].point;
-            // TODO: Implement agent movement to a specific point.
-            // For now, we just log it. The old logic was tied to regions.
-            console.log(`Agent ${selectedUnit.id} move command to:`, point);
+            // The selectedUnit can be an Agent or a Unit, both have moveTo.
+            selectedUnit.moveTo(point);
         }
         moveMode = false;
         document.getElementById('move-agent-button').textContent = 'Move Agent';
@@ -478,7 +477,8 @@ function onMouseClick(event) {
         locationInfoPanel.panel.style.display = 'none';
 
         const newlySelectedThreat = allThreats.find(t => t.mesh === intersectedMesh);
-        const newlySelectedUnit = allUnits.find(u => u.mesh === intersectedMesh);
+        const newlySelectedAgent = worldState.agents.find(a => a.mesh === intersectedMesh);
+        const newlySelectedUnit = allUnits.find(u => u.mesh === intersectedMesh && u.mesh.userData.unit); // Ensure it's a unit
 
         if (newlySelectedThreat) {
             selectedThreat = newlySelectedThreat;
@@ -507,6 +507,9 @@ function onMouseClick(event) {
                 buildButton.disabled = true;
                 networkButton.disabled = true;
             }
+        } else if (newlySelectedAgent) {
+            selectedUnit = newlySelectedAgent; // Use the generic 'selectedUnit' for agents too
+            selectedThreat = null;
         } else if (newlySelectedUnit) {
             selectedUnit = newlySelectedUnit;
             selectedThreat = null;
@@ -699,7 +702,7 @@ document.getElementById('build-sensor-button').addEventListener('click', () => {
 document.getElementById('move-agent-button').addEventListener('click', () => {
     if (selectedUnit) {
         moveMode = true;
-        document.getElementById('move-agent-button').textContent = 'Select Target Region...';
+        document.getElementById('move-agent-button').textContent = 'Select Target...';
     }
 });
 

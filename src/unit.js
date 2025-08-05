@@ -3,6 +3,11 @@ class Unit {
         this.region = region;
         this.type = type; // 'AGENT', etc.
         this.mesh = this.createMesh();
+        this.mesh.userData.unit = this;
+
+        // Movement Component
+        this.movement = new MovementComponent({ speed: 1.0 });
+        this.status = 'IDLE';
     }
 
     createMesh() {
@@ -32,27 +37,21 @@ class Unit {
         return mesh;
     }
 
-    moveTo(targetRegion) {
-        // Animate the movement from the current region to the target region
-        const startPos = this.mesh.position.clone();
-        const [lat, lon] = targetRegion.centroid;
-        const phi = (90 - lat) * (Math.PI / 180);
-        const theta = (lon + 180) * (Math.PI / 180);
-        const earthRadius = 5;
-        const x = -(earthRadius * Math.sin(phi) * Math.cos(theta));
-        const z = earthRadius * Math.sin(phi) * Math.sin(theta);
-        const y = earthRadius * Math.cos(phi);
-        const endPos = new THREE.Vector3(x, y, z);
+    moveTo(targetPoint) {
+        const path = worldState.pathfindingService.calculatePath(this.mesh.position, targetPoint, 'GROUND');
+        this.movement.setPath(path);
+        this.status = 'MOVING';
+    }
 
-        new TWEEN.Tween(this.mesh.position)
-            .to(endPos, 2000) // 2 seconds to move
-            .easing(TWEEN.Easing.Quadratic.InOut)
-            .onUpdate(() => {
-                this.mesh.lookAt(0, 0, 0);
-            })
-            .onComplete(() => {
-                this.region = targetRegion;
-            })
-            .start();
+    update(dt) {
+        // Update movement
+        if (this.movement.isActive) {
+            this.movement.update(this, dt);
+            if (!this.movement.isActive) {
+                // Movement just finished
+                this.status = 'IDLE';
+                // TODO: Update unit's current region based on its new position
+            }
+        }
     }
 }

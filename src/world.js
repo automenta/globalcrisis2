@@ -150,6 +150,7 @@ class WorldState {
         this.aiGoal = null;
         this.climateUpdateTimer = 0;
         this.climateUpdateInterval = 2; // Update climate every 2 seconds
+        this.pathfindingService = new PathfindingService(this);
     }
 
     updateWorldClimate() {
@@ -613,6 +614,9 @@ class WorldState {
 
         // Update agents
         this.agents.forEach(agent => agent.update(dt));
+
+        // Update units
+        this.units.forEach(unit => unit.update(dt));
 
         // Remove mitigated threats
         const threatsToRemove = this.threats.filter(t => t.isMitigated);

@@ -34,6 +34,9 @@ class Agent {
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.userData.agent = this; // Link mesh back to agent object
 
+        // Movement Component
+        this.movement = new MovementComponent({ speed: 2.0 });
+
         this.updatePosition();
 
         this.mesh.visible = this.factionId === 'player'; // Only show player's agents
@@ -115,11 +118,14 @@ class Agent {
         }
     }
 
-    moveTo(targetRegion) {
-        // For now, instant travel. Could be expanded to take time.
-        this.region = targetRegion;
-        this.updatePosition();
-        console.log(`Agent ${this.id} moved to ${targetRegion.name}`);
+    moveTo(targetPoint) {
+        if (this.status === 'ON_MISSION') {
+            console.warn(`Agent ${this.name} is on a mission and cannot move.`);
+            return;
+        }
+        const path = worldState.pathfindingService.calculatePath(this.mesh.position, targetPoint, 'GROUND');
+        this.movement.setPath(path);
+        this.status = 'MOVING';
     }
 
     update(dt) {
@@ -129,6 +135,16 @@ class Agent {
 
             if (this.mission.progress >= 1) {
                 worldState.resolveAgentMission(this);
+            }
+        }
+
+        // Update movement
+        if (this.movement.isActive) {
+            this.movement.update(this, dt);
+            if (!this.movement.isActive) {
+                // Movement just finished
+                this.status = 'IDLE';
+                // TODO: Update agent's current region based on its new position
             }
         }
     }
