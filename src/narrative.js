@@ -6,7 +6,7 @@
  * used to generate dynamic chronicles and storylines as described in narrative.md.
  */
 
-class NarrativeManager {
+export class NarrativeManager {
     constructor() {
         this.eventLog = [];
         this.chronicles = [];

@@ -35,7 +35,7 @@ class Node {
 /**
  * A generic GOAP planner that uses A* to find a sequence of actions to achieve a goal.
  */
-class GOAPPlanner {
+export class GOAPPlanner {
     /**
      * Finds a sequence of actions to satisfy a goal from a given world state.
      * @param {object} worldState - The initial state of the world.

@@ -1,4 +1,4 @@
-class PathfindingService {
+export class PathfindingService {
     constructor(world) {
         this.world = world; // The world state, might be needed for complex pathfinding
     }

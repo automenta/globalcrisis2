@@ -2,7 +2,9 @@
  * @class Satellite
  * Represents a satellite asset in orbit around the planet.
  */
-class Satellite {
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+
+export class Satellite {
     /**
      * @param {object} options - Configuration for the satellite.
      * @param {string} options.id - The unique ID of the satellite.

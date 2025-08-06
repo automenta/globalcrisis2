@@ -213,6 +213,14 @@
         <h4>Game Speed</h4>
         <input type="range" id="cheat-game-speed" min="0" max="5" step="0.5" value="1" title="Control the game speed"><br>
         <span id="game-speed-value">1x</span>
+        <hr>
+        <h4>Testing</h4>
+        <button id="run-tests-button">Run Tests</button>
+    </div>
+
+    <div id="test-panel" style="display: none; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 600px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-family: 'Courier New', Courier, monospace; z-index: 100;">
+        <h3>Test Results</h3>
+        <div id="test-results"></div>
     </div>
 
     <button id="toggle-cheat-panel" style="position: absolute; top: 10px; right: 220px; width: 30px; height: 30px; background-color: #555; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">C</button>
@@ -243,43 +251,6 @@
         <button id="research-singularity-3-button" style="display: none;">Phase 3: Ascend (300k Tech)</button>
     </div>
 
-    <script src="lib/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/simplex-noise@3.0.0/dist/simplex-noise.js"></script>
-    <script src="lib/OrbitControls.js"></script>
-    <script src="src/marching_cubes.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/ShaderPass.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/shaders/CopyShader.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/UnrealBloomPass.js"></script>
-    <script src="src/faction.js"></script>
-    <script src="src/region.js"></script>
-    <script src="src/weather.js"></script>
-    <script src="src/climate.js"></script>
-    <script src="src/actions.js"></script>
-    <script src="src/action_service.js"></script>
-    <script src="src/chronicle_rules.js"></script>
-    <script src="src/narrative.js"></script>
-    <script src="src/domain_logic.js"></script>
-    <script src="src/threat.js"></script>
-    <script src="src/plume.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/25.0.0/tween.umd.js"></script>
-    <script src="src/movement_component.js"></script>
-    <script src="src/pathfinding_service.js"></script>
-    <script src="src/building.js"></script>
-    <script src="src/unit.js"></script>
-    <script src="src/satellite.js"></script>
-    <script src="src/agent.js"></script>
-    <script src="src/goap.js"></script> <!-- Must be before world.js -->
-    <script src="src/ai_actions.js"></script> <!-- Must be before world.js -->
-    <script src="src/events.js"></script>
-    <script src="src/voxel.js"></script>
-    <script src="src/physics_engine.js"></script>
-    <script src="src/world.js"></script>
-    <script src="src/audio.js"></script>
-    <script src="src/ui_manager.js"></script>
-    <script src="src/input_manager.js"></script>
-    <script src="src/game.js"></script>
-    <script src="src/main.js"></script>
+    <script type="module" src="src/main.js"></script>
 </body>
 </html>

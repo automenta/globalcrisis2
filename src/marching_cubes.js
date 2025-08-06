@@ -7,7 +7,9 @@
  * It has been adapted to be a self-contained utility that can be included via a script tag.
  */
 
-const MarchingCubes = ( function () {
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+
+export const MarchingCubes = ( function () {
 
 	// Marching Cubes Definition
 	// This is a static lookup table.

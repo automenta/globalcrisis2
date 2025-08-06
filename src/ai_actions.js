@@ -3,7 +3,7 @@
  * Each action has a name, a cost, preconditions, and effects.
  */
 
-const AI_ACTIONS = [
+export const AI_ACTIONS = [
     {
         name: 'generate_real_threat',
         cost: 1, // A* cost, can be more sophisticated

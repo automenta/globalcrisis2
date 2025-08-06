@@ -1,4 +1,4 @@
-class Faction {
+export class Faction {
     /**
      * @param {object} options
      * @param {string} options.id - Unique identifier for the faction.

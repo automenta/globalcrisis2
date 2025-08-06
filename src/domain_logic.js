@@ -347,7 +347,7 @@ const GlobalGoals = [
     }
 ];
 
-class GoalManager {
+export class GoalManager {
     constructor(worldState) {
         this.worldState = worldState;
         this.goals = GlobalGoals;

@@ -1,4 +1,20 @@
-class Game {
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js';
+import { EffectComposer } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { UIManager } from './ui_manager.js';
+import { WorldState } from './world.js';
+import { AudioManager } from './audio.js';
+import { ActionService } from './action_service.js';
+import { NarrativeManager } from './narrative.js';
+import { EventManager } from './events.js';
+import { GoalManager } from './domain_logic.js';
+import { InputManager } from './input_manager.js';
+import { TestRunner } from './test_runner.js';
+import TWEEN from 'https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@25.0.0/dist/tween.esm.js';
+
+export class Game {
     constructor() {
         this.initEngine();
         this.initManagers();
@@ -15,10 +31,10 @@ class Game {
         document.body.appendChild(this.renderer.domElement);
 
         // Post-processing
-        this.composer = new THREE.EffectComposer(this.renderer);
-        const renderPass = new THREE.RenderPass(this.scene, this.camera);
+        this.composer = new EffectComposer(this.renderer);
+        const renderPass = new RenderPass(this.scene, this.camera);
         this.composer.addPass(renderPass);
-        const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
         bloomPass.threshold = 0;
         bloomPass.strength = 0.5;
         bloomPass.radius = 0;
@@ -51,15 +67,19 @@ class Game {
         this.eventManager = new EventManager(this.worldState);
         this.goalManager = new GoalManager(this.worldState);
 
-        this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
 
         this.uiManager = new UIManager(this.worldState, this.actionService, this.audioManager, this.goalManager, this.selectionIndicator);
         this.inputManager = new InputManager(this.camera, this.scene, this.renderer, this.worldState, this.uiManager, this.audioManager, this.controls);
+        this.testRunner = new TestRunner(this.uiManager);
     }
 
     initEventListeners() {
+        this.uiManager.runTestsButton.addEventListener('click', () => {
+            this.testRunner.runTests();
+        });
         window.addEventListener('resize', () => {
             this.camera.aspect = window.innerWidth / window.innerHeight;
             this.camera.updateProjectionMatrix();

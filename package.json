@@ -10,5 +10,10 @@
   "license": "ISC",
   "devDependencies": {
     "playwright": "^1.54.2"
+  },
+  "dependencies": {
+    "chai": "^5.2.1",
+    "mocha": "^11.7.1",
+    "serve-handler": "^6.1.6"
   }
 }

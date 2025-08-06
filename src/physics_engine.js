@@ -4,10 +4,9 @@
  * from Newtonian movement of units to orbital mechanics of satellites and
  * exotic cross-domain effects.
  */
-// Adjusted for game scale, not real-world physics
-const GAME_GRAVITY_CONSTANT = 1000;
+import { GAME_GRAVITY_CONSTANT } from './constants.js';
 
-class UnifiedPhysicsEngine {
+export class UnifiedPhysicsEngine {
     constructor() {
         // Constants can be defined here, e.g., G for gravity
         this.G = 6.67430e-11; // Gravitational constant

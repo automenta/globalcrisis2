@@ -1,3 +1,5 @@
+import { WorldState } from '../src/world.js';
+
 describe('Movement System', () => {
     let worldState;
     let agent;
@@ -27,17 +29,17 @@ describe('Movement System', () => {
     });
 
     it('should calculate a path and activate the movement component when moveTo is called', () => {
-        expect(agent.movement.isActive).toBe(false);
-        expect(agent.movement.path.length).toBe(0);
-        expect(agent.status).toBe('IDLE');
+        expect(agent.movement.isActive).to.be.false;
+        expect(agent.movement.path.length).to.equal(0);
+        expect(agent.status).to.equal('IDLE');
 
         agent.moveTo(endPos);
 
-        expect(agent.movement.isActive).toBe(true);
-        expect(agent.movement.path.length).toBeGreaterThan(1);
-        expect(agent.status).toBe('MOVING');
+        expect(agent.movement.isActive).to.be.true;
+        expect(agent.movement.path.length).to.be.greaterThan(1);
+        expect(agent.status).to.equal('MOVING');
         // The first point in the path should be the start position
-        expect(agent.movement.path[0].distanceTo(startPos)).toBeCloseTo(0);
+        expect(agent.movement.path[0].distanceTo(startPos)).to.be.closeTo(0, 0.001);
     });
 
     it('should move the agent closer to the target after one second', () => {
@@ -49,8 +51,8 @@ describe('Movement System', () => {
 
         const newDistance = agent.mesh.position.distanceTo(endPos);
 
-        expect(agent.mesh.position.equals(startPos)).toBe(false);
-        expect(newDistance).toBeLessThan(initialDistance);
+        expect(agent.mesh.position.equals(startPos)).to.be.false;
+        expect(newDistance).to.be.lessThan(initialDistance);
     });
 
     it('should complete the path and stop moving', () => {
@@ -68,10 +70,10 @@ describe('Movement System', () => {
             }
         }
 
-        expect(agent.movement.isActive).toBe(false);
-        expect(agent.status).toBe('IDLE');
+        expect(agent.movement.isActive).to.be.false;
+        expect(agent.status).to.equal('IDLE');
         // The agent should be very close to the end position.
         // The arrival threshold in the movement component is 0.5.
-        expect(agent.mesh.position.distanceTo(endPos)).toBeLessThan(agent.movement.arrivalThreshold + 0.1);
+        expect(agent.mesh.position.distanceTo(endPos)).to.be.lessThan(agent.movement.arrivalThreshold + 0.1);
     });
 });

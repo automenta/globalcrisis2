@@ -1,4 +1,7 @@
-class Unit {
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import { MovementComponent } from './movement_component.js';
+
+export class Unit {
     constructor({ region, type }) {
         this.region = region;
         this.type = type;

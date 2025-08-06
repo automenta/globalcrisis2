@@ -1,4 +1,4 @@
-class ActionService {
+export class ActionService {
     constructor() {
         // Comparison functions for availability checks
         this.comparisons = {

@@ -1,6 +1,6 @@
 // src/actions.js - Refactored for a declarative system
 
-const PlayerActions = {
+export const PlayerActions = {
     // --- GENERIC ACTIONS (Target: THREAT) ---
     'investigate': {
         id: 'investigate',
@@ -260,7 +260,7 @@ const PlayerActions = {
     }
 };
 
-const AgentActions = {
+export const AgentActions = {
     'gather_intel': {
         id: 'gather_intel',
         name: 'Gather Intelligence',

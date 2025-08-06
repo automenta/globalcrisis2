@@ -1,4 +1,7 @@
-class MovementComponent {
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import TWEEN from 'https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@25.0.0/dist/tween.esm.js';
+
+export class MovementComponent {
     constructor(options = {}) {
         // The speed property is now effectively replaced by the PhysicsComponent's maxSpeed and maxForce.
         // We might keep a 'desiredSpeed' factor here in the future.

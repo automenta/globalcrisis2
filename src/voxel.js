@@ -1,4 +1,3 @@
-const CHUNK_SIZE = 32;
 
 const MATERIAL_AIR = 0;
 const MATERIAL_ROCK = 1;
@@ -11,7 +10,7 @@ const MATERIAL_GRASS = 5;
  * Represents a chunk of voxels.
  * A chunk is a cube of voxels of size CHUNK_SIZE x CHUNK_SIZE x CHUNK_SIZE.
  */
-class Chunk {
+export class Chunk {
     /**
      * @param {THREE.Vector3} position The position of the chunk in chunk coordinates.
      */
@@ -145,7 +144,11 @@ class Chunk {
 /**
  * Manages the entire voxel world, including all chunks.
  */
-class VoxelWorld {
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import { CHUNK_SIZE, TERRAIN_FREQUENCY, TERRAIN_AMPLITUDE, CAVE_FREQUENCY, CAVE_THRESHOLD } from './constants.js';
+import { MarchingCubes } from './marching_cubes.js';
+
+export class VoxelWorld {
     constructor(seed = 'default-seed', numLods = 3) {
         this.chunks = new Map(); // Use a map for sparse storage of chunks.
         this.noise = new SimplexNoise(seed);

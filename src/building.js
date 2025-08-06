@@ -1,4 +1,6 @@
-class Building {
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+
+export class Building {
     constructor({ region, type, owner }) {
         this.region = region;
         this.type = type; // 'BASE', 'SENSOR', etc.

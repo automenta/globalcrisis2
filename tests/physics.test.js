@@ -1,3 +1,6 @@
+import { WorldState } from '../src/world.js';
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+
 describe('Unified Physics Engine', () => {
     let worldState;
     let physicsEngine;
@@ -19,7 +22,7 @@ describe('Unified Physics Engine', () => {
             worldState.addUnit(region, 'GROUND_VEHICLE');
             const unit = worldState.units[0];
 
-            expect(unit.physics.velocity.length()).toBe(0);
+            expect(unit.physics.velocity.length()).to.equal(0);
 
             // Apply a constant force for 1 second
             const force = new THREE.Vector3(1, 0, 0).multiplyScalar(unit.physics.maxForce);
@@ -29,7 +32,7 @@ describe('Unified Physics Engine', () => {
             physicsEngine.update(1.0, worldState);
 
             // The velocity should now be greater than zero
-            expect(unit.physics.velocity.length()).toBeGreaterThan(0);
+            expect(unit.physics.velocity.length()).to.be.greaterThan(0);
         });
 
         it('should not exceed maxSpeed', () => {
@@ -45,7 +48,7 @@ describe('Unified Physics Engine', () => {
             }
 
             // The velocity should be very close to, but not over, the maxSpeed
-            expect(unit.physics.velocity.length()).toBeLessThanOrEqual(unit.physics.maxSpeed + 0.001);
+            expect(unit.physics.velocity.length()).to.be.lessThanOrEqual(unit.physics.maxSpeed + 0.001);
         });
     });
 
@@ -66,7 +69,7 @@ describe('Unified Physics Engine', () => {
 
             // For a stable circular orbit, the distance from the center should not change much.
             // We'll allow for a small tolerance due to numerical integration.
-            expect(finalDistance).toBeCloseTo(initialDistance, 0); // Use a tolerance of 0 decimal places, so +/- 0.5
+            expect(finalDistance).to.be.closeTo(initialDistance, 0.5); // Use a tolerance of 0 decimal places, so +/- 0.5
         });
 
         it('should have a different position after one second', () => {
@@ -78,7 +81,7 @@ describe('Unified Physics Engine', () => {
 
             const finalPosition = satellite.mesh.position;
 
-            expect(finalPosition.equals(initialPosition)).toBe(false);
+            expect(finalPosition.equals(initialPosition)).to.be.false;
         });
     });
 });

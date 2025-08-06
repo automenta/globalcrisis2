@@ -7,7 +7,9 @@ const ALL_ABILITIES = [
     'STEALTH_EXPERT'
 ];
 
-class Agent extends Unit {
+import { Unit } from './unit.js';
+
+export class Agent extends Unit {
     constructor({
         id,
         factionId,

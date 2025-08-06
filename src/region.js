@@ -6,7 +6,9 @@ const REGION_COLORS = {
 
 const EARTH_RADIUS_KM = 6371; // For converting region radius to sphere scale
 
-class Region {
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+
+export class Region {
     constructor({ id, name, centroid, radius, attributes }) {
         this.id = id;
         this.name = name;
@@ -71,11 +73,7 @@ class Region {
         }
 
         // --- Population and Education Simulation ---
-        const bioThreatSeverity = worldState.threats
-            .filter(t => t.domain === 'BIO' && worldState.getRegionForThreat(t) === this)
-            .reduce((sum, t) => sum + t.severity, 0);
-
-        const growthModifier = (this.stability - 0.5) + (this.economy - 0.5) - bioThreatSeverity;
+        const growthModifier = (this.stability - 0.5) + (this.economy - 0.5) - (this.bioThreatSeverity || 0);
         this.population.growthRate = 0.01 * growthModifier;
         this.population.count += this.population.count * this.population.growthRate * (dt / 365); // dt is in seconds, rate is annual
 

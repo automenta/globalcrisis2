@@ -1,6 +1,25 @@
 import { threatDomains, threatTypes, CROSS_DOMAIN_INTERACTIONS } from './constants.js';
 
-class WorldState {
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import { VoxelWorld, Chunk } from './voxel.js';
+import { ClimateGrid } from './climate.js';
+import { WeatherSystem } from './weather.js';
+import { Region } from './region.js';
+import { Faction } from './faction.js';
+import { Threat } from './threat.js';
+import { RadiologicalPlume } from './plume.js';
+import { Building } from './building.js';
+import { Unit } from './unit.js';
+import { Satellite } from './satellite.js';
+import { Agent } from './agent.js';
+import { GOAPPlanner } from './goap.js';
+import { AI_ACTIONS } from './ai_actions.js';
+import { PathfindingService } from './pathfinding_service.js';
+import { UnifiedPhysicsEngine } from './physics_engine.js';
+import { PlayerActions } from './actions.js';
+import { CHUNK_SIZE, GAME_GRAVITY_CONSTANT } from './constants.js';
+
+export class WorldState {
     constructor(scene, narrativeManager, casualMode = true) {
         this.scene = scene;
         this.narrativeManager = narrativeManager;
@@ -234,6 +253,22 @@ class WorldState {
      * @param {THREE.Vector3} cameraPosition The position of the camera.
      */
     update(dt, cameraPosition) {
+        // Calculate total environmental threat level
+        const totalEnvSeverity = this.threats
+            .filter(t => t.domain === "ENV")
+            .reduce((sum, t) => sum + t.severity, 0);
+
+        // Update climate and weather systems
+        this.climateGrid.update(dt);
+
+        // Periodically update biomes based on seasonal climate change
+        this.climateUpdateTimer += dt;
+        if (this.climateUpdateTimer >= this.climateUpdateInterval) {
+            this.updateWorldClimate();
+            this.climateUpdateTimer = 0;
+        }
+
+        this.weatherSystem.update(this.voxelWorld, dt, totalEnvSeverity);
         let threatsToRemove = [];
         this.currentTurn++;
 
@@ -242,6 +277,45 @@ class WorldState {
 
         // Update the unified physics engine
         this.physicsEngine.update(dt, this);
+
+        // Update all threats and their impact on regions
+        this.threats.forEach(threat => {
+            threat.update(dt);
+
+            const region = this.getRegionForThreat(threat);
+            if (region && this.buildings.some(b => b.region === region && b.type === 'SENSOR')) {
+                threat.visibility = Math.min(1.0, threat.visibility + 0.1 * dt);
+            }
+
+
+            // If threat is fully mitigated, it will be removed, so no need to process further
+            if (threat.isMitigated) return;
+
+            if (region) {
+                // Check for fortification against GEO threats
+                let damageMultiplier = 1.0;
+                if (threat.domain === 'GEO' && region.activeBuffs.some(b => b.type === 'FORTIFIED')) {
+                    damageMultiplier = 0.2; // Fortification reduces damage by 80%
+                    console.log(`Region ${region.name} is fortified. GEO threat damage reduced.`);
+                }
+
+                // Economic damage
+                const economicDamage = this.getEconomicDamage(threat) * 0.001 * dt * damageMultiplier;
+                region.economy = Math.max(0, region.economy - economicDamage);
+
+                // Decrease stability based on threat severity
+                const stabilityDecrease = threat.severity * 0.001 * dt * damageMultiplier; // Adjust this factor
+                region.stability = Math.max(0, region.stability - stabilityDecrease);
+
+                // --- New Domain-Specific World-State Logic ---
+                if (threat.domain === "INFO") {
+                    this.updateMisinformationImpact(threat, region, dt);
+                }
+                if (threat.domain === "ECON") {
+                    this.propagateFinancialContagion(threat, dt);
+                }
+            }
+        });
 
         // Update global buffs
         for (let i = this.activeBuffs.length - 1; i >= 0; i--) {
@@ -478,7 +552,8 @@ class WorldState {
         return false;
     }
 
-    // Calculate total environmental threat level
+    update(dt, cameraPosition) {
+        // Calculate total environmental threat level
         const totalEnvSeverity = this.threats
             .filter(t => t.domain === "ENV")
             .reduce((sum, t) => sum + t.severity, 0);
@@ -494,6 +569,14 @@ class WorldState {
         }
 
         this.weatherSystem.update(this.voxelWorld, dt, totalEnvSeverity);
+        let threatsToRemove = [];
+        this.currentTurn++;
+
+        // Update LODs
+        this.voxelWorld.updateLods(cameraPosition);
+
+        // Update the unified physics engine
+        this.physicsEngine.update(dt, this);
 
         // Update all threats and their impact on regions
         this.threats.forEach(threat => {
@@ -534,10 +617,75 @@ class WorldState {
             }
         });
 
+        // Update global buffs
+        for (let i = this.activeBuffs.length - 1; i >= 0; i--) {
+            const buff = this.activeBuffs[i];
+            buff.duration -= dt;
+            if (buff.duration <= 0) {
+                this.activeBuffs.splice(i, 1);
+                console.log(`Global buff ${buff.type} has expired.`);
+            }
+        }
+
+        // Resource trickle for all factions
+        this.factions.forEach(f => {
+            let resourceMultiplier = 1;
+            // If the AI is getting more aggressive due to Singularity research, boost its income
+            if (f.id === 'technocrats' && this.research.singularity_1_complete) {
+                if (this.research.singularity_3_complete) {
+                    resourceMultiplier = 5; // Massive boost during endgame
+                } else if (this.research.singularity_2_complete) {
+                    resourceMultiplier = 3;
+                } else {
+                    resourceMultiplier = 1.5;
+                }
+            }
+
+            f.resources.funds += 10 * resourceMultiplier;
+            f.resources.intel += 5 * resourceMultiplier;
+            f.resources.tech += 2 * resourceMultiplier;
+
+            // Satellite intel bonus
+            const isDisrupted = f.id === 'technocrats' && this.activeBuffs.some(b => b.type === 'AI_SATELLITE_DISRUPTION');
+            if (!isDisrupted) {
+                const satelliteCount = this.satellites.filter(s => s.owner === f.id).length;
+                f.resources.intel += satelliteCount * 10; // 10 extra intel per satellite
+            }
+        });
+
+        // Income from player-owned regions and buffs
+        this.regions.forEach(region => {
+            if (region.owner === 'PLAYER') {
+                let incomeMultiplier = 1;
+                let techMultiplier = 1;
+                if (this.buildings.some(b => b.region === region && b.type === 'BASE')) {
+                    incomeMultiplier = 1.5;
+                }
+                if (this.buildings.some(b => b.region === region && b.type === 'RESEARCH_OUTPOST')) {
+                    techMultiplier = 3.0; // Research outposts triple tech income
+                }
+                this.playerFaction.resources.funds += region.economy * 10 * incomeMultiplier * dt;
+                this.playerFaction.resources.intel += region.economy * 2 * incomeMultiplier * dt;
+                this.playerFaction.resources.tech += region.economy * 1 * incomeMultiplier * techMultiplier * dt;
+            }
+
+            // Handle region buffs
+            region.activeBuffs.forEach(buff => {
+                if (buff.type === 'INFORMANT_NETWORK') {
+                    const faction = this.factions.find(f => f.id === buff.factionId);
+                    if (faction) {
+                        faction.resources.intel += 5 * dt; // Passive intel gain
+                    }
+                }
+            });
+        });
         // Update global stability and economy metrics
         let totalStability = 0;
         let totalEconomy = 0;
         this.regions.forEach(region => {
+            region.bioThreatSeverity = this.threats
+                .filter(t => t.domain === 'BIO' && this.getRegionForThreat(t) === region)
+                .reduce((sum, t) => sum + t.severity, 0);
             region.update(dt);
             // Stability drain from low economy
             if (region.economy < 0.5) {

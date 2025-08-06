@@ -83,7 +83,7 @@ const WorldEvents = [
     }
 ];
 
-class EventManager {
+export class EventManager {
     constructor(worldState) {
         this.worldState = worldState;
         this.eventTimer = 0;

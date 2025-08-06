@@ -1,32 +1,33 @@
 const { chromium } = require('playwright');
 const path = require('path');
+const http = require('http');
+const serveHandler = require('serve-handler');
 
 (async () => {
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
+    const server = http.createServer((request, response) => {
+        return serveHandler(request, response, {
+            public: path.join(__dirname)
+        });
+    });
 
-  page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+    server.listen(8080, async () => {
+        const browser = await chromium.launch();
+        const page = await browser.newPage();
 
-  await page.goto('file:' + path.join(__dirname, 'tests/test.html'), {waitUntil: 'networkidle'});
+        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
-  const testFailure = await page.$('#test-failure');
-  if (testFailure) {
-    const errorMessage = await page.evaluate(el => el.textContent, testFailure);
-    console.error('Test failed with error:', errorMessage);
-    await browser.close();
-    process.exit(1);
-  } else {
-    // Add a delay to wait for tests to finish, since there is no clear signal.
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    const testFailureAfterWait = await page.$('#test-failure');
-    if (testFailureAfterWait) {
-        const errorMessage = await page.evaluate(el => el.textContent, testFailureAfterWait);
-        console.error('Test failed with error:', errorMessage);
-        await browser.close();
-        process.exit(1);
-    } else {
-        console.log('All tests passed!');
-        await browser.close();
-    }
-  }
+        await page.goto('http://localhost:8080/tests/test.html', { waitUntil: 'networkidle' });
+
+        const failures = await page.$('.fail');
+        if (failures) {
+            console.error('Tests failed!');
+            await browser.close();
+            server.close();
+            process.exit(1);
+        } else {
+            console.log('All tests passed!');
+            await browser.close();
+            server.close();
+        }
+    });
 })();

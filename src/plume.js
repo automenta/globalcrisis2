@@ -1,4 +1,6 @@
-class RadiologicalPlume {
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+
+export class RadiologicalPlume {
     constructor(threat, scene) {
         this.threat = threat;
         this.scene = scene;

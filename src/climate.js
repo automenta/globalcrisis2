@@ -1,4 +1,4 @@
-class ClimateGrid {
+export class ClimateGrid {
     constructor(width = 36, height = 18) {
         this.width = width;
         this.height = height;

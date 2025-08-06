@@ -2,61 +2,20 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Jest Tests</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jest-lite@1.0.0-alpha.4/dist/prettify.css">
+  <title>Mocha Tests</title>
+  <link rel="stylesheet" href="../node_modules/mocha/mocha.css">
 </head>
 <body>
-  <div id="root"></div>
-
-  <!-- Load Scripts -->
-  <script src="../lib/three.min.js"></script>
-  <script src="../lib/OrbitControls.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/EffectComposer.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/RenderPass.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/ShaderPass.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/shaders/CopyShader.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/examples/js/postprocessing/UnrealBloomPass.js"></script>
-  <script src="../src/faction.js"></script>
-  <script src="../src/region.js"></script>
-  <script src="../src/weather.js"></script>
-  <script src="../src/actions.js"></script>
-  <script src="../src/action_service.js"></script>
-  <script src="../src/chronicle_rules.js"></script>
-  <script src="../src/narrative.js"></script>
-  <script src="../src/domain_logic.js"></script>
-  <script src="../src/threat.js"></script>
-  <script src="../src/plume.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/25.0.0/tween.umd.js"></script>
-  <script src="../src/movement_component.js"></script>
-  <script src="../src/building.js"></script>
-  <script src="../src/unit.js"></script>
-  <script src="../src/agent.js"></script>
-  <script src="../src/goap.js"></script>
-  <script src="../src/ai_actions.js"></script>
-  <script src="../src/events.js"></script>
-  <script src="../src/world.js"></script>
-  <script src="../src/audio.js"></script>
-
-  <!-- Don't load main.js as it runs the game -->
-
-  <!-- Load Jest and Test Runner -->
-  <script src="https://cdn.jsdelivr.net/npm/jest-lite@1.0.0-alpha.4/dist/core.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jest-lite@1.0.0-alpha.4/dist/prettify.js"></script>
-
-  <!-- Load Test File -->
-  <script src="game.test.js"></script>
-  <script src="climate.test.js"></script>
-  <script src="movement.test.js"></script>
-  <script src="physics.test.js"></script>
-
-  <!-- Error Catcher -->
+  <div id="mocha"></div>
+  <script src="../node_modules/mocha/mocha.js"></script>
+  <script src="../node_modules/chai/chai.js"></script>
   <script>
-    window.addEventListener('error', function (event) {
-      var errorContainer = document.createElement('div');
-      errorContainer.id = 'test-failure';
-      errorContainer.textContent = event.message;
-      document.body.appendChild(errorContainer);
-    });
+    mocha.setup('bdd');
+    const expect = chai.expect;
+  </script>
+  <script type="module" src="run.js"></script>
+  <script>
+    mocha.run();
   </script>
 </body>
 </html>

@@ -1,3 +1,10 @@
+export const CHUNK_SIZE = 16;
+export const TERRAIN_FREQUENCY = 0.05;
+export const TERRAIN_AMPLITUDE = 5;
+export const CAVE_FREQUENCY = 0.1;
+export const CAVE_THRESHOLD = 0.6;
+export const GAME_GRAVITY_CONSTANT = 1000;
+
 export const threatDomains = ["CYBER", "BIO", "GEO", "ENV", "INFO", "SPACE", "WMD", "ECON", "QUANTUM", "RAD", "ROBOT"];
 export const threatTypes = ["REAL", "FAKE", "UNKNOWN"];
 

@@ -1,5 +1,4 @@
-import { PlayerActions } from './actions.js';
-import { AgentActions } from './ai_actions.js';
+import { PlayerActions, AgentActions } from './actions.js';
 
 export class UIManager {
     constructor(worldState, actionService, audioManager, goalManager, selectionIndicator) {
@@ -54,8 +53,12 @@ export class UIManager {
         this.researchPanel = document.getElementById('research-panel');
         this.buildPanel = document.getElementById('build-panel');
         this.aiAlertDiv = document.getElementById('ai-alert-level');
+        this.testPanel = document.getElementById('test-panel');
+        this.testResults = document.getElementById('test-results');
+
 
         // Buttons
+        this.runTestsButton = document.getElementById('run-tests-button');
         this.togglePlumesButton = document.getElementById('toggle-plumes-button');
         this.toggleClimateButton = document.getElementById('toggle-climate-button');
         this.powerModeSelector = document.getElementById('power-mode-selector');
@@ -299,6 +302,18 @@ export class UIManager {
                 }
             }
         });
+    }
+
+    showTestPanel() {
+        this.testPanel.style.display = 'block';
+    }
+
+    hideTestPanel() {
+        this.testPanel.style.display = 'none';
+    }
+
+    setTestResults(results) {
+        this.testResults.innerHTML = results;
     }
 
     update() {

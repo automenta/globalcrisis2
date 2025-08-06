@@ -13,7 +13,9 @@ const DOMAIN_COLORS = {
     "DEFAULT": 0xff0000 // Red for default/unknown
 };
 
-class Threat {
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+
+export class Threat {
     constructor({
         id,
         domain,

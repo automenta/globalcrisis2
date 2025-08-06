@@ -1,4 +1,6 @@
-class InputManager {
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+
+export class InputManager {
     constructor(camera, scene, renderer, worldState, uiManager, audioManager, controls) {
         this.camera = camera;
         this.scene = scene;

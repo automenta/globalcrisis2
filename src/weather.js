@@ -20,7 +20,7 @@ const WEATHER_EFFECTS = {
     "CLEAR": { movementPenalty: 0, visibilityModifier: 0, threatAmplification: {} }
 };
 
-class WeatherSystem {
+export class WeatherSystem {
     constructor(climateGrid) {
         this.climateGrid = climateGrid;
         // This helper function is needed to convert chunk positions to lat/lon.

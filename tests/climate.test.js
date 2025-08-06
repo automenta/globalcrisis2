@@ -1,3 +1,5 @@
+import { ClimateGrid } from '../src/climate.js';
+
 describe('ClimateGrid Seasonal Cycle', () => {
   let climateGrid;
 
@@ -18,8 +20,8 @@ describe('ClimateGrid Seasonal Cycle', () => {
     const summerTemp = climateGrid.getDataAt(northernLat, lon).temperature;
 
     // Expect summer to be significantly warmer than winter
-    expect(summerTemp).toBeGreaterThan(winterTemp);
-    expect(summerTemp - winterTemp).toBeGreaterThan(10); // Expect a significant difference
+    expect(summerTemp).to.be.greaterThan(winterTemp);
+    expect(summerTemp - winterTemp).to.be.greaterThan(10); // Expect a significant difference
   });
 
   it('should have opposite seasons in northern and southern hemispheres', () => {
@@ -34,7 +36,7 @@ describe('ClimateGrid Seasonal Cycle', () => {
     const southernWinterTemp = climateGrid.getDataAt(southernLat, lon).temperature;
 
     // Expect northern hemisphere to be warmer than southern at this time
-    expect(northernSummerTemp).toBeGreaterThan(southernWinterTemp);
+    expect(northernSummerTemp).to.be.greaterThan(southernWinterTemp);
   });
 
   it('should have minimal seasonal temperature change at the equator', () => {
@@ -50,6 +52,6 @@ describe('ClimateGrid Seasonal Cycle', () => {
     const temp2 = climateGrid.getDataAt(equatorialLat, lon).temperature;
 
     // Expect temperatures to be very close
-    expect(temp1).toBeCloseTo(temp2, 1); // Use toBeCloseTo for floating point comparison
+    expect(temp1).to.be.closeTo(temp2, 1); // Use toBeCloseTo for floating point comparison
   });
 });
