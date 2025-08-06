@@ -348,21 +348,21 @@ const GlobalGoals = [
 ];
 
 export class GoalManager {
-    constructor(worldState) {
-        this.worldState = worldState;
+    constructor(voxelWorld) {
+        this.worldState = voxelWorld;
         this.goals = GlobalGoals;
     }
 
     update(dt) {
-        this.goals.forEach(goal => {
-            if (!goal.isCompleted) {
-                const progress = goal.progress(this.worldState);
-                if (progress >= 1.0) {
-                    goal.isCompleted = true;
-                    goal.reward(this.worldState);
-                }
-            }
-        });
+        // this.goals.forEach(goal => {
+        //     if (!goal.isCompleted) {
+        //         const progress = goal.progress(this.worldState);
+        //         if (progress >= 1.0) {
+        //             goal.isCompleted = true;
+        //             goal.reward(this.worldState);
+        //         }
+        //     }
+        // });
     }
 
     getGoalsState() {
@@ -371,7 +371,7 @@ export class GoalManager {
             title: goal.title,
             description: goal.description,
             isCompleted: goal.isCompleted,
-            progress: goal.isCompleted ? 1.0 : goal.progress(this.worldState)
+            progress: 0 // goal.isCompleted ? 1.0 : goal.progress(this.worldState)
         }));
     }
 }

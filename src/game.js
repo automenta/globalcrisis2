@@ -5,6 +5,8 @@ import { RenderPass } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/
 import { UnrealBloomPass } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { UIManager } from './ui_manager.js';
 import { WorldState } from './world.js';
+import { VoxelWorld, Chunk } from './voxel.js';
+import { ClimateGrid } from './climate.js';
 import { AudioManager } from './audio.js';
 import { ActionService } from './action_service.js';
 import { NarrativeManager } from './narrative.js';
@@ -61,18 +63,32 @@ export class Game {
         this.actionService = new ActionService();
         this.narrativeManager = new NarrativeManager();
 
-        const casualModeCheckbox = document.getElementById('casual-mode-checkbox');
-        this.worldState = new WorldState(this.scene, this.narrativeManager, casualModeCheckbox.checked);
+        this.climateGrid = new ClimateGrid(128, 128);
+        this.climateGrid.generate();
+        this.voxelWorld = new VoxelWorld();
 
-        this.eventManager = new EventManager(this.worldState);
-        this.goalManager = new GoalManager(this.worldState);
+        const chunk = new Chunk(new THREE.Vector3(0, 0, 0));
+        this.voxelWorld.generateChunk(chunk, this.climateGrid);
+        this.voxelWorld.addChunk(chunk);
+
+        for (let lod = 0; lod < this.voxelWorld.numLods; lod++) {
+            this.voxelWorld.createMeshForChunk(chunk, lod);
+            if (chunk.meshes[lod]) {
+                this.scene.add(chunk.meshes[lod]);
+            }
+        }
+        this.voxelWorld.updateLods(this.camera.position);
+
+
+        this.eventManager = new EventManager(this.voxelWorld);
+        this.goalManager = new GoalManager(this.voxelWorld);
 
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
 
-        this.uiManager = new UIManager(this.worldState, this.actionService, this.audioManager, this.goalManager, this.selectionIndicator);
-        this.inputManager = new InputManager(this.camera, this.scene, this.renderer, this.worldState, this.uiManager, this.audioManager, this.controls);
+        this.uiManager = new UIManager(this.voxelWorld, this.actionService, this.audioManager, this.goalManager, this.selectionIndicator);
+        this.inputManager = new InputManager(this.camera, this.scene, this.renderer, this.voxelWorld, this.uiManager, this.audioManager, this.controls);
         this.testRunner = new TestRunner(this.uiManager);
     }
 
@@ -119,16 +135,12 @@ export class Game {
         requestAnimationFrame(this.animate.bind(this));
         const deltaTime = this.clock.getDelta() * this.gameSpeed;
 
-        const worldUpdateResult = this.worldState.update(deltaTime, this.camera.position);
-        if (worldUpdateResult.threatsRemoved && worldUpdateResult.threatsRemoved.length > 0) {
-            this.inputManager.handleThreatsRemoved(worldUpdateResult.threatsRemoved);
-        }
+        this.voxelWorld.updateLods(this.camera.position);
 
         this.eventManager.update(deltaTime);
         this.goalManager.update(deltaTime);
         this.uiManager.update();
         this.inputManager.update();
-        this.worldState.updateVisualization(deltaTime, this.uiManager.uiState.isClimateVisible);
 
         this.controls.update();
         this.composer.render(deltaTime);
