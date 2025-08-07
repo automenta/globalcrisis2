@@ -1,5 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
-import TWEEN from 'https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@25.0.0/dist/tween.esm.js';
+import * as THREE from 'three';
 
 export class MovementComponent {
     constructor(options = {}) {
@@ -29,7 +28,7 @@ export class MovementComponent {
      * @param {Unit} unit - The unit being moved. It MUST have a .physics property.
      * @param {number} dt - Delta time.
      */
-    update(unit, dt) {
+    update(unit) {
         if (!this.isActive || !unit.physics) {
             this.stop();
             return;
@@ -48,7 +47,9 @@ export class MovementComponent {
             if (this.currentTargetIndex >= this.path.length) {
                 this.stop();
                 // Optionally apply a braking force
-                const brakingForce = unit.physics.velocity.clone().multiplyScalar(-unit.physics.maxForce);
+                const brakingForce = unit.physics.velocity
+                    .clone()
+                    .multiplyScalar(-unit.physics.maxForce);
                 unit.physics.applyForce(brakingForce);
                 return;
             }
@@ -60,7 +61,9 @@ export class MovementComponent {
 
         // Optional: Make the entity look where it's going (in the direction of velocity)
         if (unit.physics.velocity.lengthSq() > 0.01) {
-            const lookAtTarget = unit.mesh.position.clone().add(unit.physics.velocity);
+            const lookAtTarget = unit.mesh.position
+                .clone()
+                .add(unit.physics.velocity);
             unit.mesh.lookAt(lookAtTarget);
         }
     }
@@ -75,11 +78,17 @@ export class MovementComponent {
         const physics = unit.physics;
 
         // 1. Calculate desired velocity: a vector pointing from us to the target, with a magnitude of maxSpeed.
-        const desiredVelocity = new THREE.Vector3().subVectors(target, unit.mesh.position);
+        const desiredVelocity = new THREE.Vector3().subVectors(
+            target,
+            unit.mesh.position
+        );
         desiredVelocity.normalize().multiplyScalar(physics.maxSpeed);
 
         // 2. Calculate steering force: desired velocity - current velocity.
-        const steeringForce = new THREE.Vector3().subVectors(desiredVelocity, physics.velocity);
+        const steeringForce = new THREE.Vector3().subVectors(
+            desiredVelocity,
+            physics.velocity
+        );
 
         // 3. Clamp the steering force to the maximum force the unit can apply.
         if (steeringForce.lengthSq() > physics.maxForce * physics.maxForce) {

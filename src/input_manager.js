@@ -1,7 +1,16 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import * as THREE from 'three';
+import TWEEN from '@tweenjs/tween.js';
 
 export class InputManager {
-    constructor(camera, scene, renderer, voxelWorld, uiManager, audioManager, controls) {
+    constructor(
+        camera,
+        scene,
+        renderer,
+        voxelWorld,
+        uiManager,
+        audioManager,
+        controls
+    ) {
         this.camera = camera;
         this.scene = scene;
         this.renderer = renderer;
@@ -21,18 +30,34 @@ export class InputManager {
     }
 
     bindEventListeners() {
-        this.renderer.domElement.addEventListener('click', this.onMouseClick.bind(this), false);
-        this.renderer.domElement.addEventListener('dblclick', this.onMouseDoubleClick.bind(this), false);
-        this.renderer.domElement.addEventListener('contextmenu', this.onRightClick.bind(this), false);
+        this.renderer.domElement.addEventListener(
+            'click',
+            this.onMouseClick.bind(this),
+            false
+        );
+        this.renderer.domElement.addEventListener(
+            'dblclick',
+            this.onMouseDoubleClick.bind(this),
+            false
+        );
+        this.renderer.domElement.addEventListener(
+            'contextmenu',
+            this.onRightClick.bind(this),
+            false
+        );
         window.addEventListener('keydown', this.onKeyDown.bind(this), false);
     }
 
     onMouseClick(event) {
-        this.mouse.x = (event.clientX / this.renderer.domElement.clientWidth) * 2 - 1;
-        this.mouse.y = - (event.clientY / this.renderer.domElement.clientHeight) * 2 + 1;
+        this.mouse.x =
+            (event.clientX / this.renderer.domElement.clientWidth) * 2 - 1;
+        this.mouse.y =
+            -(event.clientY / this.renderer.domElement.clientHeight) * 2 + 1;
         this.raycaster.setFromCamera(this.mouse, this.camera);
 
-        const chunkMeshes = this.scene.children.filter(obj => obj.userData.isChunkMesh && obj.visible);
+        const chunkMeshes = this.scene.children.filter(
+            (obj) => obj.userData.isChunkMesh && obj.visible
+        );
 
         if (this.moveMode && this.selectedUnit) {
             const intersects = this.raycaster.intersectObjects(chunkMeshes);
@@ -72,7 +97,7 @@ export class InputManager {
 
         const planetIntersects = this.raycaster.intersectObjects(chunkMeshes);
         if (planetIntersects.length > 0) {
-            const point = planetIntersects[0].point;
+            // const point = planetIntersects[0].point;
             // this.uiManager.showLocationInfo(point);
         } else {
             this.uiManager.hideLocationInfo();
@@ -80,20 +105,17 @@ export class InputManager {
         // }
     }
 
-    onMouseDoubleClick(event) {
+    onMouseDoubleClick() {
         // this.mouse.x = (event.clientX / this.renderer.domElement.clientWidth) * 2 - 1;
         // this.mouse.y = -(event.clientY / this.renderer.domElement.clientHeight) * 2 + 1;
         // this.raycaster.setFromCamera(this.mouse, this.camera);
-
         // const allThreats = this.voxelWorld.getThreats();
         // const threatMeshes = allThreats.map(t => t.mesh);
         // const intersects = this.raycaster.intersectObjects(threatMeshes);
-
         // if (intersects.length > 0) {
         //     const lookAtPosition = intersects[0].object.position.clone();
         //     const cameraDistance = 20;
         //     const newCameraPosition = lookAtPosition.clone().add(new THREE.Vector3(0, 0, cameraDistance));
-
         //     // This is a simplified animation. Will be improved later.
         //     this.camera.position.copy(newCameraPosition);
         //     this.controls.target.copy(lookAtPosition);
@@ -104,11 +126,15 @@ export class InputManager {
         event.preventDefault();
         if (!this.selectedUnit) return;
 
-        this.mouse.x = (event.clientX / this.renderer.domElement.clientWidth) * 2 - 1;
-        this.mouse.y = - (event.clientY / this.renderer.domElement.clientHeight) * 2 + 1;
+        this.mouse.x =
+            (event.clientX / this.renderer.domElement.clientWidth) * 2 - 1;
+        this.mouse.y =
+            -(event.clientY / this.renderer.domElement.clientHeight) * 2 + 1;
         this.raycaster.setFromCamera(this.mouse, this.camera);
 
-        const chunkMeshes = this.scene.children.filter(obj => obj.userData.isChunkMesh && obj.visible);
+        const chunkMeshes = this.scene.children.filter(
+            (obj) => obj.userData.isChunkMesh && obj.visible
+        );
         const intersects = this.raycaster.intersectObjects(chunkMeshes);
 
         if (intersects.length > 0) {
@@ -116,7 +142,12 @@ export class InputManager {
             this.selectedUnit.moveTo(destination);
 
             const indicatorGeo = new THREE.RingGeometry(0.4, 0.5, 32);
-            const indicatorMat = new THREE.MeshBasicMaterial({ color: 0x00ff00, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+            const indicatorMat = new THREE.MeshBasicMaterial({
+                color: 0x00ff00,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.8,
+            });
             const moveIndicator = new THREE.Mesh(indicatorGeo, indicatorMat);
             moveIndicator.position.copy(destination);
             moveIndicator.lookAt(new THREE.Vector3());
@@ -152,7 +183,10 @@ export class InputManager {
     }
 
     handleThreatsRemoved(removedThreats) {
-        if (this.selectedThreat && removedThreats.some(t => t.id === this.selectedThreat.id)) {
+        if (
+            this.selectedThreat &&
+            removedThreats.some((t) => t.id === this.selectedThreat.id)
+        ) {
             this.selectedThreat = null;
             this.selectedUnit = null; // Also clear unit selection for safety
             this.uiManager.clearSelection();

@@ -1,3 +1,5 @@
+import { ChronicleRules } from './chronicle_rules.js';
+
 // src/narrative.js
 
 /**
@@ -19,14 +21,21 @@ export class NarrativeManager {
             id: `event-${Date.now()}-${Math.random()}`,
             timestamp,
             eventType,
-            data
+            data,
         };
         this.eventLog.push(logEntry);
-        console.log('%c[Narrative Event]', 'color: #8A2BE2; font-weight: bold;', eventType, logEntry.data);
+        console.log(
+            '%c[Narrative Event]',
+            'color: #8A2BE2; font-weight: bold;',
+            eventType,
+            logEntry.data
+        );
     }
 
     update(worldState) {
-        const unprocessedEvents = this.eventLog.filter(event => !this.processedEventIds.has(event.id));
+        const unprocessedEvents = this.eventLog.filter(
+            (event) => !this.processedEventIds.has(event.id)
+        );
 
         for (const event of unprocessedEvents) {
             for (const ruleId in ChronicleRules) {
@@ -44,7 +53,11 @@ export class NarrativeManager {
     }
 
     generateChronicle(rule, triggeringEvent, worldState) {
-        const templateData = rule.getTemplateData(triggeringEvent, this.eventLog, worldState);
+        const templateData = rule.getTemplateData(
+            triggeringEvent,
+            this.eventLog,
+            worldState
+        );
 
         let title = rule.title;
         let description = rule.description;
@@ -62,7 +75,7 @@ export class NarrativeManager {
             description,
             timestamp: new Date().toISOString(),
             ruleId: rule.id,
-            relatedEvents: [triggeringEvent.id]
+            relatedEvents: [triggeringEvent.id],
         };
 
         this.chronicles.push(chronicle);

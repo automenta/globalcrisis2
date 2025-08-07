@@ -2,7 +2,7 @@
  * @class Satellite
  * Represents a satellite asset in orbit around the planet.
  */
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import * as THREE from 'three';
 
 export class Satellite {
     /**
@@ -19,7 +19,10 @@ export class Satellite {
 
         // The 3D mesh for visualization
         const geometry = new THREE.OctahedronGeometry(0.15, 0);
-        const material = new THREE.MeshPhongMaterial({ color: 0xcccccc, emissive: 0xaaaaaa });
+        const material = new THREE.MeshPhongMaterial({
+            color: 0xcccccc,
+            emissive: 0xaaaaaa,
+        });
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(position);
         this.mesh.userData.satellite = this; // Link back to this object for raycasting
@@ -30,10 +33,10 @@ export class Satellite {
             velocity: velocity,
             acceleration: new THREE.Vector3(),
             movementType: 'orbital',
-            applyForce: function(force) {
+            applyForce: function (force) {
                 const accelerationDelta = force.clone().divideScalar(this.mass);
                 this.acceleration.add(accelerationDelta);
-            }
+            },
         };
 
         // Orbital parameters (can be calculated and updated by the physics engine)
@@ -41,13 +44,13 @@ export class Satellite {
             semiMajorAxis: this.mesh.position.length(),
             eccentricity: 0, // Assuming circular for now
             inclination: 0,
-            period: 0
+            period: 0,
         };
     }
 
     // Satellites don't have a complex update loop of their own;
     // their state is managed entirely by the UnifiedPhysicsEngine.
-    update(dt) {
+    update() {
         // The physics engine handles all movement.
         // We could update other things here in the future, like energy consumption.
     }

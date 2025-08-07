@@ -3,6 +3,7 @@ Simulation/strategy/war game, prioritizing performance on commodity PCs (e.g., I
 The planet scale stays at ~50 km radius (~31,400 km² surface) for complex gameplay, but voxel resolution and simulation depth are dynamically scaled based on hardware detection (e.g., auto-reduce to 2m³ base voxels on lower-end PCs). This allows human-scale details (e.g., 10m buildings) while ensuring feasibility—total active memory footprint targets <8GB, with CPU usage <50% during typical play. Testing assumptions are based on Unity or Godot engine implementations, leveraging multithreading and GPU acceleration.
 
 ### Planet Structure and Generation
+
 Generation is procedural and lazy-loaded to avoid upfront costs. Only player-visible or interacted chunks are fully realized, reducing initial load times to <30 seconds.
 
 - **Orbit**: Thinned to ~2-5 km thick, with sparser procedural spawns (e.g., 1-2% voxel occupancy). Orbital mechanics use precomputed trajectories for entities, updated at 1-5 Hz globally.
@@ -14,6 +15,7 @@ Generation is procedural and lazy-loaded to avoid upfront costs. Only player-vis
 - **Underground**: Depth capped at 5 km for performance (still deep enough for D.U.M.B.s spanning 1-2 km). Procedural features like caves use seeded noise with early termination for unexplored areas.
 
 Revised Generation Process:
+
 1. Use a lower-res cubed-sphere grid (e.g., 64x64 faces) for base topology.
 2. Generate on-demand: When a chunk loads, apply noise locally with caching.
 3. Erosion/water simulation runs in background threads, batched over frames to avoid hitches.
@@ -21,6 +23,7 @@ Revised Generation Process:
 This ensures single-player worlds load progressively, with no stutters during exploration.
 
 ### Voxel System
+
 Voxels remain 1m³ base (configurable to 2m³), stored in SVOs with deeper compression (e.g., run-length encoding for uniform regions like ocean depths).
 
 - **Storage**: Target <4GB for the entire planet via sparsity (e.g., underground mostly empty/collapsed until dug). Unloaded chunks serialize to disk for seamless saving.
@@ -30,325 +33,333 @@ Voxels remain 1m³ base (configurable to 2m³), stored in SVOs with deeper compr
 - **Granularity**: Supports human-scale (e.g., 5m roads as voxel strips with pathfinding overlays). For performance, auto-merge adjacent identical voxels into larger blocks during idle frames.
 
 ### Deployable/Autonomous Entity Types
+
 Entity count capped at 1,000-5,000 active globally in single-player (e.g., via pooling and sleep states for distant units). ECS architecture includes a performance profiler to throttle AI.
 
-| Entity Type | Revised Description | Autonomy/Deployment | Optimization |
-|-------------|---------------------|----------------------|--------------|
-| **Static Deployables** | Voxel-integrated structures. | Manual deployment; no AI. | Pre-baked meshes for common buildings; lazy voxel integration. |
-| **Mobile Units** | AI-driven agents. | Deploy from bases; pathfinding batched every 0.5s. | LOD behaviors: Distant units simulate at 1Hz, aggregate into squads. |
-| **Orbital Assets** | Space entities. | Autonomous orbits. | Simplified physics; offloaded to GPU compute shaders. |
-| **Biological Entities** | Ecosystem agents. | Procedural spawning/migration. | Cull off-screen; use flock simulations for herds to reduce per-entity checks. |
+| Entity Type             | Revised Description          | Autonomy/Deployment                                | Optimization                                                                  |
+| ----------------------- | ---------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Static Deployables**  | Voxel-integrated structures. | Manual deployment; no AI.                          | Pre-baked meshes for common buildings; lazy voxel integration.                |
+| **Mobile Units**        | AI-driven agents.            | Deploy from bases; pathfinding batched every 0.5s. | LOD behaviors: Distant units simulate at 1Hz, aggregate into squads.          |
+| **Orbital Assets**      | Space entities.              | Autonomous orbits.                                 | Simplified physics; offloaded to GPU compute shaders.                         |
+| **Biological Entities** | Ecosystem agents.            | Procedural spawning/migration.                     | Cull off-screen; use flock simulations for herds to reduce per-entity checks. |
 
 In single-player, AI uses behavior trees with priority queuing (e.g., player-near entities update at 30Hz, others at 5Hz). Multiplayer syncs entity deltas only, reducing bandwidth.
 
 ### Pluggable Properties and Systems
+
 Systems are modular and throttled: Global updates run at 1-10Hz, local (player vicinity) at 30Hz. Plugins can self-optimize via config files (e.g., disable high-fidelity modes).
 
-| System | Revised Description | Pluggability | Performance Tweaks |
-|--------|---------------------|--------------|--------------------|
-| **Physical** | Destruction/fluids/gravity. | Custom forces via hooks. | Proximity-based: Full sim in 200m radius; approximations elsewhere (e.g., no fluid flow in unloaded chunks). |
-| **Social** | Factions/morale. | AI/diplomacy extensions. | Event-driven: Only recompute on interactions. |
-| **Economic** | Resources/trading. | Scriptable markets. | Batch processing: Update chains every 5s; use voxel tags for passive yields. |
-| **Biological** | Growth/diseases. | Species data files. | Cellular automata on GPU; skip cycles in stable areas. |
-| **Climate/Weather** | Temp/rain/seasons. | Modular weathers. | 2D simulation grid (1km resolution) projected to voxels; affects only loaded areas. |
+| System              | Revised Description         | Pluggability             | Performance Tweaks                                                                                           |
+| ------------------- | --------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| **Physical**        | Destruction/fluids/gravity. | Custom forces via hooks. | Proximity-based: Full sim in 200m radius; approximations elsewhere (e.g., no fluid flow in unloaded chunks). |
+| **Social**          | Factions/morale.            | AI/diplomacy extensions. | Event-driven: Only recompute on interactions.                                                                |
+| **Economic**        | Resources/trading.          | Scriptable markets.      | Batch processing: Update chains every 5s; use voxel tags for passive yields.                                 |
+| **Biological**      | Growth/diseases.            | Species data files.      | Cellular automata on GPU; skip cycles in stable areas.                                                       |
+| **Climate/Weather** | Temp/rain/seasons.          | Modular weathers.        | 2D simulation grid (1km resolution) projected to voxels; affects only loaded areas.                          |
 
 Multithreading ensures systems parallelize (e.g., physics on 4-6 cores). Single-player disables network serialization overhead.
 
 ### Depth for Underground/Undersea Bases (D.U.M.B.s)
+
 Depth remains viable at 5 km, but with zoned loading: Only excavated areas stay in memory. Pressure/heat simulations use lookup tables instead of per-voxel computes. Bases load as "instances" with interior high-res voxels, exteriors low-res for overview maps.
 
 ### Feasible Resolution for Semi-Realistic Realtime Physics Updates
+
 - **Resolution**: Dynamic LOD: 1m³ near player (100m radius), scaling to 8m³ at 1km, 64m³ globally. Active voxels per frame: ~10⁵-10⁶, feasible on commodity hardware.
 - **Physics**: Approximations include rigid body for small scales, particle systems for debris. Updates multi-threaded and zoned—e.g., global gravity at low freq, local collisions at high. Frame budget: <10ms physics tick.
 - **Optimization Suite**:
-  - Chunking: 32x32x32 voxel chunks, loaded in a 5x5x5 grid around player (~160 chunks max).
-  - Culling: Frustum/occlusion for rendering; spatial partitioning (octrees) for queries.
-  - Hardware Adaptation: Runtime profiling adjusts entity caps, sim rates (e.g., halve on detected low FPS).
-  - Single-Player Boost: No sync overhead; AI can pause in unexplored regions.
+    - Chunking: 32x32x32 voxel chunks, loaded in a 5x5x5 grid around player (~160 chunks max).
+    - Culling: Frustum/occlusion for rendering; spatial partitioning (octrees) for queries.
+    - Hardware Adaptation: Runtime profiling adjusts entity caps, sim rates (e.g., halve on detected low FPS).
+    - Single-Player Boost: No sync overhead; AI can pause in unexplored regions.
 
 Benchmarks (estimated): Exploration at 60 FPS, intense battles (100 entities) at 45-60 FPS on target hardware.
 
 ### 3D Rendering and UI Interaction
+
 - **Rendering**: GPU-focused—Marching Cubes on compute shaders for meshes, ray marching for atmospheres at reduced samples (4-8). Fallback to rasterization on weaker GPUs. Global illumination via baked probes + screen-space effects.
 - **UI Interaction**: Streamlined for performance—raycasts limited to screen center, UI elements batched. Single-player includes pause/resume for heavy computations. Minimap uses 2D projection with LOD textures.
 
 ### Scale Considerations
+
 - **Overall Scale**: 50 km radius balances complexity (e.g., multi-continent wars) with load—full planet traversal takes ~hours in-game, but fast travel via orbitals.
 - **Granularity vs. Performance**: Human-scale details preserved, but with auto-optimizations (e.g., merge roads into textures at distance).
 - **Single-Player Focus**: Runs standalone; multiplayer as optional mode (host local server or connect to dedicated). This ensures "ultimate success" by making the game accessible and engaging solo, with scalable depth for groups.
-
-
 
 # World State Representation
 
 This document describes the core data structures and systems used to represent the game world in ThreatForge. It covers the global `WorldState`, detailed `Region` and `Faction` interfaces, and the underlying physics and environmental models that drive the simulation.
 
 ## World State Interface
+
 ```typescript
 interface WorldState {
-  regions: Region[]; // An array of all geographical regions in the game world.
-  factions: Faction[]; // An array of all active factions in the simulation.
-  currentTurn: number; // The current turn number in the simulation, advancing game time.
-  globalMetrics: { // Key performance indicators for the entire world.
-    stability: number; // Overall global stability (0-1 scale, higher is more stable).
-    economy: number; // Global economic health (0-1 scale, higher is stronger).
-    trust: number; // Global population trust in institutions (0-1 scale, higher is more trusting).
-  };
+    regions: Region[]; // An array of all geographical regions in the game world.
+    factions: Faction[]; // An array of all active factions in the simulation.
+    currentTurn: number; // The current turn number in the simulation, advancing game time.
+    globalMetrics: {
+        // Key performance indicators for the entire world.
+        stability: number; // Overall global stability (0-1 scale, higher is more stable).
+        economy: number; // Global economic health (0-1 scale, higher is stronger).
+        trust: number; // Global population trust in institutions (0-1 scale, higher is more trusting).
+    };
 }
 
 // Unified Action System Implementation
 const DomainActions: Record<string, Action[]> = {
-  QUANTUM: [
-    {
-      id: "quantum_entangle",
-      type: "QUANTUM",
-      name: "Entangle Systems",
-      description: "Create quantum entanglement for coordinated attacks",
-      resourceCost: { funds: 500, intel: 300, tech: 400 },
-      successProbability: 0.7,
-      effects: [{ target: "QUANTUM_SYSTEM", modifier: 0.3, duration: 5 }],
-      cooldown: 3,
-      requiredCapabilities: ["quantumOperations"]
-    },
-    {
-      id: "quantum_sensor_jam",
-      type: "QUANTUM",
-      name: "Quantum Sensor Jam",
-      description: "Disrupt enemy sensors using quantum interference",
-      resourceCost: { funds: 600, tech: 500 },
-      successProbability: 0.65,
-      effects: [{ target: "SPACE", modifier: -0.5, duration: 4 }],
-      cooldown: 4,
-      requiredCapabilities: ["quantumOperations"]
-    }
-  ],
-  RADIOLOGICAL: [
-    {
-      id: "radiological_cleanup",
-      type: "RADIOLOGICAL",
-      name: "Radiological Cleanup",
-      description: "Decontaminate areas affected by radiation",
-      resourceCost: { funds: 800, manpower: 400, tech: 300 },
-      successProbability: 0.75,
-      effects: [{ target: "RAD", modifier: -0.6, duration: 6 }],
-      cooldown: 5,
-      requiredCapabilities: ["radiologicalContainment"]
-    }
-  ],
-  ROBOTIC: [
-    {
-      id: "swarm_coordination",
-      type: "ROBOTIC",
-      name: "Swarm Coordination",
-      description: "Enhance robotic swarm intelligence",
-      resourceCost: { funds: 450, tech: 350 },
-      successProbability: 0.8,
-      effects: [{ target: "ROBOTIC_NETWORK", modifier: 0.5, duration: 5 }],
-      cooldown: 3,
-      requiredCapabilities: ["roboticCommand"]
-    }
-  ],
-  INFO: [
-    {
-      id: "deepfake_campaign",
-      type: "INFO",
-      name: "Deepfake Campaign",
-      description: "Spread manipulated media to influence populations",
-      resourceCost: { intel: 400, tech: 300 },
-      successProbability: 0.7,
-      effects: [{ target: "POPULATION", modifier: -0.4, duration: 4 }],
-      cooldown: 4,
-      requiredCapabilities: ["misinformationCampaigns"]
-    }
-  ],
-  ECON: [
-    {
-      id: "targeted_sanctions",
-      type: "ECON",
-      name: "Targeted Sanctions",
-      description: "Cripple enemy economy through financial restrictions",
-      resourceCost: { funds: 700, influence: 400 },
-      successProbability: 0.65,
-      effects: [{ target: "ECONOMY", modifier: -0.5, duration: 6 }],
-      cooldown: 5,
-      requiredCapabilities: ["economicSanctions"]
-    }
-  ]
+    QUANTUM: [
+        {
+            id: 'quantum_entangle',
+            type: 'QUANTUM',
+            name: 'Entangle Systems',
+            description: 'Create quantum entanglement for coordinated attacks',
+            resourceCost: { funds: 500, intel: 300, tech: 400 },
+            successProbability: 0.7,
+            effects: [{ target: 'QUANTUM_SYSTEM', modifier: 0.3, duration: 5 }],
+            cooldown: 3,
+            requiredCapabilities: ['quantumOperations'],
+        },
+        {
+            id: 'quantum_sensor_jam',
+            type: 'QUANTUM',
+            name: 'Quantum Sensor Jam',
+            description: 'Disrupt enemy sensors using quantum interference',
+            resourceCost: { funds: 600, tech: 500 },
+            successProbability: 0.65,
+            effects: [{ target: 'SPACE', modifier: -0.5, duration: 4 }],
+            cooldown: 4,
+            requiredCapabilities: ['quantumOperations'],
+        },
+    ],
+    RADIOLOGICAL: [
+        {
+            id: 'radiological_cleanup',
+            type: 'RADIOLOGICAL',
+            name: 'Radiological Cleanup',
+            description: 'Decontaminate areas affected by radiation',
+            resourceCost: { funds: 800, manpower: 400, tech: 300 },
+            successProbability: 0.75,
+            effects: [{ target: 'RAD', modifier: -0.6, duration: 6 }],
+            cooldown: 5,
+            requiredCapabilities: ['radiologicalContainment'],
+        },
+    ],
+    ROBOTIC: [
+        {
+            id: 'swarm_coordination',
+            type: 'ROBOTIC',
+            name: 'Swarm Coordination',
+            description: 'Enhance robotic swarm intelligence',
+            resourceCost: { funds: 450, tech: 350 },
+            successProbability: 0.8,
+            effects: [
+                { target: 'ROBOTIC_NETWORK', modifier: 0.5, duration: 5 },
+            ],
+            cooldown: 3,
+            requiredCapabilities: ['roboticCommand'],
+        },
+    ],
+    INFO: [
+        {
+            id: 'deepfake_campaign',
+            type: 'INFO',
+            name: 'Deepfake Campaign',
+            description: 'Spread manipulated media to influence populations',
+            resourceCost: { intel: 400, tech: 300 },
+            successProbability: 0.7,
+            effects: [{ target: 'POPULATION', modifier: -0.4, duration: 4 }],
+            cooldown: 4,
+            requiredCapabilities: ['misinformationCampaigns'],
+        },
+    ],
+    ECON: [
+        {
+            id: 'targeted_sanctions',
+            type: 'ECON',
+            name: 'Targeted Sanctions',
+            description: 'Cripple enemy economy through financial restrictions',
+            resourceCost: { funds: 700, influence: 400 },
+            successProbability: 0.65,
+            effects: [{ target: 'ECONOMY', modifier: -0.5, duration: 6 }],
+            cooldown: 5,
+            requiredCapabilities: ['economicSanctions'],
+        },
+    ],
 };
 
 // Environmental manipulation actions
 const EnvironmentalActions: Action[] = [
-  {
-    id: "geoengineering",
-    type: "ENVIRONMENTAL",
-    name: "Geoengineering Project",
-    description: "Deploy large-scale climate manipulation technology",
-    resourceCost: { funds: 1500, tech: 1200 },
-    successProbability: 0.65,
-    effects: [
-      { target: "ENV", modifier: -0.5, duration: 8 }
-    ],
-    cooldown: 10,
-    requiredCapabilities: ["geoengineering"]
-  },
-  {
-    id: "weather_control",
-    type: "ENVIRONMENTAL",
-    name: "Weather Control",
-    description: "Manipulate local weather patterns for strategic advantage",
-    resourceCost: { funds: 1000, tech: 800 },
-    successProbability: 0.7,
-    effects: [
-      { target: "REGION", modifier: 0.4, duration: 5 }
-    ],
-    cooldown: 7,
-    requiredCapabilities: ["spaceWeatherControl"]
-  }
+    {
+        id: 'geoengineering',
+        type: 'ENVIRONMENTAL',
+        name: 'Geoengineering Project',
+        description: 'Deploy large-scale climate manipulation technology',
+        resourceCost: { funds: 1500, tech: 1200 },
+        successProbability: 0.65,
+        effects: [{ target: 'ENV', modifier: -0.5, duration: 8 }],
+        cooldown: 10,
+        requiredCapabilities: ['geoengineering'],
+    },
+    {
+        id: 'weather_control',
+        type: 'ENVIRONMENTAL',
+        name: 'Weather Control',
+        description:
+            'Manipulate local weather patterns for strategic advantage',
+        resourceCost: { funds: 1000, tech: 800 },
+        successProbability: 0.7,
+        effects: [{ target: 'REGION', modifier: 0.4, duration: 5 }],
+        cooldown: 7,
+        requiredCapabilities: ['spaceWeatherControl'],
+    },
 ];
 
 const EnvironmentalDisasters = [
-  {
-    id: "mega_storm",
-    triggerConditions: (region: Region) => 
-      region.attributes.climateVulnerability > 0.7 && 
-      region.attributes.temperature > 30,
-    effects: {
-      infrastructureDamage: 0.6,
-      populationDisplacement: 0.8,
-      economicImpact: 0.7,
-      duration: 8 // turns
-    }
-  },
-  {
-    id: "desertification",
-    triggerConditions: (region: Region) => 
-      region.attributes.precipitation < 500 && 
-      region.attributes.agriculturalIntensity > 0.6,
-    effects: {
-      agriculturalYield: -0.9,
-      waterScarcity: 0.7,
-      migrationTrigger: 0.5,
-      duration: 15 // turns
-    }
-  }
+    {
+        id: 'mega_storm',
+        triggerConditions: (region: Region) =>
+            region.attributes.climateVulnerability > 0.7 &&
+            region.attributes.temperature > 30,
+        effects: {
+            infrastructureDamage: 0.6,
+            populationDisplacement: 0.8,
+            economicImpact: 0.7,
+            duration: 8, // turns
+        },
+    },
+    {
+        id: 'desertification',
+        triggerConditions: (region: Region) =>
+            region.attributes.precipitation < 500 &&
+            region.attributes.agriculturalIntensity > 0.6,
+        effects: {
+            agriculturalYield: -0.9,
+            waterScarcity: 0.7,
+            migrationTrigger: 0.5,
+            duration: 15, // turns
+        },
+    },
 ];
 
 // Radiological-specific actions
 const RadiologicalActions: Action[] = [
-  {
-    id: "rad_contain",
-    type: "RADIOLOGICAL",
-    name: "Contain Radiation",
-    description: "Deploy shielding to contain radiological contamination",
-    resourceCost: { funds: 300, manpower: 200, tech: 100 },
-    successProbability: 0.8,
-    effects: [
-      { target: "RAD", modifier: -0.5, duration: 4 }
-    ],
-    cooldown: 2,
-    requiredCapabilities: ["radiologicalContainment"]
-  }
+    {
+        id: 'rad_contain',
+        type: 'RADIOLOGICAL',
+        name: 'Contain Radiation',
+        description: 'Deploy shielding to contain radiological contamination',
+        resourceCost: { funds: 300, manpower: 200, tech: 100 },
+        successProbability: 0.8,
+        effects: [{ target: 'RAD', modifier: -0.5, duration: 4 }],
+        cooldown: 2,
+        requiredCapabilities: ['radiologicalContainment'],
+    },
 ];
 
 // Robotic-specific actions
 const RoboticActions: Action[] = [
-  {
-    id: "swarm_command",
-    type: "ROBOTIC",
-    name: "Swarm Command",
-    description: "Issue coordinated commands to robotic swarms",
-    resourceCost: { funds: 400, intel: 300, tech: 200 },
-    successProbability: 0.75,
-    effects: [
-      { target: "ROBOTIC_NETWORK", modifier: 0.4, duration: 4 }
-    ],
-    cooldown: 3,
-    requiredCapabilities: ["roboticOperations"]
-  }
+    {
+        id: 'swarm_command',
+        type: 'ROBOTIC',
+        name: 'Swarm Command',
+        description: 'Issue coordinated commands to robotic swarms',
+        resourceCost: { funds: 400, intel: 300, tech: 200 },
+        successProbability: 0.75,
+        effects: [{ target: 'ROBOTIC_NETWORK', modifier: 0.4, duration: 4 }],
+        cooldown: 3,
+        requiredCapabilities: ['roboticOperations'],
+    },
 ];
 
 function handleRadiationContainment(region: Region, action: Action): void {
-  const containmentEfficiency = calculateContainmentEfficiency(
-    region.techLevel, 
-    action.resourceCost.tech
-  );
-  
-  region.threats.forEach(threat => {
-    if (threat.domain === "RAD") {
-      threat.severity *= (1 - containmentEfficiency);
-      threat.radiologicalProperties!.halfLife *= 0.8;
+    const containmentEfficiency = calculateContainmentEfficiency(
+        region.techLevel,
+        action.resourceCost.tech
+    );
+
+    region.threats.forEach((threat) => {
+        if (threat.domain === 'RAD') {
+            threat.severity *= 1 - containmentEfficiency;
+            threat.radiologicalProperties!.halfLife *= 0.8;
+        }
+    });
+
+    // Educational effect
+    if (containmentEfficiency > 0.7) {
+        region.population.psychodynamics.trust += 0.1;
     }
-  });
-  
-  // Educational effect
-  if (containmentEfficiency > 0.7) {
-    region.population.psychodynamics.trust += 0.1;
-  }
 }
 
 const EconomicActions: Action[] = [
-  {
-    id: "currency_manipulation",
-    type: "ECON",
-    name: "Currency Manipulation",
-    description: "Devalue opponent's currency to trigger inflation",
-    resourceCost: { funds: 700, influence: 500 },
-    successProbability: 0.65,
-    effects: [{
-      target: "ECONOMY", 
-      modifier: -0.6, 
-      duration: 8,
-      cascadeEffects: ["MARKET_CRASH", "HYPERINFLATION"]
-    }],
-    cooldown: 10
-  },
-  {
-    id: "supply_chain_attack",
-    type: "ECON",
-    name: "Supply Chain Attack",
-    description: "Disrupt critical resource distribution networks",
-    resourceCost: { intel: 400, tech: 300 },
-    successProbability: 0.75,
-    effects: [{
-      target: "INFRASTRUCTURE",
-      modifier: -0.7,
-      duration: 6,
-      cascadeEffects: ["SHORTAGES", "ECONOMIC_STAGNATION"]
-    }],
-    cooldown: 8
-  }
+    {
+        id: 'currency_manipulation',
+        type: 'ECON',
+        name: 'Currency Manipulation',
+        description: "Devalue opponent's currency to trigger inflation",
+        resourceCost: { funds: 700, influence: 500 },
+        successProbability: 0.65,
+        effects: [
+            {
+                target: 'ECONOMY',
+                modifier: -0.6,
+                duration: 8,
+                cascadeEffects: ['MARKET_CRASH', 'HYPERINFLATION'],
+            },
+        ],
+        cooldown: 10,
+    },
+    {
+        id: 'supply_chain_attack',
+        type: 'ECON',
+        name: 'Supply Chain Attack',
+        description: 'Disrupt critical resource distribution networks',
+        resourceCost: { intel: 400, tech: 300 },
+        successProbability: 0.75,
+        effects: [
+            {
+                target: 'INFRASTRUCTURE',
+                modifier: -0.7,
+                duration: 6,
+                cascadeEffects: ['SHORTAGES', 'ECONOMIC_STAGNATION'],
+            },
+        ],
+        cooldown: 8,
+    },
 ];
 
 interface Region {
-  id: string; // Unique identifier for the region.
-  population: PopulationPyramid; // Demographic and psychological data for the region's inhabitants.
-  resources: ResourcePool; // Available resources within the region (e.g., funds, manpower).
-  threats: ActiveThreat[]; // An array of active threats present in this region.
-  attributes: { // Intrinsic properties of the region.
-    climateVulnerability: number; // 0-1 scale, how susceptible the region is to climate-related threats.
-    techLevel: number; // 0-1 scale, the technological advancement level of the region.
-  };
-  // Spatial properties
-  boundary: [number, number][]; // Polygon coordinates [longitude, latitude] defining the geographical shape of the region.
-  centroid: [number, number];   // [longitude, latitude] coordinates of the region's geographical center.
-  elevation: number;            // Meters above sea level, representing the average elevation of the region.
+    id: string; // Unique identifier for the region.
+    population: PopulationPyramid; // Demographic and psychological data for the region's inhabitants.
+    resources: ResourcePool; // Available resources within the region (e.g., funds, manpower).
+    threats: ActiveThreat[]; // An array of active threats present in this region.
+    attributes: {
+        // Intrinsic properties of the region.
+        climateVulnerability: number; // 0-1 scale, how susceptible the region is to climate-related threats.
+        techLevel: number; // 0-1 scale, the technological advancement level of the region.
+    };
+    // Spatial properties
+    boundary: [number, number][]; // Polygon coordinates [longitude, latitude] defining the geographical shape of the region.
+    centroid: [number, number]; // [longitude, latitude] coordinates of the region's geographical center.
+    elevation: number; // Meters above sea level, representing the average elevation of the region.
 }
 
 interface PopulationPyramid {
-  ageGroups: { // Distribution of the population across different age demographics.
-    youth: number; // Percentage or count of youth.
-    adults: number; // Percentage or count of adults.
-    elderly: number; // Percentage or count of elderly.
-  };
-  psychodynamics: { // Psychological state and societal dynamics of the population.
-    trust: number; // 0-1 scale, population's trust in authorities and institutions.
-    fear: number; // 0-1 scale, level of fear or anxiety within the population.
-    compliance: number; // 0-1 scale, willingness of the population to comply with directives.
-    // Pharmaceutical warfare effects
-    addictionLevel?: number; // 0-1 scale, level of addiction within the population due to biological/pharmaceutical threats.
-    dependencyLevel?: number; // 0-1 scale, how quickly dependency develops on a substance.
-    contaminationExposure?: number; // 0-1 scale, level of exposure to contaminants.
-  };
+    ageGroups: {
+        // Distribution of the population across different age demographics.
+        youth: number; // Percentage or count of youth.
+        adults: number; // Percentage or count of adults.
+        elderly: number; // Percentage or count of elderly.
+    };
+    psychodynamics: {
+        // Psychological state and societal dynamics of the population.
+        trust: number; // 0-1 scale, population's trust in authorities and institutions.
+        fear: number; // 0-1 scale, level of fear or anxiety within the population.
+        compliance: number; // 0-1 scale, willingness of the population to comply with directives.
+        // Pharmaceutical warfare effects
+        addictionLevel?: number; // 0-1 scale, level of addiction within the population due to biological/pharmaceutical threats.
+        dependencyLevel?: number; // 0-1 scale, how quickly dependency develops on a substance.
+        contaminationExposure?: number; // 0-1 scale, level of exposure to contaminants.
+    };
 }
 ```
 
@@ -356,7 +367,7 @@ interface PopulationPyramid {
 
 The Faction System defines the various playable and non-playable entities within the ThreatForge simulation, each with distinct goals, capabilities, and win conditions. This system drives the asymmetric gameplay and allows for diverse strategic approaches.
 
-```typescript
+````typescript
 enum FactionType {
   TECHNOOCRAT = "Evil Technocrat", // Focuses on technological dominance and control.
   MITIGATOR = "Hero Mitigator",     // Aims to neutralize threats and restore global stability.
@@ -448,9 +459,9 @@ interface ResourcePool {
 interface MilitaryUnit {
   id: string; // Unique identifier for the military unit.
   factionId: string; // The ID of the faction that owns this unit.
-  type: "INFANTRY" | "TANK" | "AIRCRAFT" | "NAVAL" | "CYBER" | "DRONE" | 
-        "AUTONOMOUS_GROUND" | "ROBOTIC_SWARM" | "QUANTUM_NODE" | 
-        "RAD_DISPERSAL" | "TUNNELER" | "SPACE_PLATFORM" | 
+  type: "INFANTRY" | "TANK" | "AIRCRAFT" | "NAVAL" | "CYBER" | "DRONE" |
+        "AUTONOMOUS_GROUND" | "ROBOTIC_SWARM" | "QUANTUM_NODE" |
+        "RAD_DISPERSAL" | "TUNNELER" | "SPACE_PLATFORM" |
         "NEURO_IMPLANT" | "CLOUD_SEEDER" | "CHRONO_DISRUPTOR" | "GRAVITY_WELL_GENERATOR"; // The type of military unit.
   position: [number, number];   // [longitude, latitude] coordinates of the unit's current location.
   velocity: [number, number];   // [m/s east, m/s north] current velocity vector of the unit.
@@ -570,20 +581,20 @@ interface WeatherSystem {
 function applyWeatherEffects(unit: MilitaryUnit, weather: WeatherSystem) {
   // Visibility reduction: Reduces the unit's sensor range based on weather visibility modifier.
   unit.sensorRange *= (1 - weather.effects.visibilityModifier);
-  
+
   // Movement speed penalty: Applies a penalty to the unit's movement speed.
   unit.movementSpeed *= (1 - weather.effects.movementPenalty);
-  
+
   // Threat amplification: Adds weather-induced threat amplification to existing cross-domain impacts.
   threat.crossDomainImpacts.push(
     ...weather.effects.threatAmplification
   );
-  
+
   // NEW: Robotic unit effects: Increases the error rate for robotic units during adverse weather.
   if (unit.type.includes("ROBOT") || unit.type === "DRONE") {
     unit.errorRate += weather.effects.roboticMalfunction || 0;
   }
-  
+
   // NEW: Cyber disruption: Reduces the effectiveness of cyber operations during signal interference.
   if (unit.capabilities.includes("CYBER_OPS")) {
     unit.effectiveness *= (1 - (weather.effects.cyberDisruption || 0));
@@ -602,10 +613,10 @@ function generateWeather(region: Region, globalClimate: number): WeatherSystem {
   if (region.threats.some(t => t.domain === "RAD")) {
     weatherTypes.push("RADIOLOGICAL_FALLOUT");
   }
-  
+
   const weatherType = weatherTypes[Math.floor(Math.random() * weatherTypes.length)];
   const intensity = Math.min(1, region.attributes.climateVulnerability * globalClimate);
-  
+
   return {
     currentConditions: {
       type: weatherType,
@@ -621,29 +632,29 @@ function generateWeather(region: Region, globalClimate: number): WeatherSystem {
     }
   };
 }
-```
+````
 
 ## Terrain Modification
 
 Terrain modification allows certain units or factions to alter the physical landscape of regions, creating strategic advantages or mitigating environmental threats. This system introduces dynamic changes to the world map based on player actions and environmental events.
 
-*   **Dynamic Terrain**: Units equipped with terraforming capabilities can dynamically modify elevation, create new landforms, or flatten areas, impacting movement, line of sight, and resource accessibility.
-*   **Environmental Hazards**: Players can create or mitigate natural disaster zones, such as building flood defenses, initiating controlled burns to prevent wildfires, or even triggering localized seismic events.
-*   **Resource Depletion**: Over-exploitation of natural resources in a region leads to reduced resource yields over time, simulating the long-term consequences of unsustainable practices.
-*   **Climate Change**: Industrial activity and certain threat types can contribute to long-term climate change effects, leading to shifts in global temperatures, sea levels, and weather patterns.
-*   **Radiological Contamination**: Radiological events leave persistent environmental effects, contaminating regions and rendering them hazardous for extended periods, impacting population health and resource extraction.
-*   **Robotic Terraforming**: Autonomous robotic systems can be deployed to reshape terrain for strategic advantage, such as constructing defensive barriers, digging tunnels, or preparing areas for large-scale operations.
+- **Dynamic Terrain**: Units equipped with terraforming capabilities can dynamically modify elevation, create new landforms, or flatten areas, impacting movement, line of sight, and resource accessibility.
+- **Environmental Hazards**: Players can create or mitigate natural disaster zones, such as building flood defenses, initiating controlled burns to prevent wildfires, or even triggering localized seismic events.
+- **Resource Depletion**: Over-exploitation of natural resources in a region leads to reduced resource yields over time, simulating the long-term consequences of unsustainable practices.
+- **Climate Change**: Industrial activity and certain threat types can contribute to long-term climate change effects, leading to shifts in global temperatures, sea levels, and weather patterns.
+- **Radiological Contamination**: Radiological events leave persistent environmental effects, contaminating regions and rendering them hazardous for extended periods, impacting population health and resource extraction.
+- **Robotic Terraforming**: Autonomous robotic systems can be deployed to reshape terrain for strategic advantage, such as constructing defensive barriers, digging tunnels, or preparing areas for large-scale operations.
 
 ## Ecosystem Simulation
 
 The Ecosystem Simulation models the complex interdependencies within natural environments, demonstrating how threats and player actions can impact biodiversity, resource renewal, and overall ecological health. This system adds a layer of environmental realism and strategic depth.
 
-*   **Food Chain Interactions**: Biological threats and environmental changes can disrupt food chain interactions, leading to cascading effects on species populations and ecosystem stability.
-*   **Pollution Effects**: Environmental contamination from industrial activities or specific threats directly impacts population health, resource quality, and the viability of ecosystems.
-*   **Resource Renewal**: Natural regeneration rates for various resources are simulated, allowing for sustainable management strategies or highlighting the consequences of over-exploitation.
-*   **Biodiversity Index**: A quantifiable measure of ecological health, the biodiversity index affects the evolution and mutation of biological threats, with lower biodiversity potentially leading to more virulent strains.
-*   **Quantum Ecosystem Effects**: Explores the theoretical impact of quantum entanglement on biological systems, potentially leading to unforeseen mutations or accelerated evolution in response to quantum threats.
-*   **Robotic Ecosystem Impact**: Autonomous robotic systems can have both positive and negative impacts on wildlife behavior and natural habitats, from environmental cleanup to unintended ecological disruption.
+- **Food Chain Interactions**: Biological threats and environmental changes can disrupt food chain interactions, leading to cascading effects on species populations and ecosystem stability.
+- **Pollution Effects**: Environmental contamination from industrial activities or specific threats directly impacts population health, resource quality, and the viability of ecosystems.
+- **Resource Renewal**: Natural regeneration rates for various resources are simulated, allowing for sustainable management strategies or highlighting the consequences of over-exploitation.
+- **Biodiversity Index**: A quantifiable measure of ecological health, the biodiversity index affects the evolution and mutation of biological threats, with lower biodiversity potentially leading to more virulent strains.
+- **Quantum Ecosystem Effects**: Explores the theoretical impact of quantum entanglement on biological systems, potentially leading to unforeseen mutations or accelerated evolution in response to quantum threats.
+- **Robotic Ecosystem Impact**: Autonomous robotic systems can have both positive and negative impacts on wildlife behavior and natural habitats, from environmental cleanup to unintended ecological disruption.
 
 # Physics Modeling
 
@@ -660,24 +671,28 @@ The engine utilizes Newtonian mechanics to simulate the movement and interaction
 These functions demonstrate how different types of military units are simulated using basic Newtonian physics principles, accounting for factors like terrain resistance, engine force, and mass.
 
 ```typescript
-function updateTankMovement(tank: MilitaryUnit, terrainResistance: number, dt: number) {
-  // Calculate net force (engine power - friction)
-  // The net force determines the acceleration of the tank.
-  const engineForce = 50000; // N (typical main battle tank engine force)
-  const frictionForce = terrainResistance * tank.mass * 9.8; // Friction opposing movement.
-  const netForce = engineForce - frictionForce;
-  
-  // Update acceleration, velocity, position
-  // Applying Newton's second law (F=ma) to update the tank's state.
-  const acceleration = netForce / tank.mass;
-  tank.velocity[0] += acceleration * dt * Math.cos(tank.heading); // Update x-velocity component.
-  tank.velocity[1] += acceleration * dt * Math.sin(tank.heading); // Update y-velocity component.
-  tank.position[0] += tank.velocity[0] * dt; // Update x-position.
-  tank.position[1] += tank.velocity[1] * dt; // Update y-position.
-  
-  // Update energy (fuel consumption)
-  // Simulates fuel consumption based on engine force and distance traveled.
-  tank.energy -= engineForce * 0.0001 * dt; // 0.0001 Joules per Newton of force per second.
+function updateTankMovement(
+    tank: MilitaryUnit,
+    terrainResistance: number,
+    dt: number
+) {
+    // Calculate net force (engine power - friction)
+    // The net force determines the acceleration of the tank.
+    const engineForce = 50000; // N (typical main battle tank engine force)
+    const frictionForce = terrainResistance * tank.mass * 9.8; // Friction opposing movement.
+    const netForce = engineForce - frictionForce;
+
+    // Update acceleration, velocity, position
+    // Applying Newton's second law (F=ma) to update the tank's state.
+    const acceleration = netForce / tank.mass;
+    tank.velocity[0] += acceleration * dt * Math.cos(tank.heading); // Update x-velocity component.
+    tank.velocity[1] += acceleration * dt * Math.sin(tank.heading); // Update y-velocity component.
+    tank.position[0] += tank.velocity[0] * dt; // Update x-position.
+    tank.position[1] += tank.velocity[1] * dt; // Update y-position.
+
+    // Update energy (fuel consumption)
+    // Simulates fuel consumption based on engine force and distance traveled.
+    tank.energy -= engineForce * 0.0001 * dt; // 0.0001 Joules per Newton of force per second.
 }
 ```
 
@@ -686,64 +701,80 @@ function updateTankMovement(tank: MilitaryUnit, terrainResistance: number, dt: n
 This function models the collective movement of a robotic swarm, incorporating principles of cohesion and attraction towards a central point, while also accounting for damping to prevent runaway acceleration.
 
 ```typescript
-function updateSwarmMovement(swarm: MilitaryUnit, cohesion: number, dt: number) {
-  // Calculate average velocity of nearby swarm units
-  // This represents the collective intelligence guiding the swarm.
-  const center = swarm.centerOfMass; // [x, y] - calculated from swarm units' positions.
-  const directionToCenter = [center[0] - swarm.position[0], center[1] - swarm.position[1]];
-  const distanceToCenter = Math.hypot(...directionToCenter);
+function updateSwarmMovement(
+    swarm: MilitaryUnit,
+    cohesion: number,
+    dt: number
+) {
+    // Calculate average velocity of nearby swarm units
+    // This represents the collective intelligence guiding the swarm.
+    const center = swarm.centerOfMass; // [x, y] - calculated from swarm units' positions.
+    const directionToCenter = [
+        center[0] - swarm.position[0],
+        center[1] - swarm.position[1],
+    ];
+    const distanceToCenter = Math.hypot(...directionToCenter);
 
-  // Normalize and scale by cohesion
-  if (distanceToCenter > 0) {
-    const normalizedDir = [directionToCenter[0]/distanceToCenter, directionToCenter[1]/distanceToCenter];
-    const attractionForce = 100 * cohesion; // Newtons, force pulling units towards the center of mass.
+    // Normalize and scale by cohesion
+    if (distanceToCenter > 0) {
+        const normalizedDir = [
+            directionToCenter[0] / distanceToCenter,
+            directionToCenter[1] / distanceToCenter,
+        ];
+        const attractionForce = 100 * cohesion; // Newtons, force pulling units towards the center of mass.
 
-    // Update velocity
-    swarm.velocity[0] += attractionForce * normalizedDir[0] / swarm.mass * dt;
-    swarm.velocity[1] += attractionForce * normalizedDir[1] / swarm.mass * dt;
-  }
+        // Update velocity
+        swarm.velocity[0] +=
+            ((attractionForce * normalizedDir[0]) / swarm.mass) * dt;
+        swarm.velocity[1] +=
+            ((attractionForce * normalizedDir[1]) / swarm.mass) * dt;
+    }
 
-  // Damping to prevent infinite acceleration
-  // Reduces velocity over time to simulate drag or energy loss.
-  swarm.velocity[0] *= 0.99;
-  swarm.velocity[1] *= 0.99;
+    // Damping to prevent infinite acceleration
+    // Reduces velocity over time to simulate drag or energy loss.
+    swarm.velocity[0] *= 0.99;
+    swarm.velocity[1] *= 0.99;
 
-  // Update position
-  swarm.position[0] += swarm.velocity[0] * dt;
-  swarm.position[1] += swarm.velocity[1] * dt;
+    // Update position
+    swarm.position[0] += swarm.velocity[0] * dt;
+    swarm.position[1] += swarm.velocity[1] * dt;
 }
 
 // Geological event simulation
 // This function simulates the physical effects of various geological events on military units within a region.
-function simulateGeologicalEvent(region: Region, eventType: string, magnitude: number) {
-  switch (eventType) {
-    case "EARTHQUAKE":
-      // Shake all units in region by applying random velocity impulses.
-      region.militaryUnits.forEach(unit => {
-        unit.velocity[0] += (Math.random() - 0.5) * magnitude * 0.1;
-        unit.velocity[1] += (Math.random() - 0.5) * magnitude * 0.1;
-      });
-      break;
-      
-    case "VOLCANO":
-      // Create ash cloud that affects aircraft, reducing their engine efficiency.
-      region.militaryUnits
-        .filter(u => u.type === "AIRCRAFT")
-        .forEach(unit => {
-          unit.energy *= 0.8; // Ash reduces engine efficiency.
-        });
-      break;
-      
-    case "TSUNAMI":
-      // Push naval units with a strong directional force.
-      region.militaryUnits
-        .filter(u => u.type === "NAVAL")
-        .forEach(unit => {
-          unit.velocity[0] += magnitude * 0.2;
-          unit.velocity[1] += magnitude * 0.2;
-        });
-      break;
-  }
+function simulateGeologicalEvent(
+    region: Region,
+    eventType: string,
+    magnitude: number
+) {
+    switch (eventType) {
+        case 'EARTHQUAKE':
+            // Shake all units in region by applying random velocity impulses.
+            region.militaryUnits.forEach((unit) => {
+                unit.velocity[0] += (Math.random() - 0.5) * magnitude * 0.1;
+                unit.velocity[1] += (Math.random() - 0.5) * magnitude * 0.1;
+            });
+            break;
+
+        case 'VOLCANO':
+            // Create ash cloud that affects aircraft, reducing their engine efficiency.
+            region.militaryUnits
+                .filter((u) => u.type === 'AIRCRAFT')
+                .forEach((unit) => {
+                    unit.energy *= 0.8; // Ash reduces engine efficiency.
+                });
+            break;
+
+        case 'TSUNAMI':
+            // Push naval units with a strong directional force.
+            region.militaryUnits
+                .filter((u) => u.type === 'NAVAL')
+                .forEach((unit) => {
+                    unit.velocity[0] += magnitude * 0.2;
+                    unit.velocity[1] += magnitude * 0.2;
+                });
+            break;
+    }
 }
 ```
 
@@ -752,23 +783,29 @@ function simulateGeologicalEvent(region: Region, eventType: string, magnitude: n
 This function simulates the adjustment of a satellite's orbit, allowing for changes in altitude based on proportional control. This is crucial for maintaining satellite constellations or repositioning assets for strategic purposes.
 
 ```typescript
-function adjustSatelliteOrbit(sat: Satellite, targetAltitude: number, dt: number) {
-  const currentAlt = Math.sqrt(sat.position[0]**2 + sat.position[1]**2 + sat.position[2]**2);
-  const deltaV = 0.1 * (targetAltitude - currentAlt); // Proportional control, calculates the required change in velocity.
-  
-  // Apply thrust in velocity direction
-  const velocityDir = [
-    sat.velocity[0] / Math.hypot(...sat.velocity),
-    sat.velocity[1] / Math.hypot(...sat.velocity),
-    sat.velocity[2] / Math.hypot(...sat.velocity)
-  ];
-  
-  sat.velocity[0] += velocityDir[0] * deltaV;
-  sat.velocity[1] += velocityDir[1] * deltaV;
-  sat.velocity[2] += velocityDir[2] * deltaV;
-  
-  // Update orbital parameters
-  updateOrbit(sat, dt); // Calls the main orbital mechanics function to update the satellite's position and velocity.
+function adjustSatelliteOrbit(
+    sat: Satellite,
+    targetAltitude: number,
+    dt: number
+) {
+    const currentAlt = Math.sqrt(
+        sat.position[0] ** 2 + sat.position[1] ** 2 + sat.position[2] ** 2
+    );
+    const deltaV = 0.1 * (targetAltitude - currentAlt); // Proportional control, calculates the required change in velocity.
+
+    // Apply thrust in velocity direction
+    const velocityDir = [
+        sat.velocity[0] / Math.hypot(...sat.velocity),
+        sat.velocity[1] / Math.hypot(...sat.velocity),
+        sat.velocity[2] / Math.hypot(...sat.velocity),
+    ];
+
+    sat.velocity[0] += velocityDir[0] * deltaV;
+    sat.velocity[1] += velocityDir[1] * deltaV;
+    sat.velocity[2] += velocityDir[2] * deltaV;
+
+    // Update orbital parameters
+    updateOrbit(sat, dt); // Calls the main orbital mechanics function to update the satellite's position and velocity.
 }
 ```
 
@@ -777,40 +814,40 @@ function adjustSatelliteOrbit(sat: Satellite, targetAltitude: number, dt: number
 This section details the fundamental principles of orbital mechanics used to simulate the movement of satellites and other space-based assets around celestial bodies. It applies Newtonian gravitational laws to accurately model trajectories.
 
 ```typescript
-const G = 6.67430e-11; // Gravitational constant (m^3 kg^-1 s^-2)
+const G = 6.6743e-11; // Gravitational constant (m^3 kg^-1 s^-2)
 const EARTH_MASS = 5.972e24; // kg, mass of the Earth.
 
 function updateOrbit(satellite: Satellite, dt: number) {
-  // Calculate distance from Earth center
-  const r = Math.sqrt(
-    satellite.position[0]**2 +
-    satellite.position[1]**2 +
-    satellite.position[2]**2
-  ); // Distance from the center of the Earth to the satellite.
-  
-  // Calculate gravitational force
-  const Fg = G * EARTH_MASS * satellite.mass / r**2; // Newton's Law of Universal Gravitation.
-  
-  // Direction vector towards Earth
-  const dir = [
-    -satellite.position[0]/r,
-    -satellite.position[1]/r,
-    -satellite.position[2]/r
-  ]; // Unit vector pointing from the satellite towards the Earth's center.
-  
-  // Update velocity
-  satellite.velocity[0] += dir[0] * Fg / satellite.mass * dt;
-  satellite.velocity[1] += dir[1] * Fg / satellite.mass * dt;
-  satellite.velocity[2] += dir[2] * Fg / satellite.mass * dt; // Update velocity based on gravitational acceleration.
-  
-  // Update position
-  satellite.position[0] += satellite.velocity[0] * dt;
-  satellite.position[1] += satellite.velocity[1] * dt;
-  satellite.position[2] += satellite.velocity[2] * dt; // Update position based on current velocity.
-  
-  // Update orbital parameters
-  satellite.orbit.semiMajorAxis = r; // For a circular orbit, semi-major axis is the radius.
-  satellite.orbit.period = 2 * Math.PI * Math.sqrt(r**3 / (G * EARTH_MASS)); // Kepler's Third Law for orbital period.
+    // Calculate distance from Earth center
+    const r = Math.sqrt(
+        satellite.position[0] ** 2 +
+            satellite.position[1] ** 2 +
+            satellite.position[2] ** 2
+    ); // Distance from the center of the Earth to the satellite.
+
+    // Calculate gravitational force
+    const Fg = (G * EARTH_MASS * satellite.mass) / r ** 2; // Newton's Law of Universal Gravitation.
+
+    // Direction vector towards Earth
+    const dir = [
+        -satellite.position[0] / r,
+        -satellite.position[1] / r,
+        -satellite.position[2] / r,
+    ]; // Unit vector pointing from the satellite towards the Earth's center.
+
+    // Update velocity
+    satellite.velocity[0] += ((dir[0] * Fg) / satellite.mass) * dt;
+    satellite.velocity[1] += ((dir[1] * Fg) / satellite.mass) * dt;
+    satellite.velocity[2] += ((dir[2] * Fg) / satellite.mass) * dt; // Update velocity based on gravitational acceleration.
+
+    // Update position
+    satellite.position[0] += satellite.velocity[0] * dt;
+    satellite.position[1] += satellite.velocity[1] * dt;
+    satellite.position[2] += satellite.velocity[2] * dt; // Update position based on current velocity.
+
+    // Update orbital parameters
+    satellite.orbit.semiMajorAxis = r; // For a circular orbit, semi-major axis is the radius.
+    satellite.orbit.period = 2 * Math.PI * Math.sqrt(r ** 3 / (G * EARTH_MASS)); // Kepler's Third Law for orbital period.
 }
 ```
 
@@ -821,89 +858,104 @@ This section describes the quantum physics models used to simulate quantum threa
 ```typescript
 // Quantum state representation
 interface QuantumState {
-  qubits: number; // The number of qubits in the quantum system.
-  entanglement: number; // 0-1 entanglement level, representing the degree of quantum correlation.
-  coherenceTime: number; // ms, the duration for which a quantum system maintains its coherence.
+    qubits: number; // The number of qubits in the quantum system.
+    entanglement: number; // 0-1 entanglement level, representing the degree of quantum correlation.
+    coherenceTime: number; // ms, the duration for which a quantum system maintains its coherence.
 }
 
 // Unified Physics Model
 class UnifiedPhysicsEngine {
-  applyQuantumGravity(unit: MilitaryUnit, region: Region) {
-    const gravityDistortion = 0.05 * region.quantumFieldDensity;
-    unit.velocity[0] *= 1 + gravityDistortion;
-    unit.velocity[1] *= 1 + gravityDistortion;
-  }
-  
-  simulateNeuroWavePropagation(threat: Threat, population: number) {
-    return threat.severity * Math.log(population) * 0.3;
-  }
+    applyQuantumGravity(unit: MilitaryUnit, region: Region) {
+        const gravityDistortion = 0.05 * region.quantumFieldDensity;
+        unit.velocity[0] *= 1 + gravityDistortion;
+        unit.velocity[1] *= 1 + gravityDistortion;
+    }
+
+    simulateNeuroWavePropagation(threat: Threat, population: number) {
+        return threat.severity * Math.log(population) * 0.3;
+    }
 }
 
 // Quantum physics modeling
 // Quantum decoherence effects
-function applyQuantumDecoherence(state: QuantumState, environmentNoise: number, dt: number) {
-  // Decoherence increases with noise and time
-  const decoherenceRate = environmentNoise * 0.01; // % per ms, rate at which coherence is lost.
-  state.coherenceTime -= dt * decoherenceRate;
-  
-  // When coherence time drops below threshold, quantum effects diminish
-  if (state.coherenceTime < 100) {
-    state.entanglement *= 0.9; // Rapid loss of entanglement when coherence is low.
-  }
+function applyQuantumDecoherence(
+    state: QuantumState,
+    environmentNoise: number,
+    dt: number
+) {
+    // Decoherence increases with noise and time
+    const decoherenceRate = environmentNoise * 0.01; // % per ms, rate at which coherence is lost.
+    state.coherenceTime -= dt * decoherenceRate;
+
+    // When coherence time drops below threshold, quantum effects diminish
+    if (state.coherenceTime < 100) {
+        state.entanglement *= 0.9; // Rapid loss of entanglement when coherence is low.
+    }
 }
 
 // New environmental interactions
-function applyRadiationWeatherEffects(weather: WeatherSystem, radThreat: Threat) {
-  if (weather.radiationLevel > 500) {
-    radThreat.spreadRate *= 1.2;
-    radThreat.severity *= 1.15;
-  }
+function applyRadiationWeatherEffects(
+    weather: WeatherSystem,
+    radThreat: Threat
+) {
+    if (weather.radiationLevel > 500) {
+        radThreat.spreadRate *= 1.2;
+        radThreat.severity *= 1.15;
+    }
 }
 
 // Quantum computing threat effects
 // This function applies the effects of a quantum threat, such as increasing decryption capabilities
 // and creating cross-domain impacts through entanglement.
 function applyQuantumThreat(threat: Threat, dt: number) {
-  if (threat.domain === "QUANTUM") {
-    const quantumProps = threat.quantumProperties;
-    if (quantumProps) {
-      // Increase decryption capability over time
-      quantumProps.decryptionTime = Math.max(1, quantumProps.decryptionTime * (1 - 0.01 * dt)); // Decryption time decreases, meaning faster decryption.
-      
-      // Entanglement with other quantum systems
-      threat.crossDomainImpacts.forEach(impact => {
-        if (impact.domain === "CYBER") {
-          impact.multiplier += 0.1 * dt; // Quantum threats can amplify cyber impacts through entanglement.
+    if (threat.domain === 'QUANTUM') {
+        const quantumProps = threat.quantumProperties;
+        if (quantumProps) {
+            // Increase decryption capability over time
+            quantumProps.decryptionTime = Math.max(
+                1,
+                quantumProps.decryptionTime * (1 - 0.01 * dt)
+            ); // Decryption time decreases, meaning faster decryption.
+
+            // Entanglement with other quantum systems
+            threat.crossDomainImpacts.forEach((impact) => {
+                if (impact.domain === 'CYBER') {
+                    impact.multiplier += 0.1 * dt; // Quantum threats can amplify cyber impacts through entanglement.
+                }
+            });
         }
-      });
     }
-  }
 }
 
 // Neurological threat propagation
 function propagateNeuroThreat(threat: Threat, populationDensity: number): void {
-  if (threat.domain !== "BIO" || !threat.biologicalProperties) return;
-  
-  const { transmissionVectors, addictionPotential } = threat.biologicalProperties;
-  let neuroModifier = 1.0;
-  
-  if (transmissionVectors.includes("NEURAL_LINK")) {
-    neuroModifier += populationDensity * 0.5;
-  }
-  if (addictionPotential > 0.6) {
-    neuroModifier *= 1 + (addictionPotential * 0.8);
-  }
-  
-  threat.spreadRate *= neuroModifier;
+    if (threat.domain !== 'BIO' || !threat.biologicalProperties) return;
+
+    const { transmissionVectors, addictionPotential } =
+        threat.biologicalProperties;
+    let neuroModifier = 1.0;
+
+    if (transmissionVectors.includes('NEURAL_LINK')) {
+        neuroModifier += populationDensity * 0.5;
+    }
+    if (addictionPotential > 0.6) {
+        neuroModifier *= 1 + addictionPotential * 0.8;
+    }
+
+    threat.spreadRate *= neuroModifier;
 }
 
 // Quantum-gravity interactions
-function applyQuantumGravityEffects(quantumState: QuantumState, region: Region): void {
-  const gravityDistortion = 0.01 * quantumState.entanglement * region.elevation;
-  region.militaryUnits.forEach(unit => {
-    unit.velocity[0] *= 1 + gravityDistortion;
-    unit.velocity[1] *= 1 + gravityDistortion;
-  });
+function applyQuantumGravityEffects(
+    quantumState: QuantumState,
+    region: Region
+): void {
+    const gravityDistortion =
+        0.01 * quantumState.entanglement * region.elevation;
+    region.militaryUnits.forEach((unit) => {
+        unit.velocity[0] *= 1 + gravityDistortion;
+        unit.velocity[1] *= 1 + gravityDistortion;
+    });
 }
 ```
 
@@ -911,7 +963,7 @@ function applyQuantumGravityEffects(quantumState: QuantumState, region: Region):
 
 This section describes the energy systems that govern the power consumption and generation of various units and entities within ThreatForge. It includes models for unit energy consumption, different recharge behaviors, and energy generation from radiological decay.
 
-```typescript
+````typescript
 // Military unit energy consumption modifiers
 // Defines how much energy different unit types consume relative to a base rate.
 const UNIT_ENERGY_MODIFIERS = {
@@ -1017,20 +1069,20 @@ ThreatForge employs sophisticated physics models to simulate the realistic propa
 function calculateCrossImpact(threatA: Threat, threatB: Threat): number {
   // Base effect from threat severities
   const baseEffect = threatA.severity * threatB.severity;
-  
+
   // Domain matrix multiplier
   const domainMultiplier = DOMAIN_MATRIX[threatA.domain][threatB.domain];
-  
+
   // Domain-specific synergy multipliers
   const synergy = threatA.crossDomainImpacts
     .find(i => i.domain === threatB.domain)?.multiplier || 1.0;
-  
+
   // Environmental modifiers based on region attributes
   const regionModifier = calculateRegionModifier(threatA.region, threatB.region);
-  
+
   // Temporal decay factor for long-term threats
   const timeFactor = Math.exp(-0.1 * Math.abs(threatA.age - threatB.age));
-  
+
   return baseEffect * domainMultiplier * synergy * regionModifier * timeFactor;
 }
 
@@ -1038,24 +1090,24 @@ function calculateCrossImpact(threatA: Threat, threatB: Threat): number {
 function calculateRegionModifier(regionA: Region, regionB: Region): number {
   // Calculate distance between regions
   const distance = calculateDistance(regionA.centroid, regionB.centroid);
-  
+
   // Shared border multiplier
   const sharedBorder = regionsShareBorder(regionA, regionB) ? 1.5 : 1.0;
-  
+
   // Climate vulnerability multiplier
-  const climateFactor = 1 + (regionA.attributes.climateVulnerability * 
+  const climateFactor = 1 + (regionA.attributes.climateVulnerability *
                             regionB.attributes.climateVulnerability);
-  
+
   return sharedBorder * climateFactor / (1 + distance/1000);
 }
 
 // New temporal disruption effect
 function applyTemporalDisruption(threatA: Threat, threatB: Threat): void {
-  if (threatA.domainsInvolved.includes("QUANTUM") && 
+  if (threatA.domainsInvolved.includes("QUANTUM") &&
       threatB.domainsInvolved.includes("INFO")) {
     const timeDilation = threatA.quantumProperties?.entanglementLevel || 0;
     const infoSpread = threatB.informationProperties?.misinformationSpreadRate || 0;
-    
+
     threatB.effects.forEach(effect => {
       effect.duration *= 1 + (timeDilation * infoSpread * 0.5);
     });
@@ -1074,40 +1126,41 @@ flowchart LR
   A --> F[Quantum Actions]      // NEW
   A --> G[Radiological Actions] // NEW
   A --> H[Robotic Actions]      // NEW
-  
+
   B --> I[Deploy Threat]
   B --> J[Amplify Threat]
   B --> K[Modify Threat]
-  
+
   C --> L[Lobby Faction]
   C --> M[Spread Disinformation]
   C --> N[Form Alliance]
-  
+
   D --> O[Investigate Threat]
   D --> P[Uncover Truth]
   D --> Q[Counter Propaganda]
-  
+
   E --> R[Sanction Region]
   E --> S[Invest in Infrastructure]
   E --> T[Manipulate Markets]
-  
+
   F --> U[Entangle Systems]     // NEW
   F --> V[Quantum Decrypt]      // NEW
   F --> W[Induce Decoherence]   // NEW
-  
+
   G --> X[Deploy Contamination] // NEW
   G --> Y[Contain Radiation]    // NEW
   G --> Z[Amplify Half-Life]    // NEW
-  
+
   H --> AA[Swarm Command]       // NEW
   H --> AB[Autonomy Override]   // NEW
   H --> AC[Robotic Sabotage]    // NEW
-  
+
   I --> AD[Geoengineering]      // NEW
   I --> AE[Climate Control]     // NEW
-```
+````
 
 ## Action Interface
+
 ```typescript
 interface Action {
   id: string;
@@ -1249,3 +1302,4 @@ const RoboticActions: Action[] = [
 - Quantum + cyber = undetectable attacks
 - Environmental failure → economic downturn → geopolitical war
 - Radiological event → migration crisis → faction conflict
+```

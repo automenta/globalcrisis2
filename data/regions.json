@@ -1,0 +1,86 @@
+[
+    {
+        "id": "na",
+        "name": "North America",
+        "centroid": [40, -100],
+        "radius": 3000,
+        "attributes": {
+            "climateVulnerability": 0.4,
+            "temperature": 15,
+            "economy": 1.0,
+            "internetAccess": 0.5
+        }
+    },
+    {
+        "id": "sa",
+        "name": "South America",
+        "centroid": [-20, -60],
+        "radius": 2500,
+        "attributes": {
+            "climateVulnerability": 0.6,
+            "temperature": 25,
+            "economy": 0.8,
+            "internetAccess": 0.5
+        }
+    },
+    {
+        "id": "eu",
+        "name": "Europe",
+        "centroid": [50, 15],
+        "radius": 2000,
+        "attributes": {
+            "climateVulnerability": 0.3,
+            "temperature": 10,
+            "economy": 1.0,
+            "internetAccess": 0.5
+        }
+    },
+    {
+        "id": "af",
+        "name": "Africa",
+        "centroid": [0, 20],
+        "radius": 3000,
+        "attributes": {
+            "climateVulnerability": 0.8,
+            "temperature": 30,
+            "economy": 0.6,
+            "internetAccess": 0.5
+        }
+    },
+    {
+        "id": "as",
+        "name": "Asia",
+        "centroid": [40, 90],
+        "radius": 4000,
+        "attributes": {
+            "climateVulnerability": 0.7,
+            "temperature": 20,
+            "economy": 0.9,
+            "internetAccess": 0.5
+        }
+    },
+    {
+        "id": "oc",
+        "name": "Oceania",
+        "centroid": [-25, 135],
+        "radius": 2000,
+        "attributes": {
+            "climateVulnerability": 0.5,
+            "temperature": 22,
+            "economy": 0.9,
+            "internetAccess": 0.5
+        }
+    },
+    {
+        "id": "an",
+        "name": "Antarctica",
+        "centroid": [-90, 0],
+        "radius": 2000,
+        "attributes": {
+            "climateVulnerability": 0.9,
+            "temperature": -50,
+            "economy": 0.1,
+            "internetAccess": 0.5
+        }
+    }
+]

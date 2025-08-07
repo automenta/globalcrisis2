@@ -15,7 +15,8 @@ export class ClimateGrid {
                 const index = y * this.width + x;
                 // Simple latitude-based temperature: hot at equator, cold at poles
                 // This now represents the yearly average temperature.
-                const latitudeEffect = 1 - Math.abs(y - this.height / 2) / (this.height / 2); // 1 at equator, 0 at poles
+                const latitudeEffect =
+                    1 - Math.abs(y - this.height / 2) / (this.height / 2); // 1 at equator, 0 at poles
                 this.baseTemperature[index] = -15 + 40 * latitudeEffect; // Ranges from -15C to 25C
                 this.moisture[index] = Math.random();
             }
@@ -51,7 +52,8 @@ export class ClimateGrid {
         // --- Seasonal Temperature Variation ---
         const maxSeasonalOffset = 15; // Max temp change from season
         // `timeOfYear` goes from 0 to 1 over the course of a year
-        const timeOfYear = (this.simulationTime % this.yearDuration) / this.yearDuration;
+        const timeOfYear =
+            (this.simulationTime % this.yearDuration) / this.yearDuration;
         const angle = timeOfYear * 2 * Math.PI;
 
         // The seasonal effect is strongest at the poles and weakest at the equator.
@@ -68,7 +70,7 @@ export class ClimateGrid {
 
         return {
             temperature: currentTemperature,
-            moisture: moisture
+            moisture: moisture,
         };
     }
 }

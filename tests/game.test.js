@@ -1,30 +1,37 @@
 describe('Game Initialization', () => {
-  it('should start without throwing an error', () => {
-    let error = null;
-    try {
-      // Mock dependencies
-      const mockScene = {
-        add: () => {},
-      };
-      const mockUiState = { arePlumesVisible: true };
-      const mockNarrativeManager = new NarrativeManager();
+    it('should start without throwing an error', () => {
+        let error = null;
+        try {
+            // Mock dependencies
+            const mockScene = {
+                add: () => {},
+            };
+            const mockUiState = { arePlumesVisible: true };
+            const mockNarrativeManager = new NarrativeManager();
 
-      // Mock DOM elements required by WorldState constructor
-      document.body.innerHTML = '<input type="checkbox" id="casual-mode-checkbox">';
-      const casualModeCheckbox = document.getElementById('casual-mode-checkbox');
+            // Mock DOM elements required by WorldState constructor
+            document.body.innerHTML =
+                '<input type="checkbox" id="casual-mode-checkbox">';
+            const casualModeCheckbox = document.getElementById(
+                'casual-mode-checkbox'
+            );
 
-      // Instantiate WorldState
-      const worldState = new WorldState(mockScene, mockUiState, mockNarrativeManager, casualModeCheckbox.checked);
+            // Instantiate WorldState
+            const worldState = new WorldState(
+                mockScene,
+                mockUiState,
+                mockNarrativeManager,
+                casualModeCheckbox.checked
+            );
 
-      // Instantiate other managers
-      const eventManager = new EventManager(worldState);
-      const goalManager = new GoalManager(worldState);
-
-    } catch (e) {
-      error = e;
-    }
-    expect(error).to.be.null;
-  });
+            // Instantiate other managers
+            const eventManager = new EventManager(worldState);
+            const goalManager = new GoalManager(worldState);
+        } catch (e) {
+            error = e;
+        }
+        expect(error).to.be.null;
+    });
 });
 
 describe('Agent Mission Logic', () => {
@@ -37,10 +44,18 @@ describe('Agent Mission Logic', () => {
         const mockScene = { add: () => {} };
         const mockUiState = { arePlumesVisible: true };
         const mockNarrativeManager = { logEvent: () => {} };
-        document.body.innerHTML = '<input type="checkbox" id="casual-mode-checkbox">';
-        const casualModeCheckbox = document.getElementById('casual-mode-checkbox');
+        document.body.innerHTML =
+            '<input type="checkbox" id="casual-mode-checkbox">';
+        const casualModeCheckbox = document.getElementById(
+            'casual-mode-checkbox'
+        );
 
-        worldState = new WorldState(mockScene, mockUiState, mockNarrativeManager, true);
+        worldState = new WorldState(
+            mockScene,
+            mockUiState,
+            mockNarrativeManager,
+            true
+        );
         playerFaction = worldState.playerFaction;
         region = worldState.regions[0];
 
@@ -72,7 +87,7 @@ describe('Agent Mission Logic', () => {
         // Check for rewards (assuming success)
         // Note: This test assumes mission success due to randomness in failure.
         // A more robust test would mock Math.random.
-        const intelGained = 100 + (agent.level * 10);
+        const intelGained = 100 + agent.level * 10;
         // We can't check for exact value due to randomness, but we can check if it increased.
         expect(playerFaction.resources.intel).to.be.greaterThan(initialIntel);
     });
@@ -102,10 +117,18 @@ describe('AI GOAP Planner Logic', () => {
         const mockScene = { add: () => {} };
         const mockUiState = { arePlumesVisible: true };
         const mockNarrativeManager = { logEvent: () => {} };
-        document.body.innerHTML = '<input type="checkbox" id="casual-mode-checkbox">';
-        const casualModeCheckbox = document.getElementById('casual-mode-checkbox');
+        document.body.innerHTML =
+            '<input type="checkbox" id="casual-mode-checkbox">';
+        const casualModeCheckbox = document.getElementById(
+            'casual-mode-checkbox'
+        );
 
-        worldState = new WorldState(mockScene, mockUiState, mockNarrativeManager, true);
+        worldState = new WorldState(
+            mockScene,
+            mockUiState,
+            mockNarrativeManager,
+            true
+        );
         aiFaction = worldState.aiFaction;
 
         // Setup a specific scenario for the AI
@@ -115,7 +138,11 @@ describe('AI GOAP Planner Logic', () => {
         neutralRegion.setOwner('NEUTRAL');
 
         // Make sure there is a route between them
-        worldState.travelRoutes.push({ from: aiRegion, to: neutralRegion, mesh: {} });
+        worldState.travelRoutes.push({
+            from: aiRegion,
+            to: neutralRegion,
+            mesh: {},
+        });
 
         // Give AI plenty of resources
         aiFaction.resources.funds = 5000;
@@ -132,7 +159,11 @@ describe('AI GOAP Planner Logic', () => {
             aiTerritoryIsStronger: false,
         };
 
-        const plan = worldState.planner.plan(plannerWorldState, AI_ACTIONS, goal);
+        const plan = worldState.planner.plan(
+            plannerWorldState,
+            AI_ACTIONS,
+            goal
+        );
         expect(plan).to.not.be.null;
         expect(plan.length).to.equal(1);
         expect(plan[0].name).to.equal('claim_neutral_region');
@@ -153,7 +184,11 @@ describe('AI GOAP Planner Logic', () => {
         };
 
         // The planner should find a 2-step plan.
-        const plan = worldState.planner.plan(plannerWorldState, AI_ACTIONS, goal);
+        const plan = worldState.planner.plan(
+            plannerWorldState,
+            AI_ACTIONS,
+            goal
+        );
         expect(plan).to.not.be.null;
         expect(plan.length).to.equal(2);
         expect(plan[0].name).to.equal('claim_neutral_region');
@@ -192,10 +227,18 @@ describe('Player Action Logic', () => {
         const mockScene = { add: () => {}, remove: () => {} };
         const mockUiState = { arePlumesVisible: true };
         const mockNarrativeManager = { logEvent: () => {} };
-        document.body.innerHTML = '<input type="checkbox" id="casual-mode-checkbox">';
-        const casualModeCheckbox = document.getElementById('casual-mode-checkbox');
+        document.body.innerHTML =
+            '<input type="checkbox" id="casual-mode-checkbox">';
+        const casualModeCheckbox = document.getElementById(
+            'casual-mode-checkbox'
+        );
 
-        worldState = new WorldState(mockScene, mockUiState, mockNarrativeManager, true);
+        worldState = new WorldState(
+            mockScene,
+            mockUiState,
+            mockNarrativeManager,
+            true
+        );
         playerFaction = worldState.playerFaction;
 
         // Give player plenty of resources
@@ -208,7 +251,8 @@ describe('Player Action Logic', () => {
             id: 'test-threat',
             domain: 'INFO',
             type: 'REAL',
-            lat: 0, lon: 0,
+            lat: 0,
+            lon: 0,
             severity: 0.5,
             spreadRate: 0.5,
             investigationProgress: 1.0, // Pre-investigated for action availability
@@ -236,7 +280,12 @@ describe('Player Action Logic', () => {
         const initialEducation = region.education;
 
         // Execute the action
-        const wasSuccessful = action.execute(null, playerFaction, worldState, region);
+        const wasSuccessful = action.execute(
+            null,
+            playerFaction,
+            worldState,
+            region
+        );
 
         // Verify the outcome
         expect(wasSuccessful).to.be.true;

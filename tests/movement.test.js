@@ -11,11 +11,19 @@ describe('Movement System', () => {
         const mockScene = { add: jest.fn(), remove: jest.fn() };
         const mockUiState = { arePlumesVisible: true };
         const mockNarrativeManager = { logEvent: jest.fn() };
-        document.body.innerHTML = '<input type="checkbox" id="casual-mode-checkbox">';
-        const casualModeCheckbox = document.getElementById('casual-mode-checkbox');
+        document.body.innerHTML =
+            '<input type="checkbox" id="casual-mode-checkbox">';
+        const casualModeCheckbox = document.getElementById(
+            'casual-mode-checkbox'
+        );
 
         // Instantiate WorldState
-        worldState = new WorldState(mockScene, mockUiState, mockNarrativeManager, true);
+        worldState = new WorldState(
+            mockScene,
+            mockUiState,
+            mockNarrativeManager,
+            true
+        );
 
         // Add an agent to the world
         const region = worldState.regions[0];
@@ -39,7 +47,10 @@ describe('Movement System', () => {
         expect(agent.movement.path.length).to.be.greaterThan(1);
         expect(agent.status).to.equal('MOVING');
         // The first point in the path should be the start position
-        expect(agent.movement.path[0].distanceTo(startPos)).to.be.closeTo(0, 0.001);
+        expect(agent.movement.path[0].distanceTo(startPos)).to.be.closeTo(
+            0,
+            0.001
+        );
     });
 
     it('should move the agent closer to the target after one second', () => {
@@ -74,6 +85,8 @@ describe('Movement System', () => {
         expect(agent.status).to.equal('IDLE');
         // The agent should be very close to the end position.
         // The arrival threshold in the movement component is 0.5.
-        expect(agent.mesh.position.distanceTo(endPos)).to.be.lessThan(agent.movement.arrivalThreshold + 0.1);
+        expect(agent.mesh.position.distanceTo(endPos)).to.be.lessThan(
+            agent.movement.arrivalThreshold + 0.1
+        );
     });
 });

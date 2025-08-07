@@ -1,12 +1,13 @@
 const REGION_COLORS = {
     NEUTRAL: 0x808080, // Grey
-    PLAYER: 0x00ff00,  // Green
-    AI: 0xff0000,      // Red
+    PLAYER: 0x00ff00, // Green
+    AI: 0xff0000, // Red
 };
 
 const EARTH_RADIUS_KM = 6371; // For converting region radius to sphere scale
 
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import * as THREE from 'three';
+import { PlayerActions } from './actions.js';
 
 export class Region {
     constructor({ id, name, centroid, radius, attributes }) {
@@ -73,16 +74,21 @@ export class Region {
         }
 
         // --- Population and Education Simulation ---
-        const growthModifier = (this.stability - 0.5) + (this.economy - 0.5) - (this.bioThreatSeverity || 0);
+        const growthModifier =
+            this.stability -
+            0.5 +
+            (this.economy - 0.5) -
+            (this.bioThreatSeverity || 0);
         this.population.growthRate = 0.01 * growthModifier;
-        this.population.count += this.population.count * this.population.growthRate * (dt / 365); // dt is in seconds, rate is annual
+        this.population.count +=
+            this.population.count * this.population.growthRate * (dt / 365); // dt is in seconds, rate is annual
 
         // Education decays slowly over time
         this.education = Math.max(0, this.education - 0.001 * dt);
     }
 
     addBuff(type, duration, factionId = null) {
-        if (!this.activeBuffs.some(b => b.type === type)) {
+        if (!this.activeBuffs.some((b) => b.type === type)) {
             this.activeBuffs.push({ type, duration, factionId });
             return true;
         }
@@ -134,16 +140,27 @@ export class Region {
         const cost = PlayerActions.deploy_network_infrastructure.resourceCost;
         if (faction.canAfford(cost)) {
             faction.spend(cost);
-            this.attributes.internetAccess = Math.min(1.0, this.attributes.internetAccess + 0.25);
-            console.log(`Network infrastructure deployed in ${this.name}. Internet access is now ${this.attributes.internetAccess.toFixed(2)}.`);
+            this.attributes.internetAccess = Math.min(
+                1.0,
+                this.attributes.internetAccess + 0.25
+            );
+            console.log(
+                `Network infrastructure deployed in ${this.name}. Internet access is now ${this.attributes.internetAccess.toFixed(2)}.`
+            );
             return true;
         }
-        alert(`Not enough resources to deploy network infrastructure in ${this.name}.`);
+        alert(
+            `Not enough resources to deploy network infrastructure in ${this.name}.`
+        );
         return false;
     }
 
     updateMeshColor(envDamage = 0) {
-        const color = this.getRegionColor(this.attributes.temperature, this.stability, envDamage);
+        const color = this.getRegionColor(
+            this.attributes.temperature,
+            this.stability,
+            envDamage
+        );
         this.mesh.material.color.set(color);
 
         const ownerColor = new THREE.Color(REGION_COLORS[this.owner]);
@@ -157,14 +174,18 @@ export class Region {
 
     createMesh() {
         const sphereRadius = 5;
-        const regionRadiusOnSphere = (this.radius / EARTH_RADIUS_KM) * sphereRadius;
+        const regionRadiusOnSphere =
+            (this.radius / EARTH_RADIUS_KM) * sphereRadius;
 
         const geometry = new THREE.CircleGeometry(regionRadiusOnSphere, 32);
-        const regionColor = this.getRegionColor(this.attributes.temperature, this.stability);
+        const regionColor = this.getRegionColor(
+            this.attributes.temperature,
+            this.stability
+        );
         const material = new THREE.MeshBasicMaterial({
             color: regionColor,
             transparent: true,
-            opacity: 0.4
+            opacity: 0.4,
         });
 
         const mesh = new THREE.Mesh(geometry, material);
@@ -183,7 +204,9 @@ export class Region {
     getRegionColor(temp, stability, envDamage) {
         const minTemp = -50;
         const maxTemp = 40;
-        const normalizedTemp = (Math.max(minTemp, Math.min(maxTemp, temp)) - minTemp) / (maxTemp - minTemp);
+        const normalizedTemp =
+            (Math.max(minTemp, Math.min(maxTemp, temp)) - minTemp) /
+            (maxTemp - minTemp);
         const tempHue = 0.7 * (1 - normalizedTemp);
         const stabilityHue = 0;
         const finalHue = tempHue * stability + stabilityHue * (1 - stability);
@@ -195,14 +218,19 @@ export class Region {
 
     createWeatherMesh() {
         const sphereRadius = 5;
-        const regionRadiusOnSphere = (this.radius / EARTH_RADIUS_KM) * sphereRadius;
+        const regionRadiusOnSphere =
+            (this.radius / EARTH_RADIUS_KM) * sphereRadius;
 
-        const geometry = new THREE.SphereGeometry(regionRadiusOnSphere * 1.1, 32, 32);
+        const geometry = new THREE.SphereGeometry(
+            regionRadiusOnSphere * 1.1,
+            32,
+            32
+        );
         const material = new THREE.MeshBasicMaterial({
             color: 0xffffff,
             transparent: true,
             opacity: 0.2,
-            side: THREE.DoubleSide
+            side: THREE.DoubleSide,
         });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.visible = false;
@@ -214,10 +242,14 @@ export class Region {
         if (faction.canAfford(cost)) {
             faction.spend(cost);
             this.education = Math.min(1.0, this.education + 0.1);
-            console.log(`Education investment in ${this.name} successful. New level: ${this.education.toFixed(2)}`);
+            console.log(
+                `Education investment in ${this.name} successful. New level: ${this.education.toFixed(2)}`
+            );
             return true;
         }
-        console.log(`Faction ${faction.name} cannot afford to invest in education in ${this.name}.`);
+        console.log(
+            `Faction ${faction.name} cannot afford to invest in education in ${this.name}.`
+        );
         return false;
     }
 }

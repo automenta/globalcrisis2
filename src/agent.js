@@ -1,27 +1,28 @@
-const ALL_ABILITIES = [
-    'CYBER_SPECIALIST',
-    'DEMOLITIONS_EXPERT',
-    'PROPAGANDA_SPECIALIST',
-    'COUNTER_INTELLIGENCE',
-    'CHARISMA',
-    'STEALTH_EXPERT'
-];
+let ALL_ABILITIES = [];
+fetch('data/abilities.json')
+    .then((response) => response.json())
+    .then((data) => {
+        ALL_ABILITIES = data;
+    });
 
 import { Unit } from './unit.js';
 
 export class Agent extends Unit {
-    constructor({
-        id,
-        factionId,
-        region, // The region the agent is currently in
-        name = "Rook", // Default name
-        level = 1,
-        experience = 0,
-        abilities = [],
-        status = 'IDLE', // IDLE, ON_MISSION, CAPTURED, KIA
-    }) {
+    constructor(
+        {
+            id,
+            factionId,
+            region, // The region the agent is currently in
+            name = 'Rook', // Default name
+            level = 1,
+            experience = 0,
+            abilities = [],
+            status = 'IDLE', // IDLE, ON_MISSION, CAPTURED, KIA
+        },
+        worldState
+    ) {
         // Call the parent Unit constructor
-        super({ region, type: 'AGENT' });
+        super({ region, type: 'AGENT' }, worldState);
 
         // Agent-specific properties
         this.id = id;
@@ -42,29 +43,33 @@ export class Agent extends Unit {
         this.mesh.visible = this.factionId === 'player'; // Only show player's agents
     }
 
-    startMission(missionAction) {
+    startMission(missionAction, worldState) {
         if (this.status !== 'IDLE') {
-            console.error(`Agent ${this.id} is not IDLE and cannot start a new mission.`);
+            console.error(
+                `Agent ${this.id} is not IDLE and cannot start a new mission.`
+            );
             return false;
         }
 
         this.mission = {
             action: missionAction,
             progress: 0,
-            risk: this.calculateMissionRisk(missionAction),
+            risk: this.calculateMissionRisk(missionAction, worldState),
             startTime: worldState.currentTurn,
         };
         this.status = 'ON_MISSION';
-        console.log(`Agent ${this.id} starting mission ${missionAction.name} in ${this.region.name}`);
+        console.log(
+            `Agent ${this.id} starting mission ${missionAction.name} in ${this.region.name}`
+        );
         return true;
     }
 
-    calculateMissionRisk(missionAction) {
+    calculateMissionRisk(missionAction, worldState) {
         let risk = missionAction.baseRisk || 0.1;
 
         // Modify risk based on agent level and abilities
         risk -= this.level * 0.05; // Each level reduces risk by 5%
-        missionAction.requiredAbilities?.forEach(ability => {
+        missionAction.requiredAbilities?.forEach((ability) => {
             if (!this.abilities.includes(ability)) {
                 risk += 0.2; // 20% penalty for each missing required ability
             }
@@ -76,11 +81,13 @@ export class Agent extends Unit {
         }
 
         // Factor in target faction's counter-intel
-        const targetFaction = worldState.factions.find(f => f.id === this.region.owner);
+        const targetFaction = worldState.factionManager.factions.find(
+            (f) => f.id === this.region.owner
+        );
         if (targetFaction) {
             let counterIntelFactor = targetFaction.counterIntel || 0.1;
             if (targetFaction.id === 'technocrats') {
-                counterIntelFactor += (worldState.aiAlertLevel * 0.1); // Each AI alert level adds 10% risk
+                counterIntelFactor += worldState.aiManager.aiAlertLevel * 0.1; // Each AI alert level adds 10% risk
             }
             risk += counterIntelFactor;
         }
@@ -88,7 +95,7 @@ export class Agent extends Unit {
         return Math.max(0.01, Math.min(0.95, risk));
     }
 
-    addExperience(xp) {
+    addExperience(xp, worldState) {
         this.experience += xp;
         const xpForNextLevel = 100 * this.level;
         if (this.experience >= xpForNextLevel) {
@@ -96,24 +103,37 @@ export class Agent extends Unit {
             this.experience = 0; // Reset for next level
 
             // Grant a new ability on level up, if available
-            const unlearnedAbilities = ALL_ABILITIES.filter(a => !this.abilities.includes(a));
+            const unlearnedAbilities = ALL_ABILITIES.filter(
+                (a) => !this.abilities.includes(a)
+            );
             if (unlearnedAbilities.length > 0) {
-                const newAbility = unlearnedAbilities[Math.floor(Math.random() * unlearnedAbilities.length)];
+                const newAbility =
+                    unlearnedAbilities[
+                        Math.floor(Math.random() * unlearnedAbilities.length)
+                    ];
                 this.abilities.push(newAbility);
                 console.log(`Agent ${this.name} has learned ${newAbility}!`);
-                worldState.narrativeManager.logEvent('AGENT_ABILITY_GAIN', { agentId: this.id, agentName: this.name, ability: newAbility });
+                worldState.narrativeManager.logEvent('AGENT_ABILITY_GAIN', {
+                    agentId: this.id,
+                    agentName: this.name,
+                    ability: newAbility,
+                });
             }
 
             console.log(`Agent ${this.name} has reached level ${this.level}!`);
-            worldState.narrativeManager.logEvent('AGENT_LEVEL_UP', { agentId: this.id, agentName: this.name, newLevel: this.level });
+            worldState.narrativeManager.logEvent('AGENT_LEVEL_UP', {
+                agentId: this.id,
+                agentName: this.name,
+                newLevel: this.level,
+            });
         }
     }
 
     // moveTo is now inherited from Unit
 
-    update(dt) {
+    update(dt, worldState) {
         // Call the parent update method to handle physics and movement
-        super.update(dt);
+        super.update(dt, worldState);
 
         // Handle agent-specific logic (missions)
         if (this.status === 'ON_MISSION' && this.mission) {

@@ -83,7 +83,10 @@ export class GOAPPlanner {
             for (const action of availableActions) {
                 // Check if the action's effects can produce the current state.
                 if (this.canAchieve(action, currentNode.state)) {
-                    const newState = this.applyPreconditions(currentNode.state, action);
+                    const newState = this.applyPreconditions(
+                        currentNode.state,
+                        action
+                    );
                     const newStateKey = JSON.stringify(newState);
 
                     if (closedSet.has(newStateKey)) {
@@ -92,12 +95,18 @@ export class GOAPPlanner {
 
                     const g = currentNode.g + (action.cost || 1);
                     const h = heuristic(newState);
-                    const newNode = new Node(newState, currentNode, action, g, h);
+                    const newNode = new Node(
+                        newState,
+                        currentNode,
+                        action,
+                        g,
+                        h
+                    );
 
                     // Check if this new state is already in the open set with a lower cost.
                     let inOpenSetIndex = -1;
-                    for(let i = 0; i < openSet.length; i++) {
-                        if(JSON.stringify(openSet[i].state) === newStateKey) {
+                    for (let i = 0; i < openSet.length; i++) {
+                        if (JSON.stringify(openSet[i].state) === newStateKey) {
                             inOpenSetIndex = i;
                             break;
                         }

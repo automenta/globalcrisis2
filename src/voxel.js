@@ -1,4 +1,3 @@
-
 const MATERIAL_AIR = 0;
 const MATERIAL_ROCK = 1;
 const MATERIAL_WATER = 2;
@@ -31,7 +30,9 @@ export class Chunk {
      */
     generateLod(level) {
         if (level === 0 || !this.voxels[level - 1]) {
-            console.error("Cannot generate LOD: base LOD not found or invalid level.");
+            console.error(
+                'Cannot generate LOD: base LOD not found or invalid level.'
+            );
             return;
         }
 
@@ -59,11 +60,15 @@ export class Chunk {
                                 const prevX = x * scale + dx;
                                 const prevY = y * scale + dy;
                                 const prevZ = z * scale + dz;
-                                const index = prevX + prevY * prevSize + prevZ * prevSize * prevSize;
+                                const index =
+                                    prevX +
+                                    prevY * prevSize +
+                                    prevZ * prevSize * prevSize;
 
                                 totalDensity += prevVoxels[index];
                                 const mat = prevMaterials[index];
-                                materialCounts[mat] = (materialCounts[mat] || 0) + 1;
+                                materialCounts[mat] =
+                                    (materialCounts[mat] || 0) + 1;
                                 if (materialCounts[mat] > maxCount) {
                                     maxCount = materialCounts[mat];
                                     dominantMaterial = mat;
@@ -73,7 +78,8 @@ export class Chunk {
                     }
 
                     const newIndex = x + y * newSize + z * newSize * newSize;
-                    newVoxelData[newIndex] = totalDensity / (scale * scale * scale);
+                    newVoxelData[newIndex] =
+                        totalDensity / (scale * scale * scale);
                     newMaterialData[newIndex] = dominantMaterial;
                 }
             }
@@ -82,7 +88,6 @@ export class Chunk {
         this.voxels[level] = newVoxelData;
         this.materials[level] = newMaterialData;
     }
-
 
     /**
      * Gets the voxel value at a given local coordinate within the chunk for a specific LOD.
@@ -144,9 +149,10 @@ export class Chunk {
 /**
  * Manages the entire voxel world, including all chunks.
  */
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
-import { CHUNK_SIZE, TERRAIN_FREQUENCY, TERRAIN_AMPLITUDE, CAVE_FREQUENCY, CAVE_THRESHOLD } from './constants.js';
+import * as THREE from 'three';
+import { CHUNK_SIZE } from './constants.js';
 import { MarchingCubes } from './marching_cubes.js';
+import SimplexNoise from 'simplex-noise';
 
 export class VoxelWorld {
     constructor(seed = 'default-seed', numLods = 3) {
@@ -174,7 +180,7 @@ export class VoxelWorld {
     }
 
     updateLods(cameraPosition) {
-        this.chunks.forEach(chunk => {
+        this.chunks.forEach((chunk) => {
             const chunkWorldPos = new THREE.Vector3(
                 chunk.position.x * CHUNK_SIZE + CHUNK_SIZE / 2,
                 chunk.position.y * CHUNK_SIZE + CHUNK_SIZE / 2,
@@ -209,7 +215,6 @@ export class VoxelWorld {
      */
     generateChunk(chunk, climateGrid) {
         const planetRadius = 60; // Base radius of the rock sphere
-        const seaLevel = 62;     // Radius of the water sphere
         const noiseScale = 0.05;
 
         for (let z = 0; z < CHUNK_SIZE; z++) {
@@ -242,9 +247,15 @@ export class VoxelWorld {
 
                         if (climateData.temperature < -5) {
                             material = MATERIAL_ICE;
-                        } else if (climateData.temperature > 25 && climateData.moisture < 0.33) {
+                        } else if (
+                            climateData.temperature > 25 &&
+                            climateData.moisture < 0.33
+                        ) {
                             material = MATERIAL_SAND;
-                        } else if (climateData.temperature > 5 && climateData.moisture >= 0.33) {
+                        } else if (
+                            climateData.temperature > 5 &&
+                            climateData.moisture >= 0.33
+                        ) {
                             material = MATERIAL_GRASS;
                         } else {
                             material = MATERIAL_ROCK; // Default rock/dirt
@@ -277,8 +288,8 @@ export class VoxelWorld {
         const phi = Math.acos(position.y / radius);
         const theta = Math.atan2(position.z, -position.x);
 
-        const lat = 90 - (phi * 180 / Math.PI);
-        const lon = (theta * 180 / Math.PI) - 180;
+        const lat = 90 - (phi * 180) / Math.PI;
+        const lon = (theta * 180) / Math.PI - 180;
 
         return { lat, lon };
     }
@@ -316,8 +327,14 @@ export class VoxelWorld {
 
         for (let i = 0; i < positions.length; i += 3) {
             const x = Math.max(0, Math.min(size - 1, Math.floor(positions[i])));
-            const y = Math.max(0, Math.min(size - 1, Math.floor(positions[i + 1])));
-            const z = Math.max(0, Math.min(size - 1, Math.floor(positions[i + 2])));
+            const y = Math.max(
+                0,
+                Math.min(size - 1, Math.floor(positions[i + 1]))
+            );
+            const z = Math.max(
+                0,
+                Math.min(size - 1, Math.floor(positions[i + 2]))
+            );
 
             const material = chunk.getMaterial(x, y, z, lod);
             const color = materialColors[material] || defaultColor;
@@ -352,9 +369,9 @@ export class VoxelWorld {
             fragmentShader: fragmentShader,
             uniforms: {
                 overlayColor: { value: new THREE.Color(0xff0000) },
-                overlayIntensity: { value: 0.0 }
+                overlayIntensity: { value: 0.0 },
             },
-            vertexColors: true
+            vertexColors: true,
         });
 
         const mesh = new THREE.Mesh(geometry, material);
@@ -370,7 +387,6 @@ export class VoxelWorld {
         chunk.meshes[lod] = mesh;
     }
 
-
     /**
      * Updates a chunk's materials based on climate change and regenerates its mesh if necessary.
      * @param {Chunk} chunk The chunk to update.
@@ -378,7 +394,9 @@ export class VoxelWorld {
      * @returns {boolean} True if the mesh was updated, false otherwise.
      */
     updateChunkForClimateChange(chunk, climateGrid) {
-        const newMaterials = new Uint8Array(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE);
+        const newMaterials = new Uint8Array(
+            CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE
+        );
         let materialsChanged = false;
 
         const planetRadius = 60;
@@ -395,14 +413,18 @@ export class VoxelWorld {
                     const posVec = new THREE.Vector3(worldX, worldY, worldZ);
                     const distance = posVec.length();
 
-                    const terrainHeight = planetRadius + this.noise.noise3D(
-                        worldX * noiseScale,
-                        worldY * noiseScale,
-                        worldZ * noiseScale
-                    ) * 10;
+                    const terrainHeight =
+                        planetRadius +
+                        this.noise.noise3D(
+                            worldX * noiseScale,
+                            worldY * noiseScale,
+                            worldZ * noiseScale
+                        ) *
+                            10;
 
                     let newMaterial;
-                    const index = x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_SIZE;
+                    const index =
+                        x + y * CHUNK_SIZE + z * CHUNK_SIZE * CHUNK_SIZE;
                     const oldMaterial = chunk.getMaterial(x, y, z, 0);
 
                     if (distance <= terrainHeight) {
@@ -411,9 +433,15 @@ export class VoxelWorld {
 
                         if (climateData.temperature < -5) {
                             newMaterial = MATERIAL_ICE;
-                        } else if (climateData.temperature > 25 && climateData.moisture < 0.33) {
+                        } else if (
+                            climateData.temperature > 25 &&
+                            climateData.moisture < 0.33
+                        ) {
                             newMaterial = MATERIAL_SAND;
-                        } else if (climateData.temperature > 5 && climateData.moisture >= 0.33) {
+                        } else if (
+                            climateData.temperature > 5 &&
+                            climateData.moisture >= 0.33
+                        ) {
                             newMaterial = MATERIAL_GRASS;
                         } else {
                             newMaterial = MATERIAL_ROCK;
@@ -489,7 +517,7 @@ export class VoxelWorld {
         const lz = z - cz * CHUNK_SIZE;
         return {
             chunkCoord: new THREE.Vector3(cx, cy, cz),
-            localCoord: new THREE.Vector3(lx, ly, lz)
+            localCoord: new THREE.Vector3(lx, ly, lz),
         };
     }
 }

@@ -6,7 +6,7 @@ const serveHandler = require('serve-handler');
 (async () => {
     const server = http.createServer((request, response) => {
         return serveHandler(request, response, {
-            public: path.join(__dirname)
+            public: path.join(__dirname),
         });
     });
 
@@ -14,9 +14,11 @@ const serveHandler = require('serve-handler');
         const browser = await chromium.launch();
         const page = await browser.newPage();
 
-        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+        page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
 
-        await page.goto('http://localhost:8080/tests/test.html', { waitUntil: 'networkidle' });
+        await page.goto('http://localhost:8080/tests/test.html', {
+            waitUntil: 'networkidle',
+        });
 
         const failures = await page.$('.fail');
         if (failures) {

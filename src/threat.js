@@ -1,19 +1,21 @@
 const DOMAIN_COLORS = {
-    "CYBER": 0x00ffff, // Cyan
-    "BIO": 0x00ff00,   // Green
-    "GEO": 0xffff00,   // Yellow
-    "ENV": 0x8B4513,   // SaddleBrown
-    "INFO": 0xffa500,  // Orange
-    "SPACE": 0xcccccc, // Light Grey
-    "WMD": 0xff4500,   // OrangeRed
-    "ECON": 0x0000ff,  // Blue
-    "QUANTUM": 0x9400d3,// DarkViolet
-    "RAD": 0xADFF2F,   // GreenYellow
-    "ROBOT": 0x808080, // Grey
-    "DEFAULT": 0xff0000 // Red for default/unknown
+    CYBER: 0x00ffff, // Cyan
+    BIO: 0x00ff00, // Green
+    GEO: 0xffff00, // Yellow
+    ENV: 0x8b4513, // SaddleBrown
+    INFO: 0xffa500, // Orange
+    SPACE: 0xcccccc, // Light Grey
+    WMD: 0xff4500, // OrangeRed
+    ECON: 0x0000ff, // Blue
+    QUANTUM: 0x9400d3, // DarkViolet
+    RAD: 0xadff2f, // GreenYellow
+    ROBOT: 0x808080, // Grey
+    DEFAULT: 0xff0000, // Red for default/unknown
 };
 
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import * as THREE from 'three';
+import { DomainLogic } from './domain_logic.js';
+import { PlayerActions } from './actions.js';
 
 export class Threat {
     constructor({
@@ -41,7 +43,7 @@ export class Threat {
         temporalProperties = null,
         informationProperties = null,
         economicProperties = null,
-        spaceProperties = null
+        spaceProperties = null,
     }) {
         this.id = id;
         this.domain = domain;
@@ -81,8 +83,8 @@ export class Threat {
         // --- Deep Initialization for Specific Domains ---
         if (this.domain === 'ROBOT') {
             const defaults = {
-                learningAlgorithms: ["SWARM"],
-                failureModes: ["HACKABLE"],
+                learningAlgorithms: ['SWARM'],
+                failureModes: ['HACKABLE'],
                 emergentBehaviors: [],
                 autonomyDegrees: {
                     decisionLevel: 0.1,
@@ -95,7 +97,8 @@ export class Threat {
                 },
                 // Ensure core logic props exist
                 adaptationRate: this.roboticProperties.adaptationRate || 0.1,
-                collectiveIntelligence: this.roboticProperties.collectiveIntelligence || 0,
+                collectiveIntelligence:
+                    this.roboticProperties.collectiveIntelligence || 0,
             };
             this.roboticProperties = { ...defaults, ...this.roboticProperties };
         }
@@ -115,7 +118,10 @@ export class Threat {
                 lethality: 0.1,
                 vector: 'AIRBORNE',
             };
-            this.biologicalProperties = { ...defaults, ...this.biologicalProperties };
+            this.biologicalProperties = {
+                ...defaults,
+                ...this.biologicalProperties,
+            };
         }
 
         if (this.domain === 'CYBER') {
@@ -131,7 +137,10 @@ export class Threat {
                 polarizationFactor: 0.1,
                 deepfakeQuality: 0.1,
             };
-            this.informationProperties = { ...defaults, ...this.informationProperties };
+            this.informationProperties = {
+                ...defaults,
+                ...this.informationProperties,
+            };
         }
 
         if (this.domain === 'ECON') {
@@ -139,7 +148,10 @@ export class Threat {
                 marketCrashPotential: 0.1,
                 contagionRisk: 0.1,
             };
-            this.economicProperties = { ...defaults, ...this.economicProperties };
+            this.economicProperties = {
+                ...defaults,
+                ...this.economicProperties,
+            };
         }
 
         if (this.domain === 'GEO') {
@@ -147,7 +159,10 @@ export class Threat {
                 magnitude: 5.0,
                 eventType: 'EARTHQUAKE',
             };
-            this.geologicalProperties = { ...defaults, ...this.geologicalProperties };
+            this.geologicalProperties = {
+                ...defaults,
+                ...this.geologicalProperties,
+            };
         }
 
         if (this.domain === 'ENV') {
@@ -155,7 +170,10 @@ export class Threat {
                 impactType: 'POLLUTION',
                 areaOfEffect: 100, // in km
             };
-            this.environmentalProperties = { ...defaults, ...this.environmentalProperties };
+            this.environmentalProperties = {
+                ...defaults,
+                ...this.environmentalProperties,
+            };
         }
 
         if (this.domain === 'WMD') {
@@ -171,16 +189,18 @@ export class Threat {
                 halfLife: 5, // years
                 contaminationLevel: 0.1,
             };
-            this.radiologicalProperties = { ...defaults, ...this.radiologicalProperties };
+            this.radiologicalProperties = {
+                ...defaults,
+                ...this.radiologicalProperties,
+            };
         }
-
 
         // 3D representation
         this.mesh = this.createMesh();
         this.pulseTime = 0;
     }
 
-    update(dt) {
+    update(dt, worldState) {
         this.pulseTime += dt;
         // Increase severity over time, capped at 1.0
         if (this.severity < 1.0) {
@@ -189,14 +209,26 @@ export class Threat {
         }
 
         // --- Weather Effects ---
-        const { chunkCoord } = worldState.voxelWorld.worldToVoxel(this.mesh.position.x, this.mesh.position.y, this.mesh.position.z);
-        const chunk = worldState.voxelWorld.getChunk(chunkCoord.x, chunkCoord.y, chunkCoord.z);
+        const { chunkCoord } = worldState.voxelWorld.worldToVoxel(
+            this.mesh.position.x,
+            this.mesh.position.y,
+            this.mesh.position.z
+        );
+        const chunk = worldState.voxelWorld.getChunk(
+            chunkCoord.x,
+            chunkCoord.y,
+            chunkCoord.z
+        );
 
         if (chunk && chunk.weather && chunk.weather.threatAmplification) {
-            const amplification = chunk.weather.threatAmplification[this.domain];
+            const amplification =
+                chunk.weather.threatAmplification[this.domain];
             if (amplification) {
                 // Amplify severity based on the multiplier
-                this.severity = Math.min(1.0, this.severity + 0.01 * (amplification - 1) * dt);
+                this.severity = Math.min(
+                    1.0,
+                    this.severity + 0.01 * (amplification - 1) * dt
+                );
             }
         }
 
@@ -210,7 +242,7 @@ export class Threat {
     }
 
     updateMesh() {
-        const baseScale = 0.5 + (this.severity * 1.5);
+        const baseScale = 0.5 + this.severity * 1.5;
         let pulseSpeed = 2 + this.severity * 8; // Faster pulse
         let pulseIntensity = 0.2 * this.severity; // More intense pulse
 
@@ -220,41 +252,51 @@ export class Threat {
             const coherenceFactor = Math.max(0, qProps.coherenceTime / 10);
             pulseIntensity *= coherenceFactor;
             // Phasing effect for tunneling
-            if (qProps.quantumEffects && qProps.quantumEffects.includes("QUANTUM_TUNNELING")) {
-                this.mesh.material.opacity = 0.5 + Math.sin(this.pulseTime * 5) * 0.4;
+            if (
+                qProps.quantumEffects &&
+                qProps.quantumEffects.includes('QUANTUM_TUNNELING')
+            ) {
+                this.mesh.material.opacity =
+                    0.5 + Math.sin(this.pulseTime * 5) * 0.4;
             } else {
                 this.mesh.material.opacity = 1.0;
             }
         }
 
         const rProps = this.roboticProperties;
-        if (this.domain === 'ROBOT' && rProps.collectiveIntelligence !== undefined) {
-            pulseSpeed += (rProps.collectiveIntelligence * 5);
+        if (
+            this.domain === 'ROBOT' &&
+            rProps.collectiveIntelligence !== undefined
+        ) {
+            pulseSpeed += rProps.collectiveIntelligence * 5;
             // Unstable failure mode visual
-            if (rProps.failureModes.includes("GOAL_DRIFT") || rProps.failureModes.includes("ETHICS_OVERRIDE")) {
+            if (
+                rProps.failureModes.includes('GOAL_DRIFT') ||
+                rProps.failureModes.includes('ETHICS_OVERRIDE')
+            ) {
                 const flicker = Math.sin(this.pulseTime * 20) > 0;
-                this.mesh.material.color.set(flicker ? 0xff0000 : DOMAIN_COLORS.ROBOT);
+                this.mesh.material.color.set(
+                    flicker ? 0xff0000 : DOMAIN_COLORS.ROBOT
+                );
             } else {
-                 this.mesh.material.color.set(DOMAIN_COLORS.ROBOT);
+                this.mesh.material.color.set(DOMAIN_COLORS.ROBOT);
             }
         }
 
         if (this.domain === 'INFO' && this.spreadRate !== undefined) {
             const originalColor = new THREE.Color(DOMAIN_COLORS[this.domain]);
-            const brighterColor = originalColor.lerp(new THREE.Color(0xffffff), this.spreadRate * 0.5);
+            const brighterColor = originalColor.lerp(
+                new THREE.Color(0xffffff),
+                this.spreadRate * 0.5
+            );
             this.mesh.material.color.set(brighterColor);
         }
 
-        const pulseFactor = 1 + Math.sin(this.pulseTime * pulseSpeed) * pulseIntensity;
+        const pulseFactor =
+            1 + Math.sin(this.pulseTime * pulseSpeed) * pulseIntensity;
         const scale = baseScale * pulseFactor;
         this.mesh.scale.set(scale, scale, scale);
 
-        // Also update the selection indicator if this threat is selected
-        if (typeof selectionIndicator !== 'undefined' && typeof selectedThreat !== 'undefined' && selectedThreat === this) {
-            if (typeof updateSelectionIndicator !== 'undefined') {
-                updateSelectionIndicator();
-            }
-        }
     }
 
     updateMeshForInvestigation() {
@@ -273,7 +315,7 @@ export class Threat {
 
     createMesh() {
         // Determine color based on domain
-        const color = DOMAIN_COLORS[this.domain] || DOMAIN_COLORS["DEFAULT"];
+        const color = DOMAIN_COLORS[this.domain] || DOMAIN_COLORS['DEFAULT'];
         const isTransparent = this.domain === 'QUANTUM';
 
         const material = new THREE.MeshPhongMaterial({
@@ -281,7 +323,7 @@ export class Threat {
             emissive: color,
             emissiveIntensity: 0.5,
             transparent: isTransparent,
-            opacity: 1.0
+            opacity: 1.0,
         });
 
         let geometry;
@@ -297,7 +339,12 @@ export class Threat {
                 geometry = new THREE.TetrahedronGeometry(radius, 0);
                 break;
             case 'QUANTUM':
-                geometry = new THREE.TorusKnotGeometry(radius * 0.7, radius * 0.3, 100, 16);
+                geometry = new THREE.TorusKnotGeometry(
+                    radius * 0.7,
+                    radius * 0.3,
+                    100,
+                    16
+                );
                 break;
             case 'ROBOT':
                 geometry = new THREE.BoxGeometry(radius, radius, radius);
@@ -326,10 +373,10 @@ export class Threat {
         return mesh;
     }
 
-    investigate(faction, cheat = false) {
+    investigate(faction, worldState, cheat = false) {
         const cost = { intel: 100 };
         if (this.investigationProgress >= 1.0) {
-            console.log("Threat already fully investigated.");
+            console.log('Threat already fully investigated.');
             return false;
         }
 
@@ -339,37 +386,51 @@ export class Threat {
             }
 
             let investigationAmount = 0.2; // 20%
-            const region = worldState.getRegionForThreat(this);
-            if (worldState.units.some(u => u.region === region && u.type === 'AGENT')) {
-                investigationAmount = worldState.research.advancedAgents ? 0.8 : 0.5;
+            const region = worldState.regionManager.getRegionForThreat(this);
+            if (
+                worldState.units.some(
+                    (u) => u.region === region && u.type === 'AGENT'
+                )
+            ) {
+                investigationAmount = worldState.research.advancedAgents
+                    ? 0.8
+                    : 0.5;
             }
             if (cheat) {
                 investigationAmount = 1.0;
             }
 
             this.investigationProgress += investigationAmount;
-            this.investigationProgress = Math.min(this.investigationProgress, 1.0);
-
+            this.investigationProgress = Math.min(
+                this.investigationProgress,
+                1.0
+            );
 
             // Visibility increases as investigation progresses
             this.visibility = this.investigationProgress;
 
             if (this.investigationProgress >= 1.0) {
-                console.log(`Threat ${this.id} fully investigated. Type: ${this.type}`);
+                console.log(
+                    `Threat ${this.id} fully investigated. Type: ${this.type}`
+                );
                 this.updateMeshForInvestigation();
             }
             return true; // Success
         } else {
-            console.log(`Faction ${faction.name} cannot afford to investigate.`);
-            alert("Not enough Intel to investigate!"); // Simple user feedback
+            console.log(
+                `Faction ${faction.name} cannot afford to investigate.`
+            );
+            alert('Not enough Intel to investigate!'); // Simple user feedback
             return false; // Failure
         }
     }
 
-    mitigate(faction, cheat = false) {
+    mitigate(faction, worldState, cheat = false) {
         const cost = { funds: 500, tech: 200 };
         if (this.investigationProgress < 1.0 || this.type !== 'REAL') {
-            console.log("Cannot mitigate: Threat is not a fully investigated REAL threat.");
+            console.log(
+                'Cannot mitigate: Threat is not a fully investigated REAL threat.'
+            );
             return false;
         }
 
@@ -385,14 +446,14 @@ export class Threat {
             worldState.narrativeManager.logEvent('THREAT_MITIGATED', {
                 threatId: this.id,
                 threat: this, // Pass the whole threat object for context
-                factionId: faction.id
+                factionId: faction.id,
             });
 
             console.log(`Threat ${this.id} has been fully mitigated.`);
             return true; // Success
         } else {
             console.log(`Faction ${faction.name} cannot afford to mitigate.`);
-            alert("Not enough Funds or Tech to mitigate!");
+            alert('Not enough Funds or Tech to mitigate!');
             return false; // Failure
         }
     }
@@ -405,10 +466,12 @@ export class Threat {
         if (faction.canAfford(cost)) {
             faction.spend(cost);
             this.spreadRate = Math.max(0, this.spreadRate - 0.2);
-            console.log(`Counter-intel deployed against ${this.id}. Spread rate reduced.`);
+            console.log(
+                `Counter-intel deployed against ${this.id}. Spread rate reduced.`
+            );
             return true;
         } else {
-            alert("Not enough resources for Counter-Intel operation!");
+            alert('Not enough resources for Counter-Intel operation!');
             return false;
         }
     }
@@ -421,7 +484,9 @@ export class Threat {
         if (faction.canAfford(cost)) {
             faction.spend(cost);
             this.severity = Math.max(0, this.severity - 0.15);
-            console.log(`Market stabilization funds deployed against ${this.id}. Severity reduced.`);
+            console.log(
+                `Market stabilization funds deployed against ${this.id}. Severity reduced.`
+            );
             return true;
         } else {
             // No alert here, the generic handler in main.js will cover it.
@@ -436,8 +501,13 @@ export class Threat {
             faction.spend(cost);
             const rProps = this.roboticProperties;
             if (rProps) {
-                rProps.collectiveIntelligence = Math.max(0, rProps.collectiveIntelligence - 0.25);
-                console.log(`Robotic threat ${this.id} sabotaged. Collective intelligence reduced.`);
+                rProps.collectiveIntelligence = Math.max(
+                    0,
+                    rProps.collectiveIntelligence - 0.25
+                );
+                console.log(
+                    `Robotic threat ${this.id} sabotaged. Collective intelligence reduced.`
+                );
             }
             return true;
         }
@@ -451,7 +521,9 @@ export class Threat {
             const qProps = this.quantumProperties;
             if (qProps && qProps.coherenceTime > 0) {
                 qProps.coherenceTime = Math.max(0, qProps.coherenceTime - 5.0); // Drastic reduction
-                console.log(`Decoherence induced in quantum threat ${this.id}. Coherence time reduced.`);
+                console.log(
+                    `Decoherence induced in quantum threat ${this.id}. Coherence time reduced.`
+                );
             }
             return true;
         }
@@ -464,7 +536,9 @@ export class Threat {
         if (faction.canAfford(cost)) {
             faction.spend(cost);
             this.severity = Math.max(0, this.severity - 0.3); // Reduce severity by a flat 0.3
-            console.log(`Radiological cleanup operation for threat ${this.id} successful. Severity reduced.`);
+            console.log(
+                `Radiological cleanup operation for threat ${this.id} successful. Severity reduced.`
+            );
             return true;
         }
         return false;
@@ -475,7 +549,9 @@ export class Threat {
         if (faction.canAfford(cost)) {
             faction.spend(cost);
             this.spreadRate = Math.max(0, this.spreadRate - 0.5); // Drastically reduce spread rate
-            console.log(`Radiological threat ${this.id} contained. Spread rate reduced.`);
+            console.log(
+                `Radiological threat ${this.id} contained. Spread rate reduced.`
+            );
             return true;
         }
         return false;

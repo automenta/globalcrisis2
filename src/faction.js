@@ -47,9 +47,9 @@ export class Faction {
      */
     spend(cost) {
         if (this.canAfford(cost)) {
-            this.resources.funds -= (cost.funds || 0);
-            this.resources.intel -= (cost.intel || 0);
-            this.resources.tech -= (cost.tech || 0);
+            this.resources.funds -= cost.funds || 0;
+            this.resources.intel -= cost.intel || 0;
+            this.resources.tech -= cost.tech || 0;
         } else {
             console.error(`Faction ${this.name} cannot afford cost`, cost);
         }

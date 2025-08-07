@@ -26,7 +26,7 @@ export const AI_ACTIONS = [
                 return true;
             }
             return false;
-        }
+        },
     },
     {
         name: 'generate_fake_threat',
@@ -45,7 +45,7 @@ export const AI_ACTIONS = [
                 return true;
             }
             return false;
-        }
+        },
     },
     {
         name: 'claim_neutral_region',
@@ -63,11 +63,14 @@ export const AI_ACTIONS = [
                 return false;
             }
 
-            const claimableRegions = worldState.regions.filter(r => {
+            const claimableRegions = worldState.regions.filter((r) => {
                 if (r.owner !== 'NEUTRAL') return false;
-                return worldState.travelRoutes.some(route =>
-                    (route.from.owner === worldState.aiFaction.id && route.to === r) ||
-                    (route.to.owner === worldState.aiFaction.id && route.from === r)
+                return worldState.travelRoutes.some(
+                    (route) =>
+                        (route.from.owner === worldState.aiFaction.id &&
+                            route.to === r) ||
+                        (route.to.owner === worldState.aiFaction.id &&
+                            route.from === r)
                 );
             });
 
@@ -75,11 +78,14 @@ export const AI_ACTIONS = [
                 worldState.aiFaction.spend(cost);
                 const targetRegion = claimableRegions[0];
                 targetRegion.setOwner(worldState.aiFaction.id);
-                worldState.narrativeManager.logEvent('REGION_CLAIMED', { faction: worldState.aiFaction.name, region: targetRegion.name });
+                worldState.narrativeManager.logEvent('REGION_CLAIMED', {
+                    faction: worldState.aiFaction.name,
+                    region: targetRegion.name,
+                });
                 return true;
             }
             return false;
-        }
+        },
     },
     {
         name: 'build_base',
@@ -97,18 +103,25 @@ export const AI_ACTIONS = [
                 return false;
             }
 
-            const unfortifiedRegions = worldState.regions.filter(r =>
-                r.owner === worldState.aiFaction.id &&
-                !worldState.buildings.some(b => b.region === r && b.type === 'BASE')
+            const unfortifiedRegions = worldState.regions.filter(
+                (r) =>
+                    r.owner === worldState.aiFaction.id &&
+                    !worldState.buildings.some(
+                        (b) => b.region === r && b.type === 'BASE'
+                    )
             );
 
             if (unfortifiedRegions.length > 0) {
                 worldState.aiFaction.spend(cost);
-                worldState.addBuilding(unfortifiedRegions[0], 'BASE', worldState.aiFaction);
+                worldState.addBuilding(
+                    unfortifiedRegions[0],
+                    'BASE',
+                    worldState.aiFaction
+                );
                 return true;
             }
             return false;
-        }
+        },
     },
     {
         name: 'generate_ransomware_threat',
@@ -123,10 +136,15 @@ export const AI_ACTIONS = [
             const cost = { funds: 1200, tech: 800 }; // More expensive
             if (worldState.aiFaction.canAfford(cost)) {
                 worldState.aiFaction.spend(cost);
-                worldState.generateThreat({ isFromAI: true, domain: 'CYBER', subType: 'RANSOMWARE', type: 'REAL' });
+                worldState.generateThreat({
+                    isFromAI: true,
+                    domain: 'CYBER',
+                    subType: 'RANSOMWARE',
+                    type: 'REAL',
+                });
                 return true;
             }
             return false;
-        }
-    }
+        },
+    },
 ];

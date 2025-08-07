@@ -1,19 +1,33 @@
 {
-  "name": "threatforge-tests",
-  "version": "1.0.0",
-  "description": "Headless tests for ThreatForge",
-  "main": "run-tests.js",
-  "scripts": {
-    "test": "node run-tests.js"
-  },
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "playwright": "^1.54.2"
-  },
-  "dependencies": {
-    "chai": "^5.2.1",
-    "mocha": "^11.7.1",
-    "serve-handler": "^6.1.6"
-  }
+    "name": "threatforge-tests",
+    "version": "1.0.0",
+    "description": "Headless tests for ThreatForge",
+    "main": "run-tests.js",
+    "scripts": {
+        "test": "node run-tests.js",
+        "dev": "vite",
+        "lint": "eslint .",
+        "format": "prettier --write ."
+    },
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@eslint/eslintrc": "^3.3.1",
+        "@eslint/js": "^9.32.0",
+        "eslint": "^9.32.0",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-prettier": "^5.5.4",
+        "globals": "^16.3.0",
+        "playwright": "^1.54.2",
+        "prettier": "^3.6.2",
+        "vite": "^7.0.6"
+    },
+    "dependencies": {
+        "@tweenjs/tween.js": "^25.0.0",
+        "chai": "^5.2.1",
+        "mocha": "^11.7.1",
+        "serve-handler": "^6.1.6",
+        "simplex-noise": "^4.0.3",
+        "three": "^0.179.1"
+    }
 }

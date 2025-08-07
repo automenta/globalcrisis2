@@ -1,6 +1,7 @@
 export class AudioManager {
     constructor() {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        this.audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
         this.soundBuffers = new Map();
         this.musicSource = null;
     }
@@ -9,7 +10,8 @@ export class AudioManager {
         try {
             const response = await fetch(url);
             const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            const audioBuffer =
+                await this.audioContext.decodeAudioData(arrayBuffer);
             this.soundBuffers.set(name, audioBuffer);
             console.log(`Sound loaded: ${name}`);
         } catch (error) {

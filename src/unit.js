@@ -1,5 +1,6 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import * as THREE from 'three';
 import { MovementComponent } from './movement_component.js';
+import { GAME_GRAVITY_CONSTANT } from './constants.js';
 
 export class Unit {
     constructor({ region, type }) {
@@ -9,7 +10,8 @@ export class Unit {
         this.mesh.userData.unit = this;
 
         // Sensor Range
-        this.baseSensorRange = (this.type === 'AIRCRAFT' || this.type === 'SATELLITE') ? 150 : 50;
+        this.baseSensorRange =
+            this.type === 'AIRCRAFT' || this.type === 'SATELLITE' ? 150 : 50;
         this.sensorRange = this.baseSensorRange;
 
         // --- NEW: Physics and Movement Component Setup ---
@@ -21,7 +23,7 @@ export class Unit {
                     maxSpeed: 1.5,
                     maxForce: 10,
                     frictionCoefficient: 0.5,
-                    movementType: 'ground'
+                    movementType: 'ground',
                 };
                 break;
             case 'AIRCRAFT':
@@ -30,13 +32,13 @@ export class Unit {
                     maxSpeed: 10,
                     maxForce: 20,
                     frictionCoefficient: 0.1, // Represents air drag
-                    movementType: 'air'
+                    movementType: 'air',
                 };
                 break;
             case 'SATELLITE':
                 physicsOptions = {
                     mass: 0.1,
-                    movementType: 'orbital'
+                    movementType: 'orbital',
                 };
                 break;
             case 'AGENT':
@@ -46,7 +48,7 @@ export class Unit {
                     maxSpeed: 2,
                     maxForce: 5,
                     frictionCoefficient: 0.3,
-                    movementType: 'ground'
+                    movementType: 'ground',
                 };
                 break;
         }
@@ -55,10 +57,10 @@ export class Unit {
             ...physicsOptions,
             velocity: new THREE.Vector3(),
             acceleration: new THREE.Vector3(),
-            applyForce: function(force) {
+            applyForce: function (force) {
                 const accelerationDelta = force.clone().divideScalar(this.mass);
                 this.acceleration.add(accelerationDelta);
-            }
+            },
         };
         this.movement = new MovementComponent();
         this.status = 'IDLE';
@@ -69,7 +71,11 @@ export class Unit {
             // v = sqrt(GM/r) -> simplified to sqrt(GAME_GRAVITY_CONSTANT / r)
             const orbitalSpeed = Math.sqrt(GAME_GRAVITY_CONSTANT / spawnRadius);
             // Give it a velocity perpendicular to its position vector
-            const initialVelocity = new THREE.Vector3(-this.mesh.position.z, 0, this.mesh.position.x).normalize();
+            const initialVelocity = new THREE.Vector3(
+                -this.mesh.position.z,
+                0,
+                this.mesh.position.x
+            ).normalize();
             initialVelocity.multiplyScalar(orbitalSpeed);
             this.physics.velocity.copy(initialVelocity);
         }
@@ -115,41 +121,55 @@ export class Unit {
         return mesh;
     }
 
-    moveTo(targetPoint) {
+    moveTo(targetPoint, worldState) {
         if (this.physics.movementType === 'orbital') {
-            console.log("Satellites cannot be moved directly.");
+            console.log('Satellites cannot be moved directly.');
             return;
         }
-        const path = worldState.pathfindingService.calculatePath(this.mesh.position, targetPoint, this.physics.movementType);
+        const path = worldState.pathfindingService.calculatePath(
+            this.mesh.position,
+            targetPoint,
+            this.physics.movementType
+        );
         this.movement.setPath(path);
         this.status = 'MOVING';
     }
 
-    update(dt) {
+    update(dt, worldState) {
         // --- Weather Effects ---
-        const { chunkCoord } = worldState.voxelWorld.worldToVoxel(this.mesh.position.x, this.mesh.position.y, this.mesh.position.z);
-        const chunk = worldState.voxelWorld.getChunk(chunkCoord.x, chunkCoord.y, chunkCoord.z);
+        const { chunkCoord } = worldState.voxelWorld.worldToVoxel(
+            this.mesh.position.x,
+            this.mesh.position.y,
+            this.mesh.position.z
+        );
+        const chunk = worldState.voxelWorld.getChunk(
+            chunkCoord.x,
+            chunkCoord.y,
+            chunkCoord.z
+        );
 
         if (chunk && chunk.weather) {
             const weather = chunk.weather;
 
             // Apply movement penalty as drag
             if (weather.movementPenalty > 0) {
-                const dragForce = this.physics.velocity.clone().multiplyScalar(-weather.movementPenalty);
+                const dragForce = this.physics.velocity
+                    .clone()
+                    .multiplyScalar(-weather.movementPenalty);
                 this.physics.applyForce(dragForce);
             }
 
             // Apply visibility modifier
-            this.sensorRange = this.baseSensorRange * (1 - weather.visibilityModifier);
+            this.sensorRange =
+                this.baseSensorRange * (1 - weather.visibilityModifier);
         } else {
             // Reset sensor range if no weather
             this.sensorRange = this.baseSensorRange;
         }
 
-
         // For non-orbital units, allow steering
         if (this.physics.movementType !== 'orbital' && this.movement.isActive) {
-            this.movement.update(this, dt);
+            this.movement.update(this, dt, worldState);
         }
 
         // The UnifiedPhysicsEngine now handles the physics update.
@@ -167,9 +187,12 @@ export class Unit {
             if (this.mesh.position.length() < surfaceRadius) {
                 this.mesh.position.normalize().multiplyScalar(surfaceRadius);
                 const surfaceNormal = this.mesh.position.clone().normalize();
-                const downwardVelocity = this.physics.velocity.dot(surfaceNormal);
+                const downwardVelocity =
+                    this.physics.velocity.dot(surfaceNormal);
                 if (downwardVelocity < 0) {
-                    this.physics.velocity.sub(surfaceNormal.multiplyScalar(downwardVelocity));
+                    this.physics.velocity.sub(
+                        surfaceNormal.multiplyScalar(downwardVelocity)
+                    );
                 }
             }
         }

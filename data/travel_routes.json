@@ -1,0 +1,10 @@
+[
+    { "from": "na", "to": "eu" },
+    { "from": "na", "to": "as" },
+    { "from": "eu", "to": "as" },
+    { "from": "eu", "to": "af" },
+    { "from": "as", "to": "af" },
+    { "from": "as", "to": "oc" },
+    { "from": "sa", "to": "na" },
+    { "from": "sa", "to": "af" }
+]

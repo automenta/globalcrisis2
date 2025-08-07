@@ -1,4 +1,4 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import * as THREE from 'three';
 
 export class RadiologicalPlume {
     constructor(threat, scene) {
@@ -17,7 +17,7 @@ export class RadiologicalPlume {
             size: 0.15,
             vertexColors: true,
             transparent: true,
-            opacity: 0.7
+            opacity: 0.7,
         });
         const points = new THREE.Points(geometry, material);
         return points;
@@ -29,7 +29,7 @@ export class RadiologicalPlume {
             const particle = {
                 position: this.threat.mesh.position.clone(),
                 age: 0,
-                color: new THREE.Color(0xADFF2F) // GreenYellow for RAD
+                color: new THREE.Color(0xadff2f), // GreenYellow for RAD
             };
             this.particles.push(particle);
         }
@@ -51,9 +51,9 @@ export class RadiologicalPlume {
 
             // Move particle with wind
             const windVector = new THREE.Vector3(
-                Math.cos(windDirection * Math.PI / 180),
+                Math.cos((windDirection * Math.PI) / 180),
                 0.2, // Add a slight upward movement to the plume
-                Math.sin(windDirection * Math.PI / 180)
+                Math.sin((windDirection * Math.PI) / 180)
             ).multiplyScalar(windSpeed * dt * 0.01);
             p.position.add(windVector);
 
@@ -66,8 +66,14 @@ export class RadiologicalPlume {
             colors.push(p.color.r, p.color.g, p.color.b);
         });
 
-        this.mesh.geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-        this.mesh.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        this.mesh.geometry.setAttribute(
+            'position',
+            new THREE.Float32BufferAttribute(positions, 3)
+        );
+        this.mesh.geometry.setAttribute(
+            'color',
+            new THREE.Float32BufferAttribute(colors, 3)
+        );
         this.mesh.geometry.attributes.position.needsUpdate = true;
         this.mesh.geometry.attributes.color.needsUpdate = true;
     }

@@ -9,7 +9,7 @@ import { GAME_GRAVITY_CONSTANT } from './constants.js';
 export class UnifiedPhysicsEngine {
     constructor() {
         // Constants can be defined here, e.g., G for gravity
-        this.G = 6.67430e-11; // Gravitational constant
+        this.G = 6.6743e-11; // Gravitational constant
         this.EARTH_MASS = 5.972e24; // kg
     }
 
@@ -20,14 +20,17 @@ export class UnifiedPhysicsEngine {
      */
     update(dt, worldState) {
         // Update all standard units
-        worldState.units.forEach(unit => {
-            if (unit.physics.movementType === 'ground' || unit.physics.movementType === 'air') {
+        worldState.units.forEach((unit) => {
+            if (
+                unit.physics.movementType === 'ground' ||
+                unit.physics.movementType === 'air'
+            ) {
                 this.applyUnitPhysics(unit, dt, worldState);
             }
         });
 
         // Update all satellites
-        worldState.satellites.forEach(satellite => {
+        worldState.satellites.forEach((satellite) => {
             this.applySatellitePhysics(satellite, dt);
         });
     }
@@ -38,12 +41,15 @@ export class UnifiedPhysicsEngine {
      * @param {number} dt Delta time.
      * @param {WorldState} worldState The state of the world for context (e.g., terrain).
      */
-    applyUnitPhysics(unit, dt, worldState) {
+    applyUnitPhysics(unit, dt) {
         const physics = unit.physics;
 
         // Apply friction
         if (physics.velocity.lengthSq() > 0) {
-            const friction = physics.velocity.clone().multiplyScalar(-1).normalize();
+            const friction = physics.velocity
+                .clone()
+                .multiplyScalar(-1)
+                .normalize();
             friction.multiplyScalar(physics.frictionCoefficient);
             physics.applyForce(friction);
         }
@@ -76,8 +82,12 @@ export class UnifiedPhysicsEngine {
         // Apply gravitational force towards the center of the world (0, 0, 0)
         const distanceSq = satellite.mesh.position.lengthSq();
         if (distanceSq > 0) {
-            const gravityMagnitude = GAME_GRAVITY_CONSTANT * physics.mass / distanceSq;
-            const gravityForce = satellite.mesh.position.clone().normalize().multiplyScalar(-gravityMagnitude);
+            const gravityMagnitude =
+                (GAME_GRAVITY_CONSTANT * physics.mass) / distanceSq;
+            const gravityForce = satellite.mesh.position
+                .clone()
+                .normalize()
+                .multiplyScalar(-gravityMagnitude);
             physics.applyForce(gravityForce);
         }
 
@@ -85,7 +95,9 @@ export class UnifiedPhysicsEngine {
         physics.velocity.add(physics.acceleration.clone().multiplyScalar(dt));
 
         // Update position
-        satellite.mesh.position.add(physics.velocity.clone().multiplyScalar(dt));
+        satellite.mesh.position.add(
+            physics.velocity.clone().multiplyScalar(dt)
+        );
 
         // Reset acceleration for the next frame
         physics.acceleration.set(0, 0, 0);

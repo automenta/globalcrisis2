@@ -10,9 +10,15 @@ describe('Unified Physics Engine', () => {
         const mockScene = { add: jest.fn(), remove: jest.fn() };
         const mockUiState = { arePlumesVisible: true };
         const mockNarrativeManager = { logEvent: jest.fn() };
-        document.body.innerHTML = '<input type="checkbox" id="casual-mode-checkbox">';
+        document.body.innerHTML =
+            '<input type="checkbox" id="casual-mode-checkbox">';
 
-        worldState = new WorldState(mockScene, mockUiState, mockNarrativeManager, true);
+        worldState = new WorldState(
+            mockScene,
+            mockUiState,
+            mockNarrativeManager,
+            true
+        );
         physicsEngine = worldState.physicsEngine;
     });
 
@@ -25,7 +31,9 @@ describe('Unified Physics Engine', () => {
             expect(unit.physics.velocity.length()).to.equal(0);
 
             // Apply a constant force for 1 second
-            const force = new THREE.Vector3(1, 0, 0).multiplyScalar(unit.physics.maxForce);
+            const force = new THREE.Vector3(1, 0, 0).multiplyScalar(
+                unit.physics.maxForce
+            );
             unit.physics.applyForce(force);
 
             // Update the engine
@@ -39,7 +47,9 @@ describe('Unified Physics Engine', () => {
             const region = worldState.regions[0];
             worldState.addUnit(region, 'GROUND_VEHICLE');
             const unit = worldState.units[0];
-            const force = new THREE.Vector3(1, 0, 0).multiplyScalar(unit.physics.maxForce);
+            const force = new THREE.Vector3(1, 0, 0).multiplyScalar(
+                unit.physics.maxForce
+            );
 
             // Apply force for several seconds to ensure max speed is reached
             for (let i = 0; i < 5; i++) {
@@ -48,7 +58,9 @@ describe('Unified Physics Engine', () => {
             }
 
             // The velocity should be very close to, but not over, the maxSpeed
-            expect(unit.physics.velocity.length()).to.be.lessThanOrEqual(unit.physics.maxSpeed + 0.001);
+            expect(unit.physics.velocity.length()).to.be.lessThanOrEqual(
+                unit.physics.maxSpeed + 0.001
+            );
         });
     });
 

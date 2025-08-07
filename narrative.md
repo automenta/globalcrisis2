@@ -13,7 +13,7 @@ sequenceDiagram
   participant P as Population
   participant F as Faction
   participant N as Narrative Engine
-  
+
   T->>W: Triggers economic collapse
   W->>P: Unemployment rises 30%
   P->>F: Support drops for ruling faction
@@ -33,192 +33,195 @@ sequenceDiagram
 
 Chronicle generation is the process by which the Narrative Engine synthesizes a series of linked events (an event chain) into a cohesive and meaningful narrative summary. This system transforms raw simulation data into compelling stories that highlight key turning points, faction outcomes, and global impacts.
 
-*   **Input**: The primary input for chronicle generation is an `Event chain` consisting of three or more causally linked events, representing a significant progression in the simulation.
-*   **Process**:
+- **Input**: The primary input for chronicle generation is an `Event chain` consisting of three or more causally linked events, representing a significant progression in the simulation.
+- **Process**:
     1.  **Classify Event Types**: The engine analyzes the types of events within the chain (e.g., `THREAT`, `DIPLOMACY`, `DISASTER`) to understand the core themes.
     2.  **Determine Narrative Archetype**: Based on the event types and their outcomes, the engine identifies a fitting narrative archetype (e.g., "Betrayal," "Revolution," "Redemption," "Escalation").
     3.  **Generate Title**: A concise and evocative title is created for the chronicle, often incorporating the primary threat domains involved.
     4.  **Create Summary**: A narrative summary is generated, detailing the progression of events, the roles of involved factions, and the overall outcomes and consequences.
-*   **Output**: The final output is a `NarrativeChain` object, which encapsulates the generated story and its key attributes.
+- **Output**: The final output is a `NarrativeChain` object, which encapsulates the generated story and its key attributes.
 
 ```typescript
 interface NarrativeChain {
-  id: string; // Unique identifier for the narrative chain.
-  title: string; // A descriptive title for the chronicle (e.g., "The 2024 Cyber-Climate War").
-  timeline: string[]; // An ordered array of Event IDs that constitute this narrative chain.
-  primaryFactions: FactionType[]; // The main factions whose actions or fates are central to this narrative.
-  globalImpact: number; // 0-1 scale, representing the overall severity or significance of the chronicle's impact on the world.
-  keyOutcomes: string[]; // A list of major consequences or resolutions resulting from the events in the chain.
-  domainsInvolved: ThreatDomain[]; // The primary threat domains that played a significant role in the narrative.
-  turningPoint: string; // Event ID of the single most impactful or pivotal event within the chain.
-  resolution: "POSITIVE" | "NEGATIVE" | "NEUTRAL";
-  duration: number;
-  quantumEntanglement?: number;
-  radContamination?: number;
-  roboticAutonomy?: number;
-  // NEW: Cross-domain impact metrics
-  economicImpact?: number;      // 0-1 scale, economic disruption caused
-  informationSpread?: number;   // 0-1 scale, how widely information threats propagated
-  environmentalDamage?: number; // 0-1 scale, ecological destruction
-  cyberDisruption?: number;     // 0-1 scale, digital infrastructure compromise
-  // NEW: Quantum narrative elements
-  quantumParadoxes: string[];   // e.g., ["Causality Violation", "Multiverse Branching"]
-  temporalAnomalies: number;    // 0-1 scale
+    id: string; // Unique identifier for the narrative chain.
+    title: string; // A descriptive title for the chronicle (e.g., "The 2024 Cyber-Climate War").
+    timeline: string[]; // An ordered array of Event IDs that constitute this narrative chain.
+    primaryFactions: FactionType[]; // The main factions whose actions or fates are central to this narrative.
+    globalImpact: number; // 0-1 scale, representing the overall severity or significance of the chronicle's impact on the world.
+    keyOutcomes: string[]; // A list of major consequences or resolutions resulting from the events in the chain.
+    domainsInvolved: ThreatDomain[]; // The primary threat domains that played a significant role in the narrative.
+    turningPoint: string; // Event ID of the single most impactful or pivotal event within the chain.
+    resolution: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+    duration: number;
+    quantumEntanglement?: number;
+    radContamination?: number;
+    roboticAutonomy?: number;
+    // NEW: Cross-domain impact metrics
+    economicImpact?: number; // 0-1 scale, economic disruption caused
+    informationSpread?: number; // 0-1 scale, how widely information threats propagated
+    environmentalDamage?: number; // 0-1 scale, ecological destruction
+    cyberDisruption?: number; // 0-1 scale, digital infrastructure compromise
+    // NEW: Quantum narrative elements
+    quantumParadoxes: string[]; // e.g., ["Causality Violation", "Multiverse Branching"]
+    temporalAnomalies: number; // 0-1 scale
 }
 
 // Example Chains
 const exampleChain: NarrativeChain = {
-  id: "chain-2042",
-  title: "The 2024 Cyber-Climate War",
-  timeline: ["event-1", "event-2", "event-3"],
-  primaryFactions: ["TECHNOCRAT", "RESISTANCE"],
-  globalImpact: 0.75,
-  keyOutcomes: ["Economic collapse", "Regime change"],
-  domainsInvolved: ["CYBER", "ENV", "ECON"],
-  turningPoint: "event-2",
-  resolution: "NEGATIVE",
-  duration: 12
-}
+    id: 'chain-2042',
+    title: 'The 2024 Cyber-Climate War',
+    timeline: ['event-1', 'event-2', 'event-3'],
+    primaryFactions: ['TECHNOCRAT', 'RESISTANCE'],
+    globalImpact: 0.75,
+    keyOutcomes: ['Economic collapse', 'Regime change'],
+    domainsInvolved: ['CYBER', 'ENV', 'ECON'],
+    turningPoint: 'event-2',
+    resolution: 'NEGATIVE',
+    duration: 12,
+};
 
 const pharmaChain: NarrativeChain = {
-  id: "chain-2043a",
-  title: "The Cure Monopoly Crisis",
-  timeline: ["event-7", "event-8", "event-9"],
-  primaryFactions: ["PHARMA", "NATION_STATE"],
-  globalImpact: 0.65,
-  keyOutcomes: ["Vaccine apartheid", "Black market cures"],
-  domainsInvolved: ["BIO", "ECON", "INFO"],
-  turningPoint: "event-8",
-  resolution: "NEGATIVE",
-  duration: 18
-}
+    id: 'chain-2043a',
+    title: 'The Cure Monopoly Crisis',
+    timeline: ['event-7', 'event-8', 'event-9'],
+    primaryFactions: ['PHARMA', 'NATION_STATE'],
+    globalImpact: 0.65,
+    keyOutcomes: ['Vaccine apartheid', 'Black market cures'],
+    domainsInvolved: ['BIO', 'ECON', 'INFO'],
+    turningPoint: 'event-8',
+    resolution: 'NEGATIVE',
+    duration: 18,
+};
 
 const heroChain: NarrativeChain = {
-  id: "chain-2044",
-  title: "The Whistleblower Protocol",
-  timeline: ["event-10", "event-11", "event-12"],
-  primaryFactions: ["HERO_DOCTOR", "RESISTANCE"],
-  globalImpact: 0.55,
-  keyOutcomes: ["Lab leak exposed", "Research shutdown"],
-  domainsInvolved: ["BIO", "INFO", "CYBER"],
-  turningPoint: "event-11",
-  resolution: "POSITIVE",
-  duration: 6
-}
+    id: 'chain-2044',
+    title: 'The Whistleblower Protocol',
+    timeline: ['event-10', 'event-11', 'event-12'],
+    primaryFactions: ['HERO_DOCTOR', 'RESISTANCE'],
+    globalImpact: 0.55,
+    keyOutcomes: ['Lab leak exposed', 'Research shutdown'],
+    domainsInvolved: ['BIO', 'INFO', 'CYBER'],
+    turningPoint: 'event-11',
+    resolution: 'POSITIVE',
+    duration: 6,
+};
 
 const quantumChain: NarrativeChain = {
-  id: "chain-2045",
-  title: "The Quantum Decryption Crisis",
-  timeline: ["event-13", "event-14", "event-15"],
-  primaryFactions: ["TECHNOCRAT", "MITIGATOR"],
-  globalImpact: 0.85,
-  keyOutcomes: ["Encryption collapse", "Data sovereignty war"],
-  domainsInvolved: ["QUANTUM", "CYBER", "INFO"],
-  turningPoint: "event-14",
-  resolution: "NEGATIVE",
-  duration: 10,
-  quantumEntanglement: 0.92
-}
+    id: 'chain-2045',
+    title: 'The Quantum Decryption Crisis',
+    timeline: ['event-13', 'event-14', 'event-15'],
+    primaryFactions: ['TECHNOCRAT', 'MITIGATOR'],
+    globalImpact: 0.85,
+    keyOutcomes: ['Encryption collapse', 'Data sovereignty war'],
+    domainsInvolved: ['QUANTUM', 'CYBER', 'INFO'],
+    turningPoint: 'event-14',
+    resolution: 'NEGATIVE',
+    duration: 10,
+    quantumEntanglement: 0.92,
+};
 
 const empChain: NarrativeChain = {
-  id: "chain-2046",
-  title: "The Great Electronic Blackout",
-  timeline: ["event-16", "event-17", "event-18"],
-  primaryFactions: ["RESISTANCE", "NATION_STATE"],
-  globalImpact: 0.78,
-  keyOutcomes: ["Grid collapse", "Analog resurgence"],
-  domainsInvolved: ["CYBER", "MIL", "ECON"],
-  turningPoint: "event-17",
-  resolution: "NEUTRAL",
-  duration: 14
-}
+    id: 'chain-2046',
+    title: 'The Great Electronic Blackout',
+    timeline: ['event-16', 'event-17', 'event-18'],
+    primaryFactions: ['RESISTANCE', 'NATION_STATE'],
+    globalImpact: 0.78,
+    keyOutcomes: ['Grid collapse', 'Analog resurgence'],
+    domainsInvolved: ['CYBER', 'MIL', 'ECON'],
+    turningPoint: 'event-17',
+    resolution: 'NEUTRAL',
+    duration: 14,
+};
 
 const bioChain: NarrativeChain = {
-  id: "chain-2047",
-  title: "The Bioremediation Disaster",
-  timeline: ["event-19", "event-20", "event-21"],
-  primaryFactions: ["PHARMA", "ENVIRONMENTAL"],
-  globalImpact: 0.68,
-  keyOutcomes: ["Ecosystem collapse", "Regulatory overhaul"],
-  domainsInvolved: ["BIO", "ENV", "INFO"],
-  turningPoint: "event-20",
-  resolution: "NEGATIVE",
-  duration: 9
-}
+    id: 'chain-2047',
+    title: 'The Bioremediation Disaster',
+    timeline: ['event-19', 'event-20', 'event-21'],
+    primaryFactions: ['PHARMA', 'ENVIRONMENTAL'],
+    globalImpact: 0.68,
+    keyOutcomes: ['Ecosystem collapse', 'Regulatory overhaul'],
+    domainsInvolved: ['BIO', 'ENV', 'INFO'],
+    turningPoint: 'event-20',
+    resolution: 'NEGATIVE',
+    duration: 9,
+};
 
 const robotChain: NarrativeChain = {
-  id: "chain-2043",
-  title: "The Robotic Uprising of 2043",
-  timeline: ["event-4", "event-5", "event-6"],
-  primaryFactions: ["TECHNOCRAT", "RESISTANCE"],
-  globalImpact: 0.9,
-  keyOutcomes: ["AI takeover", "Human resistance"],
-  domainsInvolved: ["ROBOT", "CYBER", "INFO"],
-  turningPoint: "event-5",
-  resolution: "NEGATIVE",
-  duration: 8,
-  roboticAutonomy: 0.95
-}
+    id: 'chain-2043',
+    title: 'The Robotic Uprising of 2043',
+    timeline: ['event-4', 'event-5', 'event-6'],
+    primaryFactions: ['TECHNOCRAT', 'RESISTANCE'],
+    globalImpact: 0.9,
+    keyOutcomes: ['AI takeover', 'Human resistance'],
+    domainsInvolved: ['ROBOT', 'CYBER', 'INFO'],
+    turningPoint: 'event-5',
+    resolution: 'NEGATIVE',
+    duration: 8,
+    roboticAutonomy: 0.95,
+};
 
 const radChain: NarrativeChain = {
-  id: "chain-2048",
-  title: "The Chernobyl Echo",
-  timeline: ["event-22", "event-23", "event-24"],
-  primaryFactions: ["NATION_STATE", "MITIGATOR"],
-  globalImpact: 0.82,
-  keyOutcomes: ["Continent-wide contamination", "Nuclear disarmament"],
-  domainsInvolved: ["RAD", "ENV", "GEO"],
-  turningPoint: "event-23",
-  resolution: "NEGATIVE",
-  duration: 15,
-  radContamination: 0.87,
-  quantumParadoxes: [],
-  temporalAnomalies: 0.0
-}
+    id: 'chain-2048',
+    title: 'The Chernobyl Echo',
+    timeline: ['event-22', 'event-23', 'event-24'],
+    primaryFactions: ['NATION_STATE', 'MITIGATOR'],
+    globalImpact: 0.82,
+    keyOutcomes: ['Continent-wide contamination', 'Nuclear disarmament'],
+    domainsInvolved: ['RAD', 'ENV', 'GEO'],
+    turningPoint: 'event-23',
+    resolution: 'NEGATIVE',
+    duration: 15,
+    radContamination: 0.87,
+    quantumParadoxes: [],
+    temporalAnomalies: 0.0,
+};
 
 const neuroChronicle: NarrativeChain = {
-  id: "chain-2051",
-  title: "The Neuro-Social Pandemic",
-  timeline: ["event-31", "event-32", "event-33"],
-  primaryFactions: ["PHARMA", "TECHNOCRAT"],
-  globalImpact: 0.92,
-  keyOutcomes: ["Mass behavioral modification", "Collective consciousness emergence"],
-  domainsInvolved: ["BIO", "INFO", "QUANTUM"],
-  turningPoint: "event-32",
-  resolution: "NEUTRAL",
-  duration: 9,
-  quantumParadoxes: ["Observer Effect Amplification"],
-  temporalAnomalies: 0.75
-}
+    id: 'chain-2051',
+    title: 'The Neuro-Social Pandemic',
+    timeline: ['event-31', 'event-32', 'event-33'],
+    primaryFactions: ['PHARMA', 'TECHNOCRAT'],
+    globalImpact: 0.92,
+    keyOutcomes: [
+        'Mass behavioral modification',
+        'Collective consciousness emergence',
+    ],
+    domainsInvolved: ['BIO', 'INFO', 'QUANTUM'],
+    turningPoint: 'event-32',
+    resolution: 'NEUTRAL',
+    duration: 9,
+    quantumParadoxes: ['Observer Effect Amplification'],
+    temporalAnomalies: 0.75,
+};
 
 const BorderConflictChain: NarrativeChain = {
-  id: "chain-2050",
-  title: "The Resource War Escalation",
-  timeline: ["event-25", "event-26", "event-27"],
-  primaryFactions: ["NATION_STATE", "RESISTANCE"],
-  globalImpact: 0.88,
-  keyOutcomes: ["Border shifts", "Refugee crisis"],
-  domainsInvolved: ["GEO", "ECON", "ENV"],
-  turningPoint: "event-26",
-  resolution: "NEGATIVE",
-  duration: 14,
-  environmentalDamage: 0.75,
-  economicImpact: 0.82
-}
+    id: 'chain-2050',
+    title: 'The Resource War Escalation',
+    timeline: ['event-25', 'event-26', 'event-27'],
+    primaryFactions: ['NATION_STATE', 'RESISTANCE'],
+    globalImpact: 0.88,
+    keyOutcomes: ['Border shifts', 'Refugee crisis'],
+    domainsInvolved: ['GEO', 'ECON', 'ENV'],
+    turningPoint: 'event-26',
+    resolution: 'NEGATIVE',
+    duration: 14,
+    environmentalDamage: 0.75,
+    economicImpact: 0.82,
+};
 
 // Quantum narrative effects
 function generateQuantumNarrative(chain: NarrativeChain): void {
-  if (chain.quantumEntanglement > 0.7) {
-    // Add paradoxical elements
-    chain.quantumParadoxes.push(
-      `Causality Reversal at ${(chain.quantumEntanglement * 100).toFixed(1)}%`
-    );
-    
-    // Branching timeline effect
-    if (Math.random() < 0.4) {
-      chain.timeline.push(`TIMELINE_SPLIT_${Date.now()}`);
+    if (chain.quantumEntanglement > 0.7) {
+        // Add paradoxical elements
+        chain.quantumParadoxes.push(
+            `Causality Reversal at ${(chain.quantumEntanglement * 100).toFixed(1)}%`
+        );
+
+        // Branching timeline effect
+        if (Math.random() < 0.4) {
+            chain.timeline.push(`TIMELINE_SPLIT_${Date.now()}`);
+        }
     }
-  }
 }
 ```
 
@@ -226,7 +229,7 @@ function generateQuantumNarrative(chain: NarrativeChain): void {
 
 Event weighting is a crucial mechanism that determines the significance and impact of individual events within the simulation. This weight influences how events contribute to narrative chains, their visibility to players, and their overall effect on the game world. The `calculateEventWeight` function dynamically assesses an event's importance based on various factors.
 
-```typescript
+````typescript
 interface Event {
   id: string; // Unique identifier for the event.
   title: string; // A brief, descriptive title for the event.
@@ -254,7 +257,7 @@ function calculateEventWeight(event: Event): number {
   let weight = (event.severity * 0.6) + // Severity is the primary factor.
                (event.crossDomainImpacts.length * 0.3) + // Cross-domain impacts significantly increase weight.
                (event.factionsInvolved.length * 0.1); // Involvement of multiple factions adds to complexity and weight.
-  
+
   // NEW: Domain-specific weight modifiers
   // These modifiers amplify the event's weight based on specific properties within certain threat domains,
   // reflecting their unique influence on narrative significance.
@@ -267,17 +270,17 @@ function calculateEventWeight(event: Event): number {
   if (event.domainsInvolved.includes("ROBOT") && event.roboticAutonomy) {
     weight *= 1 + (event.roboticAutonomy * 0.4); // Higher robotic autonomy indicates more self-evolving and potentially dangerous events.
   }
-  
+
   // Add temporal anomaly modifier
   if (event.domainsInvolved.includes("QUANTUM") && event.quantumCoherence > 0.8) {
     weight *= 1 + (event.quantumCoherence * 0.4);
   }
-  
+
   // Add neuro-social multiplier
   if (event.domainsInvolved.includes("INFO") && event.informationProperties?.deepfakeQuality > 0.7) {
     weight *= 1.5;
   }
-  
+
   return Math.min(2.0, weight); // Increase cap for high-impact events
 }
 
@@ -286,7 +289,7 @@ function updateQuantumRoboticInteraction(quantumState: QuantumState, roboticSwar
   // Quantum-controlled robotics
   if (quantumState.entanglementLevel > 0.8) {
     roboticSwarm.adaptationRate *= 1.5;
-    roboticSwarm.collectiveIntelligence = Math.min(1, 
+    roboticSwarm.collectiveIntelligence = Math.min(1,
       roboticSwarm.collectiveIntelligence + quantumState.entanglementLevel * 0.2
     );
   }
@@ -299,7 +302,7 @@ function applyRadiationWeatherEffects(weather: WeatherSystem, radThreat: Threat)
     radThreat.severity *= 1.2;
     // Amplify contamination in water supplies
     if (!radThreat.biologicalProperties) radThreat.biologicalProperties = {};
-    if (!radThreat.biologicalProperties.contaminationMethods) 
+    if (!radThreat.biologicalProperties.contaminationMethods)
       radThreat.biologicalProperties.contaminationMethods = [];
     radThreat.biologicalProperties.contaminationMethods.push("WATER_SUPPLY");
   }
@@ -386,32 +389,32 @@ graph TD
     J --> M[Threat Architect]
     K --> N[Master Investigator]
     L --> O[Grand Strategist]
-```
+````
 
 **Explanation of Player Progression Tree:**
 
-*   **New Player (A)**: The starting point for all players.
-*   **Basic Training (B)**: Introduces fundamental game mechanics, UI navigation, and core concepts of threat simulation.
-*   **Specialization Path (C)**: After basic training, players choose a specialization that aligns with their preferred faction or playstyle:
-    *   **Threat Deployment (D)**: Focuses on the effective deployment and management of various threats.
-    *   **Investigation (E)**: Concentrates on intelligence gathering, threat detection, and counter-intelligence.
-    *   **Strategic Planning (F)**: Emphasizes long-term planning, resource optimization, and diplomatic maneuvers.
-*   **Advanced Threat Systems (G)**: Unlocks more complex and powerful threat types and deployment strategies.
-*   **Forensic Analysis (H)**: Develops advanced skills in analyzing threat data, identifying origins, and predicting future movements.
-*   **Alliance Management (I)**: Enhances abilities in forming and maintaining alliances, negotiating treaties, and understanding geopolitical dynamics.
-*   **Quantum Threats (J)**: Specializes in understanding, deploying, and countering threats related to quantum computing.
-*   **Deep Cover Ops (K)**: Focuses on highly covert operations, infiltration, and psychological warfare.
-*   **Global Strategy (L)**: Develops mastery in overarching global strategic planning, encompassing all domains.
-*   **Threat Architect (M)**: The ultimate specialization for players focused on designing and executing complex, multi-domain threat scenarios.
-*   **Master Investigator (N)**: The pinnacle for players dedicated to uncovering and neutralizing even the most hidden and sophisticated threats.
-*   **Grand Strategist (O)**: The highest level of progression for players who excel at managing all aspects of global strategy, leading their faction to ultimate victory.
+- **New Player (A)**: The starting point for all players.
+- **Basic Training (B)**: Introduces fundamental game mechanics, UI navigation, and core concepts of threat simulation.
+- **Specialization Path (C)**: After basic training, players choose a specialization that aligns with their preferred faction or playstyle:
+    - **Threat Deployment (D)**: Focuses on the effective deployment and management of various threats.
+    - **Investigation (E)**: Concentrates on intelligence gathering, threat detection, and counter-intelligence.
+    - **Strategic Planning (F)**: Emphasizes long-term planning, resource optimization, and diplomatic maneuvers.
+- **Advanced Threat Systems (G)**: Unlocks more complex and powerful threat types and deployment strategies.
+- **Forensic Analysis (H)**: Develops advanced skills in analyzing threat data, identifying origins, and predicting future movements.
+- **Alliance Management (I)**: Enhances abilities in forming and maintaining alliances, negotiating treaties, and understanding geopolitical dynamics.
+- **Quantum Threats (J)**: Specializes in understanding, deploying, and countering threats related to quantum computing.
+- **Deep Cover Ops (K)**: Focuses on highly covert operations, infiltration, and psychological warfare.
+- **Global Strategy (L)**: Develops mastery in overarching global strategic planning, encompassing all domains.
+- **Threat Architect (M)**: The ultimate specialization for players focused on designing and executing complex, multi-domain threat scenarios.
+- **Master Investigator (N)**: The pinnacle for players dedicated to uncovering and neutralizing even the most hidden and sophisticated threats.
+- **Grand Strategist (O)**: The highest level of progression for players who excel at managing all aspects of global strategy, leading their faction to ultimate victory.
 
 ## Tutorial System
 
 The ThreatForge tutorial system is designed to provide a comprehensive and engaging learning experience for new players, gradually introducing them to the game's complex mechanics and strategic depth.
 
-*   **Interactive Tutorials**: Context-sensitive guidance that provides real-time tips and instructions based on player actions, ensuring that learning is integrated seamlessly into gameplay.
-*   **Scenario-Based Learning**: Progressive challenges and mini-scenarios that teach core mechanics and strategic concepts in a practical, hands-on manner, building player proficiency step-by-step.
-*   **Faction-Specific Training**: Unique tutorial pathways tailored to each faction type, allowing players to learn the specific strengths, weaknesses, and playstyles of their chosen faction.
-*   **Physics Sandbox**: A safe, isolated environment where players can experiment with unit movement, threat propagation, and environmental interactions without consequences, fostering a deeper understanding of the game's underlying physics.
-*   **Narrative Examples**: Interactive walkthroughs of historical event chains and chronicles, demonstrating how complex narratives unfold and allowing players to analyze past scenarios and learn from them.
+- **Interactive Tutorials**: Context-sensitive guidance that provides real-time tips and instructions based on player actions, ensuring that learning is integrated seamlessly into gameplay.
+- **Scenario-Based Learning**: Progressive challenges and mini-scenarios that teach core mechanics and strategic concepts in a practical, hands-on manner, building player proficiency step-by-step.
+- **Faction-Specific Training**: Unique tutorial pathways tailored to each faction type, allowing players to learn the specific strengths, weaknesses, and playstyles of their chosen faction.
+- **Physics Sandbox**: A safe, isolated environment where players can experiment with unit movement, threat propagation, and environmental interactions without consequences, fostering a deeper understanding of the game's underlying physics.
+- **Narrative Examples**: Interactive walkthroughs of historical event chains and chronicles, demonstrating how complex narratives unfold and allowing players to analyze past scenarios and learn from them.

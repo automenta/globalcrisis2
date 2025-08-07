@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 export class PathfindingService {
     constructor(world) {
         this.world = world; // The world state, might be needed for complex pathfinding
@@ -33,7 +35,9 @@ export class PathfindingService {
         const globeRadius = start.length(); // Assume start is on the surface
 
         // Get a point between start and end to create an arc
-        const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+        const mid = new THREE.Vector3()
+            .addVectors(start, end)
+            .multiplyScalar(0.5);
         // Bend the curve outwards slightly so it's not a straight line through the globe
         const bendFactor = start.distanceTo(end) * 0.15;
         mid.normalize().multiplyScalar(globeRadius + bendFactor);

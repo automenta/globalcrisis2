@@ -3,7 +3,8 @@
 This document details the core mechanics and data structures used to represent and simulate various global threats within the ThreatForge engine. Understanding these mechanics is crucial for developing new threat scenarios, designing countermeasures, and analyzing the complex interactions between different threat domains.
 
 ## Threat Representation
-```typescript
+
+````typescript
 interface Threat {
   id: string; // Unique identifier for the threat instance.
   domain: ThreatDomain; // The primary domain this threat belongs to (e.g., CYBER, BIO, RAD).
@@ -86,7 +87,7 @@ interface Threat {
       thickness: number; // cm
     }[];
   };
-  roboticProperties?: {                
+  roboticProperties?: {
     learningAlgorithms: ("REINFORCEMENT" | "EVOLUTIONARY" | "SWARM" | "DEEP_LEARNING")[];
     failureModes: ("HACKABLE" | "MALFUNCTION" | "GOAL_DRIFT" | "ETHICS_OVERRIDE")[];
     autonomyDegrees: {
@@ -99,12 +100,12 @@ interface Threat {
       physicalHarmProbability: number; // 0-1 chance of injury
     };
   };
-  neurologicalProperties?: {             
-    cognitiveImpact: ("memory" | "decision" | "perception")[]; 
-    vector: ("neural-implant" | "media" | "ultrasonic")[]; 
+  neurologicalProperties?: {
+    cognitiveImpact: ("memory" | "decision" | "perception")[];
+    vector: ("neural-implant" | "media" | "ultrasonic")[];
     propagationRate: number; // 0-1 (speed of cognitive change)
   };
-  temporalProperties?: {                
+  temporalProperties?: {
     causalityViolation: number; // 0-1 scale
     paradoxRisk: number; // 0-1 scale
   };
@@ -165,7 +166,7 @@ interface ThreatEffect {
 function updateQuantumRoboticInteraction(quantumState: QuantumState, roboticSwarm: RoboticSwarm) {
   if (quantumState.entanglementLevel > 0.7) {
     roboticSwarm.adaptationRate *= 1.5;
-    roboticSwarm.collectiveIntelligence = Math.min(1, 
+    roboticSwarm.collectiveIntelligence = Math.min(1,
       roboticSwarm.collectiveIntelligence + quantumState.entanglementLevel * 0.3
     );
     // Enable quantum-linked behaviors
@@ -180,7 +181,7 @@ function applyRadiationWeatherEffects(weather: WeatherSystem, radThreat: Threat)
     radThreat.severity *= 1.3;
     // Amplify contamination in water supplies
     if (!radThreat.biologicalProperties) radThreat.biologicalProperties = {};
-    if (!radThreat.biologicalProperties.contaminationMethods) 
+    if (!radThreat.biologicalProperties.contaminationMethods)
       radThreat.biologicalProperties.contaminationMethods = [];
     radThreat.biologicalProperties.contaminationMethods.push("WATER_SUPPLY");
   }
@@ -212,14 +213,14 @@ function updateBioRoboticContamination(threat: Threat, region: Region) {
 // instability and challenges in maintaining quantum states.
 function updateQuantumCoherence(threat: Threat, dt: number): void {
   if (threat.domain !== "QUANTUM" || !threat.quantumProperties) return;
-  
+
   const props = threat.quantumProperties;
   if (props.coherenceTime === undefined) return;
-  
+
   // Decoherence increases with time and threat severity
   const decoherenceRate = 0.01 * threat.severity;
   props.coherenceTime -= dt * decoherenceRate;
-  
+
   // When coherence drops too low, quantum effects diminish
   if (props.coherenceTime < 1) {
     threat.severity *= 0.5;
@@ -231,13 +232,13 @@ function updateMisinformationImpact(threat: Threat, region: Region): void {
   if (threat.domain === "INFO" && threat.informationProperties) {
     const { polarizationFactor, deepfakeQuality } = threat.informationProperties;
     const vulnerability = 1 - region.population.psychodynamics.trust;
-    
-    threat.spreadRate = Math.min(1, 
-      0.4 * polarizationFactor + 
-      0.3 * deepfakeQuality + 
+
+    threat.spreadRate = Math.min(1,
+      0.4 * polarizationFactor +
+      0.3 * deepfakeQuality +
       0.3 * vulnerability
     );
-    
+
     // Educational metric
     region.educationMetrics.misinformationResistance -= 0.15;
   }
@@ -246,11 +247,11 @@ function updateMisinformationImpact(threat: Threat, region: Region): void {
 // New physics model for space threats
 function simulateOrbitalDecay(satellite: Satellite, threat: Threat, dt: number): void {
   if (threat.domain !== "SPACE" || !threat.spaceProperties) return;
-  
+
   const debrisDensity = threat.spaceProperties.orbitalDebrisPotential * 0.01;
   const decayRate = debrisDensity * satellite.mass * dt;
   satellite.orbit.semiMajorAxis -= decayRate;
-  
+
   if (satellite.orbit.semiMajorAxis < 6371) {
     triggerReentryEvent(satellite);
   }
@@ -259,7 +260,7 @@ function simulateOrbitalDecay(satellite: Satellite, threat: Threat, dt: number):
 // New economic threat propagation
 function propagateFinancialContagion(threat: Threat, marketIndex: number): void {
   if (threat.domain !== "ECON" || !threat.economicProperties) return;
-  
+
   const volatility = threat.economicProperties.marketCrashPotential;
   const networkEffect = 1 + (marketIndex * 0.2);
   threat.severity = Math.min(1, threat.severity * volatility * networkEffect);
@@ -280,7 +281,7 @@ interface RoboticSwarm {
 function updateSwarmIntelligence(swarm: RoboticSwarm, threatLevel: number, dt: number) {
   const intelligenceGain = swarm.adaptationRate * threatLevel * 0.01;
   swarm.collectiveIntelligence = Math.min(1, swarm.collectiveIntelligence + intelligenceGain * dt);
-  
+
   // NEW: Emergent behavior development
   if (swarm.collectiveIntelligence > 0.7 && !swarm.emergentBehaviors.includes("CoordinatedAssault")) {
     swarm.emergentBehaviors.push("CoordinatedAssault");
@@ -452,56 +453,56 @@ graph TB
     F --> I[Entangled Pathogens]
     G --> J[Hardware-Decay Malware]
     H --> K[Self-Modifying Threats]
-```
+````
 
 **Explanation of Mutation Types:**
 
-*   **Domain Shift**: A threat can transition from one domain to another (e.g., a cyber attack evolving into an economic crisis).
-*   **Amplification**: The severity or impact of a threat can increase, leading to more devastating consequences.
-*   **New Properties**: Threats can acquire new domain-specific characteristics, making them more complex or harder to counter.
-*   **Hybridization**: Two or more distinct threats can merge, forming a new, more potent hybrid threat.
-*   **Quantum Entanglement**: Threats can become linked with quantum systems, gaining new, unpredictable quantum effects.
-*   **Robotic Adaptation**: Robotic threats can develop advanced autonomous behaviors, learning and evolving independently.
+- **Domain Shift**: A threat can transition from one domain to another (e.g., a cyber attack evolving into an economic crisis).
+- **Amplification**: The severity or impact of a threat can increase, leading to more devastating consequences.
+- **New Properties**: Threats can acquire new domain-specific characteristics, making them more complex or harder to counter.
+- **Hybridization**: Two or more distinct threats can merge, forming a new, more potent hybrid threat.
+- **Quantum Entanglement**: Threats can become linked with quantum systems, gaining new, unpredictable quantum effects.
+- **Robotic Adaptation**: Robotic threats can develop advanced autonomous behaviors, learning and evolving independently.
 
 ## Threat Containment
 
 Effective threat containment is crucial for mitigating the impact of active threats and preventing their further spread. ThreatForge simulates various containment strategies, each tailored to specific threat domains. Successful containment reduces a threat's severity, spread rate, and overall impact.
 
-*   **Containment Zones**: Establishing physical or virtual perimeters to isolate affected areas or systems, preventing outward propagation.
-*   **Quarantine Protocols**: Implementing restrictions on population and unit movement to limit the spread of biological or informational threats.
-*   **Vaccination Programs**: Deploying medical countermeasures to reduce the susceptibility of populations to biological threats and limit their impact.
-*   **Cyber Firewalls**: Implementing digital barriers and security protocols to block the propagation of cyber threats and protect vulnerable systems.
-*   **Radiation Shielding**: Deploying physical barriers made of specific materials and thickness to mitigate the spread and impact of radiological contamination.
-*   **Quantum Isolation Fields**: Creating specialized fields or environments to contain and neutralize quantum threats, preventing their effects from spreading.
-*   **Robotic Kill Switches**: Implementing emergency shutdown mechanisms to disable autonomous robotic threats and prevent further malicious actions.
+- **Containment Zones**: Establishing physical or virtual perimeters to isolate affected areas or systems, preventing outward propagation.
+- **Quarantine Protocols**: Implementing restrictions on population and unit movement to limit the spread of biological or informational threats.
+- **Vaccination Programs**: Deploying medical countermeasures to reduce the susceptibility of populations to biological threats and limit their impact.
+- **Cyber Firewalls**: Implementing digital barriers and security protocols to block the propagation of cyber threats and protect vulnerable systems.
+- **Radiation Shielding**: Deploying physical barriers made of specific materials and thickness to mitigate the spread and impact of radiological contamination.
+- **Quantum Isolation Fields**: Creating specialized fields or environments to contain and neutralize quantum threats, preventing their effects from spreading.
+- **Robotic Kill Switches**: Implementing emergency shutdown mechanisms to disable autonomous robotic threats and prevent further malicious actions.
 
 ## Threat Synergy Effects
 
 Threat synergy occurs when the interaction between two or more distinct threats results in an amplified or novel effect that is greater than the sum of their individual impacts. This table outlines some key synergistic relationships and their potential outcomes within the ThreatForge simulation.
 
-| Synergy Type       | Effect                               | Example                                                              |
-|:-------------------|:-------------------------------------|:---------------------------------------------------------------------|
-| Bio-Cyber          | 2.0x data theft                      | Neural implants hacked through biological vectors, allowing for direct data extraction from the human brain. |
-| Quantum-Info       | 3.0x disinformation                  | Quantum-generated deepfakes that are indistinguishable from reality, leading to unprecedented levels of public manipulation. |
-| Space-Env          | 1.8x climate impact                  | Satellite-based weather manipulation systems used to induce extreme climate events, amplifying environmental disasters. |
-| WMD-Bio            | 2.5x casualties                      | Radiological dispersion of highly virulent pathogens, leading to mass casualties and widespread contamination. |
-| Robot-Env          | 1.7x ecological damage               | Autonomous mining operations or industrial robots causing accelerated ecological damage and resource depletion. |
-| Economic-Quantum   | 3.0x market disruption               | Quantum trading algorithms capable of manipulating global financial markets with extreme speed and precision, causing rapid market crashes. |
-| Quantum-Robotic    | 2.8x autonomy                        | Quantum AI controlling robotic swarms, enabling highly coordinated, self-evolving, and unpredictable autonomous behaviors. |
-| Rad-Cyber          | 2.3x disruption                      | Electromagnetic Pulse (EMP) attacks disabling critical cyber defenses, leaving systems vulnerable to further exploitation and collapse. |
-| Quantum + Robotic  | 2.8x autonomy gain                   | Quantum-controlled robotic swarms achieve unprecedented coordination and decision-making speed |
-| Radiological + Env | 2.0x contamination                   | Radiological materials spread faster through environmental factors like wind and water |
-| Bio + Quantum      | 1.7x mutation rate                   | Quantum effects accelerate biological mutation processes |
-| Cyber + Radiological | 3.0x system corrosion               | Radiological contamination accelerates hardware degradation in cyber systems |
-| Neuro + Quantum   | 3.2x cognitive impact              | Quantum-entangled neural networks accelerate behavioral change |
-| Temporal + Cyber  | 4.0x decryption risk               | Time-manipulation enables pre-crime decryption attacks |
+| Synergy Type         | Effect                 | Example                                                                                                                                     |
+| :------------------- | :--------------------- | :------------------------------------------------------------------------------------------------------------------------------------------ |
+| Bio-Cyber            | 2.0x data theft        | Neural implants hacked through biological vectors, allowing for direct data extraction from the human brain.                                |
+| Quantum-Info         | 3.0x disinformation    | Quantum-generated deepfakes that are indistinguishable from reality, leading to unprecedented levels of public manipulation.                |
+| Space-Env            | 1.8x climate impact    | Satellite-based weather manipulation systems used to induce extreme climate events, amplifying environmental disasters.                     |
+| WMD-Bio              | 2.5x casualties        | Radiological dispersion of highly virulent pathogens, leading to mass casualties and widespread contamination.                              |
+| Robot-Env            | 1.7x ecological damage | Autonomous mining operations or industrial robots causing accelerated ecological damage and resource depletion.                             |
+| Economic-Quantum     | 3.0x market disruption | Quantum trading algorithms capable of manipulating global financial markets with extreme speed and precision, causing rapid market crashes. |
+| Quantum-Robotic      | 2.8x autonomy          | Quantum AI controlling robotic swarms, enabling highly coordinated, self-evolving, and unpredictable autonomous behaviors.                  |
+| Rad-Cyber            | 2.3x disruption        | Electromagnetic Pulse (EMP) attacks disabling critical cyber defenses, leaving systems vulnerable to further exploitation and collapse.     |
+| Quantum + Robotic    | 2.8x autonomy gain     | Quantum-controlled robotic swarms achieve unprecedented coordination and decision-making speed                                              |
+| Radiological + Env   | 2.0x contamination     | Radiological materials spread faster through environmental factors like wind and water                                                      |
+| Bio + Quantum        | 1.7x mutation rate     | Quantum effects accelerate biological mutation processes                                                                                    |
+| Cyber + Radiological | 3.0x system corrosion  | Radiological contamination accelerates hardware degradation in cyber systems                                                                |
+| Neuro + Quantum      | 3.2x cognitive impact  | Quantum-entangled neural networks accelerate behavioral change                                                                              |
+| Temporal + Cyber     | 4.0x decryption risk   | Time-manipulation enables pre-crime decryption attacks                                                                                      |
 
 ## Cross-Domain Balance
 
-| Threat Domain      | Physics Models       | Narrative Weight | Multiplayer Impact |
-|--------------------|----------------------|------------------|---------------------|
-| Quantum            | 8 (Entanglement)    | 9 (Paradoxes)    | 7 (Sync Ops)        |
-| Radiological       | 7 (Decay Physics)   | 8 (Contamination)| 6 (Containment)     |
-| Robotic            | 9 (Swarm AI)        | 7 (Uprising)     | 8 (PvP Arenas)      |
-| Neurological       | 6 (Wave Propagation)| 9 (Mass Hysteria)| 7 (Perception Ops)  |
-| Temporal           | 10 (Causality)      | 10 (Butterfly)   | 5 (Limited Use)     |
+| Threat Domain | Physics Models       | Narrative Weight  | Multiplayer Impact |
+| ------------- | -------------------- | ----------------- | ------------------ |
+| Quantum       | 8 (Entanglement)     | 9 (Paradoxes)     | 7 (Sync Ops)       |
+| Radiological  | 7 (Decay Physics)    | 8 (Contamination) | 6 (Containment)    |
+| Robotic       | 9 (Swarm AI)         | 7 (Uprising)      | 8 (PvP Arenas)     |
+| Neurological  | 6 (Wave Propagation) | 9 (Mass Hysteria) | 7 (Perception Ops) |
+| Temporal      | 10 (Causality)       | 10 (Butterfly)    | 5 (Limited Use)    |

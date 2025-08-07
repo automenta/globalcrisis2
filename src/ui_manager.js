@@ -1,7 +1,11 @@
-import { PlayerActions, AgentActions } from './actions.js';
-
 export class UIManager {
-    constructor(voxelWorld, actionService, audioManager, goalManager, selectionIndicator) {
+    constructor(
+        voxelWorld,
+        actionService,
+        audioManager,
+        goalManager,
+        selectionIndicator
+    ) {
         this.voxelWorld = voxelWorld;
         this.actionService = actionService;
         this.audioManager = audioManager;
@@ -16,7 +20,14 @@ export class UIManager {
             isClimateVisible: false,
         };
 
-        this.materialNames = { 0: 'Air', 1: 'Rock', 2: 'Water', 3: 'Ice', 4: 'Sand', 5: 'Grass' };
+        this.materialNames = {
+            0: 'Air',
+            1: 'Rock',
+            2: 'Water',
+            3: 'Ice',
+            4: 'Sand',
+            5: 'Grass',
+        };
         this.lastChronicleCount = 0;
 
         this.initUI();
@@ -56,45 +67,78 @@ export class UIManager {
         this.testPanel = document.getElementById('test-panel');
         this.testResults = document.getElementById('test-results');
 
-
         // Buttons
         this.runTestsButton = document.getElementById('run-tests-button');
-        this.togglePlumesButton = document.getElementById('toggle-plumes-button');
-        this.toggleClimateButton = document.getElementById('toggle-climate-button');
+        this.togglePlumesButton = document.getElementById(
+            'toggle-plumes-button'
+        );
+        this.toggleClimateButton = document.getElementById(
+            'toggle-climate-button'
+        );
         this.powerModeSelector = document.getElementById('power-mode-selector');
-        this.casualModeCheckbox = document.getElementById('casual-mode-checkbox');
+        this.casualModeCheckbox = document.getElementById(
+            'casual-mode-checkbox'
+        );
 
         // Right Panel Buttons
-        this.cheatInvestigateButton = document.getElementById('cheat-investigate-threat');
-        this.cheatMitigateButton = document.getElementById('cheat-mitigate-threat');
+        this.cheatInvestigateButton = document.getElementById(
+            'cheat-investigate-threat'
+        );
+        this.cheatMitigateButton = document.getElementById(
+            'cheat-mitigate-threat'
+        );
         this.moveAgentButton = document.getElementById('move-agent-button');
         this.claimRegionButton = document.getElementById('claim-region-button');
         this.buildButton = document.getElementById('build-button');
-        this.deployNetworkButton = document.getElementById('deploy-network-button');
-        this.launchSatelliteButton = document.getElementById('launch-satellite-button');
-        this.weatherControlButton = document.getElementById('weather-control-button');
+        this.deployNetworkButton = document.getElementById(
+            'deploy-network-button'
+        );
+        this.launchSatelliteButton = document.getElementById(
+            'launch-satellite-button'
+        );
+        this.weatherControlButton = document.getElementById(
+            'weather-control-button'
+        );
         this.researchButton = document.getElementById('research-button');
 
         // Build Panel Buttons
         this.buildBaseButton = document.getElementById('build-base-button');
-        this.buildResearchOutpostButton = document.getElementById('build-research-outpost-button');
+        this.buildResearchOutpostButton = document.getElementById(
+            'build-research-outpost-button'
+        );
         this.buildSensorButton = document.getElementById('build-sensor-button');
         this.buildAgentButton = document.getElementById('build-agent-button');
-        this.buildVehicleButton = document.getElementById('build-vehicle-button');
-        this.buildAircraftButton = document.getElementById('build-aircraft-button');
-        this.buildSatelliteUnitButton = document.getElementById('build-satellite-unit-button');
+        this.buildVehicleButton = document.getElementById(
+            'build-vehicle-button'
+        );
+        this.buildAircraftButton = document.getElementById(
+            'build-aircraft-button'
+        );
+        this.buildSatelliteUnitButton = document.getElementById(
+            'build-satellite-unit-button'
+        );
 
         // Research Panel Buttons
-        this.researchAdvancedAgentsButton = document.getElementById('research-advanced-agents-button');
-        this.researchMoonProgramButton = document.getElementById('research-moon-program-button');
-        this.researchSingularity1Button = document.getElementById('research-singularity-1-button');
-        this.researchSingularity2Button = document.getElementById('research-singularity-2-button');
-        this.researchSingularity3Button = document.getElementById('research-singularity-3-button');
+        this.researchAdvancedAgentsButton = document.getElementById(
+            'research-advanced-agents-button'
+        );
+        this.researchMoonProgramButton = document.getElementById(
+            'research-moon-program-button'
+        );
+        this.researchSingularity1Button = document.getElementById(
+            'research-singularity-1-button'
+        );
+        this.researchSingularity2Button = document.getElementById(
+            'research-singularity-2-button'
+        );
+        this.researchSingularity3Button = document.getElementById(
+            'research-singularity-3-button'
+        );
     }
 
     bindEventListeners() {
         this.casualModeCheckbox.addEventListener('change', () => {
-            alert("Casual Mode setting will apply on next new game.");
+            alert('Casual Mode setting will apply on next new game.');
         });
 
         this.togglePlumesButton.addEventListener('click', () => {
@@ -351,11 +395,21 @@ export class UIManager {
     updateSelectionIndicator() {
         if (this.selectedThreat) {
             this.selectionIndicator.visible = true;
-            this.selectionIndicator.position.copy(this.selectedThreat.mesh.position);
-            this.selectionIndicator.quaternion.copy(this.selectedThreat.mesh.quaternion);
-            const threatSize = this.selectedThreat.mesh.geometry.boundingSphere.radius * this.selectedThreat.mesh.scale.x;
+            this.selectionIndicator.position.copy(
+                this.selectedThreat.mesh.position
+            );
+            this.selectionIndicator.quaternion.copy(
+                this.selectedThreat.mesh.quaternion
+            );
+            const threatSize =
+                this.selectedThreat.mesh.geometry.boundingSphere.radius *
+                this.selectedThreat.mesh.scale.x;
             const indicatorScale = threatSize * 1.5;
-            this.selectionIndicator.scale.set(indicatorScale, indicatorScale, indicatorScale);
+            this.selectionIndicator.scale.set(
+                indicatorScale,
+                indicatorScale,
+                indicatorScale
+            );
         } else {
             this.selectionIndicator.visible = false;
         }
@@ -467,21 +521,17 @@ export class UIManager {
         //     this.threatInfoPanel.style.display = 'none';
         //     return;
         // }
-        // const threat = this.selectedThreat;
-        // const isInvestigated = threat.investigationProgress >= 1.0;
-        // const typeDisplay = isInvestigated ? threat.type : 'UNKNOWN';
+        // const isInvestigated = this.selectedThreat.investigationProgress >= 1.0;
+        // const typeDisplay = isInvestigated ? this.selectedThreat.type : 'UNKNOWN';
         // this.threatInfoPanel.style.display = 'block';
-
         // let infoHTML = `<h3>Threat Details</h3>...`; // Basic info rendering (omitted for brevity, no changes here)
         // this.threatInfoPanel.innerHTML = infoHTML + '<div id="action-buttons"></div>';
         // const actionButtonsContainer = document.getElementById('action-buttons');
-        // const recommendedActionId = this.getRecommendedActionId(threat);
-        // const region = this.voxelWorld.getRegionForThreat(threat);
-
+        // const recommendedActionId = this.getRecommendedActionId(this.selectedThreat);
+        // const region = this.voxelWorld.getRegionForThreat(this.selectedThreat);
         // for (const actionId in PlayerActions) {
         //     const action = PlayerActions[actionId];
         //     const context = { worldState: this.voxelWorld, playerFaction: this.voxelWorld.playerFaction, selectedThreat: this.selectedThreat, selectedRegion: region };
-
         //     if (action.targetType === 'THREAT' && this.actionService.isActionAvailable(action, context)) {
         //         const button = this.createActionButton(action, context, recommendedActionId === action.id);
         //         actionButtonsContainer.appendChild(button);
@@ -489,7 +539,7 @@ export class UIManager {
         // }
     }
 
-    createActionButton(action, context, isRecommended) {
+    createActionButton() {
         // const button = document.createElement('button');
         // button.id = `${action.id}-button`;
         // let costText = '';
@@ -527,53 +577,43 @@ export class UIManager {
     updateRightPanelButtons() {
         // const region = this.selectedThreat ? this.voxelWorld.getRegionForThreat(this.selectedThreat) : null;
         // const context = { worldState: this.voxelWorld, playerFaction: this.voxelWorld.playerFaction, selectedThreat: this.selectedThreat, selectedRegion: region };
-
         // this.cheatInvestigateButton.disabled = !this.selectedThreat;
         // this.cheatMitigateButton.disabled = !this.selectedThreat;
         // this.moveAgentButton.disabled = !this.selectedUnit;
-
         // this.claimRegionButton.disabled = !(region && region.owner === 'NEUTRAL');
         // this.buildButton.disabled = !(region && region.owner === 'PLAYER');
-
         // const networkAction = PlayerActions['deploy_network_infrastructure'];
         // this.deployNetworkButton.disabled = !this.actionService.isActionAvailable(networkAction, context);
-
         // const satelliteAction = PlayerActions['launch_satellite'];
         // this.launchSatelliteButton.disabled = !this.actionService.isActionAvailable(satelliteAction, context);
-
         // const weatherControlAction = PlayerActions['weather_control'];
         // this.weatherControlButton.disabled = !this.actionService.isActionAvailable(weatherControlAction, context);
     }
 
     updateResearchPanel() {
         // if (this.researchPanel.style.display !== 'block') return;
-
         // const research = this.voxelWorld.research;
-
         // const btn1 = this.researchSingularity1Button;
         // const btn2 = this.researchSingularity2Button;
         // const btn3 = this.researchSingularity3Button;
-
         // if (research.singularity_1_complete) {
         //     btn1.style.display = 'none';
         //     btn2.style.display = 'inline-block';
         // } else {
         //     btn2.style.display = 'none';
         // }
-
         // if (research.singularity_2_complete) {
         //     btn2.style.display = 'none';
         //     btn3.style.display = 'inline-block';
         // } else {
         //     btn3.style.display = 'none';
         // }
-
         // if (research.singularity_3_complete) {
         //     btn3.style.display = 'none';
         // }
     }
 
-    showLocationInfo(point) {
+    showLocationInfo() {
         // const { chunkCoord, localCoord } = this.voxelWorld.voxelWorld.worldToVoxel(point.x, point.y, point.z);
         // const chunk = this.voxelWorld.voxelWorld.getChunk(chunkCoord.x, chunkCoord.y, chunkCoord.z);
         // if (chunk) {
