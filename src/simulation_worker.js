@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { Simulation } from './simulation.js';
 import { RegionManager } from './managers/RegionManager.js';
 import { FactionManager } from './managers/FactionManager.js';
@@ -25,10 +26,19 @@ self.onmessage = function (e) {
                 threatManager.generateThreat(payload, simulation);
             }
             break;
+        case 'move_unit':
+            if (simulation) {
+                const unit = simulation.units.find(u => u.id === payload.unitId) || simulation.agents.find(a => a.id === payload.unitId);
+                if (unit) {
+                    const destination = new THREE.Vector3(payload.destination.x, payload.destination.y, payload.destination.z);
+                    unit.moveTo(destination, simulation);
+                }
+            }
+            break;
     }
 };
 
-function init() {
+async function init() {
     console.log('Worker: Initializing simulation...');
 
     const narrativeManagerMock = { logEvent: () => {} };
@@ -39,12 +49,35 @@ function init() {
     aiManager = new AIManager(factionManager.aiFaction, true);
 
     simulation = new Simulation(narrativeManagerMock, true);
+    await simulation.init(); // This now loads region data
     simulation.regionManager = regionManager;
     simulation.factionManager = factionManager;
     simulation.threatManager = threatManager;
     simulation.aiManager = aiManager;
 
-    console.log('Worker: Simulation initialized.');
+
+    // Generate and post chunk geometry
+    simulation.voxelWorld.chunks.forEach(chunk => {
+        // For now, only generate LOD 0
+        const geometryData = simulation.voxelWorld.generateChunkGeometry(chunk, 0);
+        if (geometryData) {
+            const transferable = [
+                geometryData.positions.buffer,
+                geometryData.normals.buffer,
+                geometryData.colors.buffer
+            ];
+            self.postMessage({
+                type: 'chunk_geometry',
+                payload: {
+                    chunkId: chunk.id,
+                    chunkPosition: chunk.position,
+                    geometry: geometryData
+                }
+            }, transferable);
+        }
+    });
+
+    console.log('Worker: Simulation initialized and geometry generated.');
     self.postMessage({ type: 'init_complete' });
 }
 

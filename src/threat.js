@@ -7,8 +7,7 @@ export class Threat {
         domain,
         subType = null,
         type,
-        lat,
-        lon,
+        position,
         severity = 0.5,
         detectionRisk = 0.1,
         investigationProgress = 0,
@@ -33,8 +32,7 @@ export class Threat {
         this.domain = domain;
         this.subType = subType;
         this.type = type;
-        this.lat = lat;
-        this.lon = lon;
+        this.position = position;
 
         // Core simulation properties
         this.detectionRisk = detectionRisk;

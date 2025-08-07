@@ -1,9 +1,5 @@
 import * as THREE from 'three';
-import { latLonToVector3 } from './utils.js';
-
-import * as THREE from 'three';
-import { latLonToVector3 } from './utils.js';
-import { THREAT_DOMAINS } from './constants.js';
+import { THREAT_DOMAINS, CHUNK_SIZE } from './constants.js';
 
 export class WorldView {
     constructor(scene) {
@@ -22,7 +18,6 @@ export class WorldView {
         this.updateObjects(simulationState.units, this.unitMeshes, this.addUnit.bind(this), this.updateUnit.bind(this));
         this.updateObjects(simulationState.agents, this.agentMeshes, this.addAgent.bind(this), this.updateAgent.bind(this));
         this.updateObjects(simulationState.satellites, this.satelliteMeshes, this.addSatellite.bind(this), this.updateSatellite.bind(this));
-        this.updateObjects(Array.from(simulationState.voxelWorld.chunks.values()), this.chunkMeshes, this.addChunk.bind(this), this.updateChunk.bind(this));
     }
 
     updateObjects(objects, meshes, addFn, updateFn) {
@@ -48,8 +43,8 @@ export class WorldView {
         const geometry = new THREE.OctahedronGeometry(2, 0);
         const material = new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.5, transparent: true, opacity: 0.8 });
         const mesh = new THREE.Mesh(geometry, material);
-        mesh.position.copy(latLonToVector3(threat.lat, threat.lon, 50));
-        mesh.userData = { id: threat.id, type: 'threat' };
+        mesh.position.copy(threat.position);
+        mesh.userData = { simObject: threat, type: 'threat' };
         this.threatMeshes.set(threat.id, mesh);
         this.scene.add(mesh);
     }
@@ -73,8 +68,8 @@ export class WorldView {
         const ownerColor = building.owner === 'mitigators' ? 0x0000ff : 0xff0000;
         const material = new THREE.MeshPhongMaterial({ color: ownerColor });
         const mesh = new THREE.Mesh(geometry, material);
-        mesh.position.copy(latLonToVector3(building.lat, building.lon, 50));
-        mesh.userData = { id: building.id, type: 'building' };
+        mesh.position.copy(building.position);
+        mesh.userData = { simObject: building, type: 'building' };
         this.buildingMeshes.set(building.id, mesh);
         this.scene.add(mesh);
     }
@@ -93,7 +88,8 @@ export class WorldView {
         }
         const material = new THREE.MeshPhongMaterial({ color: 0xffff00 });
         const mesh = new THREE.Mesh(geometry, material);
-        mesh.position.copy(latLonToVector3(unit.lat, unit.lon, 50));
+        mesh.position.copy(unit.position);
+        mesh.userData = { simObject: unit, type: 'unit' };
         this.unitMeshes.set(unit.id, mesh);
         this.scene.add(mesh);
     }
@@ -109,7 +105,8 @@ export class WorldView {
         const geometry = new THREE.CylinderGeometry(0.5, 0.5, 2, 8);
         const material = new THREE.MeshPhongMaterial({ color: 0xcccccc });
         const mesh = new THREE.Mesh(geometry, material);
-        mesh.position.copy(latLonToVector3(agent.lat, agent.lon, 50));
+        mesh.position.copy(agent.position);
+        mesh.userData = { simObject: agent, type: 'agent' };
         this.agentMeshes.set(agent.id, mesh);
         this.scene.add(mesh);
     }
@@ -123,6 +120,7 @@ export class WorldView {
         const material = new THREE.MeshPhongMaterial({ color: 0xcccccc, emissive: 0xaaaaaa });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.set(satellite.position.x, satellite.position.y, satellite.position.z);
+        mesh.userData = { simObject: satellite, type: 'satellite' };
         this.satelliteMeshes.set(satellite.id, mesh);
         this.scene.add(mesh);
     }
@@ -134,18 +132,62 @@ export class WorldView {
         }
     }
 
-    addChunk(chunk) {
-        // This is more complex, as it involves generating geometry data from the worker
-        // For now, we'll just create a placeholder
-        const geometry = new THREE.BoxGeometry(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE);
-        const material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.position.set(chunk.position.x * CHUNK_SIZE, chunk.position.y * CHUNK_SIZE, chunk.position.z * CHUNK_SIZE);
-        this.chunkMeshes.set(chunk.id, mesh);
-        this.scene.add(mesh);
-    }
+    addChunkMesh(payload) {
+        const { chunkId, chunkPosition, geometry: geometryData } = payload;
 
-    updateChunk(chunk) {
-        // This will be implemented later
+        if (!geometryData) return;
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute(
+            'position',
+            new THREE.BufferAttribute(geometryData.positions, 3)
+        );
+        geometry.setAttribute(
+            'normal',
+            new THREE.BufferAttribute(geometryData.normals, 3)
+        );
+        geometry.setAttribute(
+            'color',
+            new THREE.BufferAttribute(geometryData.colors, 3)
+        );
+
+        const vertexShader = `
+            varying vec3 vColor;
+            void main() {
+                vColor = color;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const fragmentShader = `
+            varying vec3 vColor;
+            uniform vec3 overlayColor;
+            uniform float overlayIntensity;
+            void main() {
+                vec3 finalColor = mix(vColor, overlayColor, overlayIntensity);
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+        `;
+
+        const material = new THREE.ShaderMaterial({
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            uniforms: {
+                overlayColor: { value: new THREE.Color(0xff0000) },
+                overlayIntensity: { value: 0.0 },
+            },
+            vertexColors: true,
+        });
+
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(
+            chunkPosition.x * CHUNK_SIZE,
+            chunkPosition.y * CHUNK_SIZE,
+            chunkPosition.z * CHUNK_SIZE
+        );
+        mesh.userData.isChunkMesh = true;
+
+        this.chunkMeshes.set(chunkId, mesh);
+        this.scene.add(mesh);
     }
 }

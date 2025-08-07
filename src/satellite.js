@@ -16,16 +16,7 @@ export class Satellite {
         this.id = id;
         this.factionId = factionId;
         this.type = 'SATELLITE'; // For selection and identification
-
-        // The 3D mesh for visualization
-        const geometry = new THREE.OctahedronGeometry(0.15, 0);
-        const material = new THREE.MeshPhongMaterial({
-            color: 0xcccccc,
-            emissive: 0xaaaaaa,
-        });
-        this.mesh = new THREE.Mesh(geometry, material);
-        this.mesh.position.copy(position);
-        this.mesh.userData.satellite = this; // Link back to this object for raycasting
+        this.position = position;
 
         // Physics properties for the UnifiedPhysicsEngine
         this.physics = {
@@ -41,7 +32,7 @@ export class Satellite {
 
         // Orbital parameters (can be calculated and updated by the physics engine)
         this.orbit = {
-            semiMajorAxis: this.mesh.position.length(),
+            semiMajorAxis: this.position.length(),
             eccentricity: 0, // Assuming circular for now
             inclination: 0,
             period: 0,

@@ -12,6 +12,7 @@ import { PathfindingService } from './pathfinding_service.js';
 import { UnifiedPhysicsEngine } from './physics_engine.js';
 import { PlayerActions } from './actions.js';
 import { CHUNK_SIZE, GAME_GRAVITY_CONSTANT } from './constants.js';
+import { Region } from './region.js';
 
 export class Simulation {
     constructor(narrativeManager, casualMode = true) {
@@ -41,8 +42,19 @@ export class Simulation {
         this.physicsEngine = new UnifiedPhysicsEngine();
         this.activeBuffs = [];
 
+    }
+
+    async init() {
+        await this.initializeRegions();
         this.initializeVoxelWorld();
         this.initializeFactions();
+    }
+
+    async initializeRegions() {
+        // This is running in a worker, so we need to specify the path
+        const response = await fetch('../../data/regions.json');
+        const regionsData = await response.json();
+        this.regions = regionsData.map(data => new Region(data));
     }
 
     initializeVoxelWorld() {
@@ -68,7 +80,19 @@ export class Simulation {
         this.factions.push(this.aiFaction);
     }
 
-    addBuilding(region, type, faction = this.playerFaction) {
+    addBuilding(regionId, type, factionId = 'mitigators') {
+        const region = this.regions.find(r => r.id === regionId);
+        if (!region) {
+            console.error(`Region with id ${regionId} not found.`);
+            return false;
+        }
+
+        const faction = this.factions.find(f => f.id === factionId);
+         if (!faction) {
+            console.error(`Faction with id ${factionId} not found.`);
+            return false;
+        }
+
         let cost;
         switch (type) {
             case 'BASE': cost = { funds: 1000 }; break;
@@ -79,18 +103,30 @@ export class Simulation {
 
         if (faction.canAfford(cost)) {
             faction.spend(cost);
-            const building = new Building({ region, type, owner: faction.id });
+            const building = new Building({ region, type, owner: faction.id, position: region.position });
             this.buildings.push(building);
             return true;
         }
         return false;
     }
 
-    addAgent(region, faction = this.playerFaction) {
+    addAgent(regionId, factionId = 'mitigators') {
+        const region = this.regions.find(r => r.id === regionId);
+        if (!region) {
+            console.error(`Region with id ${regionId} not found.`);
+            return false;
+        }
+
+        const faction = this.factions.find(f => f.id === factionId);
+         if (!faction) {
+            console.error(`Faction with id ${factionId} not found.`);
+            return false;
+        }
+
         const cost = { funds: 1500, intel: 500 };
         if (faction.canAfford(cost)) {
             faction.spend(cost);
-            const agent = new Agent({ id: `agent-${this.agents.length}`, factionId: faction.id, region: region, name: `Agent ${this.agents.length + 1}` });
+            const agent = new Agent({ id: `agent-${this.agents.length}`, factionId: faction.id, region: region, name: `Agent ${this.agents.length + 1}`, position: region.position });
             this.agents.push(agent);
             this.narrativeManager.logEvent('AGENT_DEPLOYED', { agentId: agent.id, agentName: agent.name, regionName: region.name });
             return true;

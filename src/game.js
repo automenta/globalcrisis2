@@ -96,7 +96,7 @@ export class Game {
         this.controls.rotateSpeed = 1.2;
 
         this.uiManager = new UIManager(null, this.actionService, this.audioManager, null, this.selectionIndicator);
-        this.inputManager = new InputManager(this.camera, this.scene, this.renderer, this.worldView, this.uiManager, this.audioManager, this.controls);
+        this.inputManager = new InputManager(this.camera, this.scene, this.renderer, this.worldView, this.uiManager, this.audioManager, this.controls, this.worker);
         this.testRunner = new TestRunner(this.uiManager);
     }
 
@@ -118,6 +118,9 @@ export class Game {
                         payload,
                         this.clock.getDelta() * this.gameSpeed
                     );
+                    break;
+                case 'chunk_geometry':
+                    this.worldView.addChunkMesh(payload);
                     break;
             }
         };

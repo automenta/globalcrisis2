@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { Threat } from '../threat.js';
 import { RadiologicalPlume } from '../plume.js';
 import { threatDomains, CROSS_DOMAIN_INTERACTIONS } from '../constants.js';
@@ -184,8 +185,7 @@ export class ThreatManager {
                                 domain: 'BIO',
                                 type: 'REAL',
                                 severity: 0.1,
-                                lat: targetRegion.centroid[0],
-                                lon: targetRegion.centroid[1],
+                                position: targetRegion.position,
                             });
                             this.addThreat(newThreat);
                         }
@@ -393,6 +393,13 @@ export class ThreatManager {
                 worldState.aiGoal = null;
             }
 
+            const randomOffset = new THREE.Vector3(
+                (Math.random() - 0.5),
+                (Math.random() - 0.5),
+                (Math.random() - 0.5)
+            ).normalize().multiplyScalar(5); // 5 units of random offset
+            const threatPosition = new THREE.Vector3().copy(targetRegion.position).add(randomOffset).normalize().multiplyScalar(60);
+
             threatProps = {
                 id,
                 domain,
@@ -400,17 +407,18 @@ export class ThreatManager {
                 severity: this.casualMode
                     ? Math.random() * 0.2 + 0.1
                     : Math.random() * 0.4 + 0.1,
-                lat: targetRegion.centroid[0] + (Math.random() - 0.5) * 10,
-                lon: targetRegion.centroid[1] + (Math.random() - 0.5) * 10,
+                position: threatPosition,
             };
         } else {
+            // This path is likely for debugging or testing, needs a position.
+            // For now, we'll place it at a default location if no position is provided.
+            const position = options.position || new THREE.Vector3(60, 0, 0);
             threatProps = {
                 id,
                 domain: options.domain,
                 type: options.type,
                 severity: options.severity,
-                lat: options.lat,
-                lon: options.lon,
+                position: position
             };
         }
 

@@ -18,16 +18,21 @@ export class Agent extends Unit {
             experience = 0,
             abilities = [],
             status = 'IDLE', // IDLE, ON_MISSION, CAPTURED, KIA
-        },
-        worldState
+            position,
+            name = 'Rook', // Default name
+            level = 1,
+            experience = 0,
+            abilities = [],
+            status = 'IDLE', // IDLE, ON_MISSION, CAPTURED, KIA
+        }
     ) {
         // Call the parent Unit constructor
-        super({ region, type: 'AGENT' }, worldState);
+        super({ region, type: 'AGENT', position });
 
         // Agent-specific properties
         this.id = id;
         this.factionId = factionId;
-        // this.region is already set by super()
+        // this.region and this.position are already set by super()
         this.name = name;
         this.level = level;
         this.experience = experience;
@@ -35,12 +40,6 @@ export class Agent extends Unit {
         // this.status is handled by the Unit class, but we can override it
         this.status = status;
         this.mission = null; // Will hold the full mission object from AgentActions
-
-        // Customize the mesh color for agents
-        this.mesh.material.color.set(0x88aaff); // Blueish color for agents
-        this.mesh.userData.agent = this; // Link mesh back to agent object
-
-        this.mesh.visible = this.factionId === 'player'; // Only show player's agents
     }
 
     startMission(missionAction, worldState) {

@@ -3,11 +3,11 @@ import { MovementComponent } from './movement_component.js';
 import { GAME_GRAVITY_CONSTANT } from './constants.js';
 
 export class Unit {
-    constructor({ region, type }) {
+    constructor({ region, type, position }) {
+        this.id = `${type}-${region.id}-${Date.now()}`;
         this.region = region;
         this.type = type;
-        this.mesh = this.createMesh(); // Create mesh first to get position
-        this.mesh.userData.unit = this;
+        this.position = position;
 
         // Sensor Range
         this.baseSensorRange =
@@ -109,78 +109,18 @@ export class Unit {
 
         // Special case for satellite initial velocity to achieve orbit
         if (this.type === 'SATELLITE') {
-            const spawnRadius = this.mesh.position.length();
+            const spawnRadius = this.position.length();
             // v = sqrt(GM/r) -> simplified to sqrt(GAME_GRAVITY_CONSTANT / r)
             const orbitalSpeed = Math.sqrt(GAME_GRAVITY_CONSTANT / spawnRadius);
             // Give it a velocity perpendicular to its position vector
             const initialVelocity = new THREE.Vector3(
-                -this.mesh.position.z,
+                -this.position.z,
                 0,
-                this.mesh.position.x
+                this.position.x
             ).normalize();
             initialVelocity.multiplyScalar(orbitalSpeed);
             this.physics.velocity.copy(initialVelocity);
         }
-    }
-
-    createMesh() {
-        let geometry;
-        let spawnRadius;
-
-        switch (this.type) {
-            case 'QUANTUM_NODE':
-                geometry = new THREE.TorusKnotGeometry(0.2, 0.05, 100, 16);
-                spawnRadius = 63.5;
-                break;
-            case 'RAD_DISPERSAL':
-                geometry = new THREE.CylinderGeometry(0.1, 0.1, 0.5, 16);
-                spawnRadius = 63.5;
-                break;
-            case 'DRONE':
-                geometry = new THREE.SphereGeometry(0.1, 8, 8);
-                spawnRadius = 70;
-                break;
-            case 'AUTONOMOUS_GROUND':
-                geometry = new THREE.BoxGeometry(0.4, 0.2, 0.3);
-                spawnRadius = 63.5;
-                break;
-            case 'ROBOTIC_SWARM':
-                geometry = new THREE.SphereGeometry(0.5, 16, 16);
-                spawnRadius = 70;
-                break;
-            case 'GROUND_VEHICLE':
-                geometry = new THREE.BoxGeometry(0.3, 0.1, 0.2);
-                spawnRadius = 63.5;
-                break;
-            case 'AIRCRAFT':
-                geometry = new THREE.TetrahedronGeometry(0.2, 0);
-                spawnRadius = 70; // Spawn higher up
-                break;
-            case 'SATELLITE':
-                geometry = new THREE.OctahedronGeometry(0.15, 0);
-                spawnRadius = 80; // Spawn in "orbit"
-                break;
-            case 'AGENT':
-            default:
-                geometry = new THREE.ConeGeometry(0.1, 0.4, 8);
-                spawnRadius = 63.5; // Spawn on the ground
-                break;
-        }
-
-        const material = new THREE.MeshPhongMaterial({ color: 0xffff00 });
-        const mesh = new THREE.Mesh(geometry, material);
-
-        const [lat, lon] = this.region.centroid;
-        const phi = (90 - lat) * (Math.PI / 180);
-        const theta = (lon + 180) * (Math.PI / 180);
-
-        const x = -(spawnRadius * Math.sin(phi) * Math.cos(theta));
-        const z = spawnRadius * Math.sin(phi) * Math.sin(theta);
-        const y = spawnRadius * Math.cos(phi);
-        mesh.position.set(x, y, z);
-        mesh.lookAt(0, 0, 0);
-
-        return mesh;
     }
 
     moveTo(targetPoint, worldState) {
@@ -189,7 +129,7 @@ export class Unit {
             return;
         }
         const path = worldState.pathfindingService.calculatePath(
-            this.mesh.position,
+            this.position,
             targetPoint,
             this.physics.movementType
         );
@@ -200,9 +140,9 @@ export class Unit {
     update(dt, worldState) {
         // --- Weather Effects ---
         const { chunkCoord } = worldState.voxelWorld.worldToVoxel(
-            this.mesh.position.x,
-            this.mesh.position.y,
-            this.mesh.position.z
+            this.position.x,
+            this.position.y,
+            this.position.z
         );
         const chunk = worldState.voxelWorld.getChunk(
             chunkCoord.x,
@@ -246,9 +186,9 @@ export class Unit {
         // Keep ground units on the surface of the sphere
         if (this.physics.movementType === 'ground') {
             const surfaceRadius = 63;
-            if (this.mesh.position.length() < surfaceRadius) {
-                this.mesh.position.normalize().multiplyScalar(surfaceRadius);
-                const surfaceNormal = this.mesh.position.clone().normalize();
+            if (this.position.length() < surfaceRadius) {
+                this.position.normalize().multiplyScalar(surfaceRadius);
+                const surfaceNormal = this.position.clone().normalize();
                 const downwardVelocity =
                     this.physics.velocity.dot(surfaceNormal);
                 if (downwardVelocity < 0) {

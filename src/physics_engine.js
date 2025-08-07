@@ -44,6 +44,14 @@ export class UnifiedPhysicsEngine {
     applyUnitPhysics(unit, dt) {
         const physics = unit.physics;
 
+        // Apply central gravity
+        const distanceSq = unit.position.lengthSq();
+        if (distanceSq > 0) {
+            const gravityMagnitude = (GAME_GRAVITY_CONSTANT * physics.mass) / distanceSq;
+            const gravityForce = unit.position.clone().normalize().multiplyScalar(-gravityMagnitude);
+            physics.applyForce(gravityForce);
+        }
+
         // Apply friction
         if (physics.velocity.lengthSq() > 0) {
             const friction = physics.velocity
@@ -65,7 +73,7 @@ export class UnifiedPhysicsEngine {
         }
 
         // Update position
-        unit.mesh.position.add(physics.velocity.clone().multiplyScalar(dt));
+        unit.position.add(physics.velocity.clone().multiplyScalar(dt));
 
         // Reset acceleration for the next frame
         physics.acceleration.set(0, 0, 0);
@@ -80,11 +88,11 @@ export class UnifiedPhysicsEngine {
         const physics = satellite.physics;
 
         // Apply gravitational force towards the center of the world (0, 0, 0)
-        const distanceSq = satellite.mesh.position.lengthSq();
+        const distanceSq = satellite.position.lengthSq();
         if (distanceSq > 0) {
             const gravityMagnitude =
                 (GAME_GRAVITY_CONSTANT * physics.mass) / distanceSq;
-            const gravityForce = satellite.mesh.position
+            const gravityForce = satellite.position
                 .clone()
                 .normalize()
                 .multiplyScalar(-gravityMagnitude);
@@ -95,7 +103,7 @@ export class UnifiedPhysicsEngine {
         physics.velocity.add(physics.acceleration.clone().multiplyScalar(dt));
 
         // Update position
-        satellite.mesh.position.add(
+        satellite.position.add(
             physics.velocity.clone().multiplyScalar(dt)
         );
 

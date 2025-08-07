@@ -6,24 +6,25 @@ export class InputManager {
         camera,
         scene,
         renderer,
-        threatMeshes,
+        worldView,
         uiManager,
         audioManager,
-        controls
+        controls,
+        worker
     ) {
         this.camera = camera;
         this.scene = scene;
         this.renderer = renderer;
-        this.threatMeshes = threatMeshes;
+        this.worldView = worldView;
         this.uiManager = uiManager;
         this.audioManager = audioManager;
         this.controls = controls;
+        this.worker = worker;
 
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
 
-        this.selectedThreat = null;
-        this.selectedUnit = null;
+        this.selectedObject = null;
         this.moveMode = false;
 
         this.bindEventListeners();
@@ -49,56 +50,54 @@ export class InputManager {
     }
 
     onMouseClick(event) {
-        this.mouse.x =
-            (event.clientX / this.renderer.domElement.clientWidth) * 2 - 1;
-        this.mouse.y =
-            -(event.clientY / this.renderer.domElement.clientHeight) * 2 + 1;
+        this.mouse.x = (event.clientX / this.renderer.domElement.clientWidth) * 2 - 1;
+        this.mouse.y = -(event.clientY / this.renderer.domElement.clientHeight) * 2 + 1;
         this.raycaster.setFromCamera(this.mouse, this.camera);
 
-        const chunkMeshes = this.scene.children.filter(
-            (obj) => obj.userData.isChunkMesh && obj.visible
-        );
+        const chunkMeshes = [...this.worldView.chunkMeshes.values()];
+        const selectableMeshes = [
+            ...this.worldView.threatMeshes.values(),
+            ...this.worldView.unitMeshes.values(),
+            ...this.worldView.agentMeshes.values()
+        ];
 
-        if (this.moveMode && this.selectedUnit) {
+        if (this.moveMode && this.selectedObject) {
             const intersects = this.raycaster.intersectObjects(chunkMeshes);
             if (intersects.length > 0) {
-                this.selectedUnit.moveTo(intersects[0].point);
+                // This will be refactored to post a message to the worker
+                // this.selectedObject.moveTo(intersects[0].point);
+                console.log("Move command to:", intersects[0].point);
             }
             this.moveMode = false;
-            this.uiManager.moveAgentButton.textContent = 'Move Agent';
+            // this.uiManager.moveAgentButton.textContent = 'Move Agent';
             this.renderer.domElement.style.cursor = 'default';
             return;
         }
 
-        const allThreatMeshes = [...this.threatMeshes.values()].map(tm => tm.mesh);
-        const intersects = this.raycaster.intersectObjects(allThreatMeshes);
+        const intersects = this.raycaster.intersectObjects(selectableMeshes);
 
         if (intersects.length > 0) {
             const intersectedMesh = intersects[0].object;
+            this.selectedObject = intersectedMesh.userData.simObject;
+
             this.audioManager.playSound('click');
-            this.uiManager.hideLocationInfo();
-
-            const threatId = intersectedMesh.name;
-            const threatMesh = this.threatMeshes.get(threatId);
-
-            if (threatMesh) {
-                this.selectedThreat = threatMesh.threatData;
-                this.uiManager.setSelectedThreat(this.selectedThreat);
-            }
+            this.uiManager.setSelected(this.selectedObject);
+            this.uiManager.selectionIndicator.visible = true;
+            this.uiManager.selectionIndicator.position.copy(intersectedMesh.position);
 
         } else {
-            this.selectedThreat = null;
-            this.selectedUnit = null;
+            this.selectedObject = null;
             this.uiManager.clearSelection();
+            this.uiManager.selectionIndicator.visible = false;
 
             const planetIntersects = this.raycaster.intersectObjects(chunkMeshes);
-        if (planetIntersects.length > 0) {
-            // const point = planetIntersects[0].point;
-            // this.uiManager.showLocationInfo(point);
-        } else {
-            this.uiManager.hideLocationInfo();
+            if (planetIntersects.length > 0) {
+                // const point = planetIntersects[0].point;
+                // this.uiManager.showLocationInfo(point);
+            } else {
+                this.uiManager.hideLocationInfo();
+            }
         }
-        // }
     }
 
     onMouseDoubleClick() {
@@ -120,23 +119,29 @@ export class InputManager {
 
     onRightClick(event) {
         event.preventDefault();
-        if (!this.selectedUnit) return;
+        if (!this.selectedObject || (this.selectedObject.type !== 'unit' && this.selectedObject.type !== 'agent')) {
+            return;
+        }
 
-        this.mouse.x =
-            (event.clientX / this.renderer.domElement.clientWidth) * 2 - 1;
-        this.mouse.y =
-            -(event.clientY / this.renderer.domElement.clientHeight) * 2 + 1;
+        this.mouse.x = (event.clientX / this.renderer.domElement.clientWidth) * 2 - 1;
+        this.mouse.y = -(event.clientY / this.renderer.domElement.clientHeight) * 2 + 1;
         this.raycaster.setFromCamera(this.mouse, this.camera);
 
-        const chunkMeshes = this.scene.children.filter(
-            (obj) => obj.userData.isChunkMesh && obj.visible
-        );
+        const chunkMeshes = [...this.worldView.chunkMeshes.values()];
         const intersects = this.raycaster.intersectObjects(chunkMeshes);
 
         if (intersects.length > 0) {
             const destination = intersects[0].point;
-            this.selectedUnit.moveTo(destination);
 
+            this.worker.postMessage({
+                type: 'move_unit',
+                payload: {
+                    unitId: this.selectedObject.id,
+                    destination: { x: destination.x, y: destination.y, z: destination.z }
+                }
+            });
+
+            // Visual feedback for the move command
             const indicatorGeo = new THREE.RingGeometry(0.4, 0.5, 32);
             const indicatorMat = new THREE.MeshBasicMaterial({
                 color: 0x00ff00,
@@ -146,7 +151,7 @@ export class InputManager {
             });
             const moveIndicator = new THREE.Mesh(indicatorGeo, indicatorMat);
             moveIndicator.position.copy(destination);
-            moveIndicator.lookAt(new THREE.Vector3());
+            moveIndicator.lookAt(this.selectedObject.position.clone().normalize().multiplyScalar(100)); // Look away from planet center
             this.scene.add(moveIndicator);
 
             new TWEEN.Tween(moveIndicator.scale)

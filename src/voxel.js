@@ -322,12 +322,7 @@ export class VoxelWorld {
         return { lat, lon };
     }
 
-    /**
-     * Creates a THREE.Mesh for a given chunk based on its voxel data for a specific LOD.
-     * @param {Chunk} chunk The chunk to create a mesh for.
-     * @param {number} lod The level of detail to create the mesh for.
-     */
-    createMeshForChunk(chunk, lod) {
+    generateChunkGeometry(chunk, lod) {
         const size = CHUNK_SIZE / Math.pow(2, lod);
         const marchingCubes = new MarchingCubes(size);
 
@@ -336,8 +331,7 @@ export class VoxelWorld {
 
         const geometry = marchingCubes.generate();
         if (geometry.attributes.position.count === 0) {
-            chunk.meshes[lod] = null;
-            return;
+            return null;
         }
 
         // --- Vertex Coloring based on Material ---
@@ -372,7 +366,38 @@ export class VoxelWorld {
             colors[i + 2] = color.b;
         }
 
-        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        return {
+            positions: geometry.attributes.position.array,
+            normals: geometry.attributes.normal.array,
+            colors: colors,
+        };
+    }
+
+    /**
+     * Creates a THREE.Mesh for a given chunk based on its voxel data for a specific LOD.
+     * @param {Chunk} chunk The chunk to create a mesh for.
+     * @param {number} lod The level of detail to create the mesh for.
+     */
+    createMeshForChunk(chunk, lod) {
+        const geometryData = this.generateChunkGeometry(chunk, lod);
+        if (!geometryData) {
+            chunk.meshes[lod] = null;
+            return;
+        }
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute(
+            'position',
+            new THREE.BufferAttribute(geometryData.positions, 3)
+        );
+        geometry.setAttribute(
+            'normal',
+            new THREE.BufferAttribute(geometryData.normals, 3)
+        );
+        geometry.setAttribute(
+            'color',
+            new THREE.BufferAttribute(geometryData.colors, 3)
+        );
 
         const vertexShader = `
             varying vec3 vColor;

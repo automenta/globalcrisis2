@@ -8,12 +8,14 @@ const EARTH_RADIUS_KM = 6371; // For converting region radius to sphere scale
 
 import * as THREE from 'three';
 import { PlayerActions } from './actions.js';
+import { PLANET_RADIUS } from './constants.js';
 
 export class Region {
     constructor({ id, name, centroid, radius, attributes }) {
         this.id = id;
         this.name = name;
         this.centroid = centroid; // [lat, lon]
+        this.position = Region.latLonToVector3(centroid[0], centroid[1], PLANET_RADIUS);
         this.radius = radius; // km
         this.attributes = attributes; // { climateVulnerability, temperature, economy: 1.0 }
         this.stability = 1.0; // Initial stability
@@ -29,15 +31,22 @@ export class Region {
         };
         this.education = Math.random() * 0.5 + 0.3; // 0.3 to 0.8
 
-        this.mesh = this.createMesh();
-        this.weatherMesh = this.createWeatherMesh();
-        this.mesh.add(this.weatherMesh);
-
         this.activeMission = null;
         this.missionProgress = 0;
         this.missionDuration = 30;
 
         this.activeBuffs = [];
+    }
+
+    static latLonToVector3(lat, lon, radius) {
+        const phi = (90 - lat) * (Math.PI / 180);
+        const theta = (lon + 180) * (Math.PI / 180);
+
+        const x = -(radius * Math.sin(phi) * Math.cos(theta));
+        const z = radius * Math.sin(phi) * Math.sin(theta);
+        const y = radius * Math.cos(phi);
+
+        return new THREE.Vector3(x, y, z);
     }
 
     startDiplomaticMission() {
@@ -155,87 +164,6 @@ export class Region {
         return false;
     }
 
-    updateMeshColor(envDamage = 0) {
-        const color = this.getRegionColor(
-            this.attributes.temperature,
-            this.stability,
-            envDamage
-        );
-        this.mesh.material.color.set(color);
-
-        const ownerColor = new THREE.Color(REGION_COLORS[this.owner]);
-        this.mesh.material.color.lerp(ownerColor, 0.5);
-    }
-
-    setOwner(owner) {
-        this.owner = owner;
-        this.updateMeshColor();
-    }
-
-    createMesh() {
-        const sphereRadius = 5;
-        const regionRadiusOnSphere =
-            (this.radius / EARTH_RADIUS_KM) * sphereRadius;
-
-        const geometry = new THREE.CircleGeometry(regionRadiusOnSphere, 32);
-        const regionColor = this.getRegionColor(
-            this.attributes.temperature,
-            this.stability
-        );
-        const material = new THREE.MeshBasicMaterial({
-            color: regionColor,
-            transparent: true,
-            opacity: 0.4,
-        });
-
-        const mesh = new THREE.Mesh(geometry, material);
-        const [lat, lon] = this.centroid;
-        const phi = (90 - lat) * (Math.PI / 180);
-        const theta = (lon + 180) * (Math.PI / 180);
-
-        const x = -(sphereRadius * Math.sin(phi) * Math.cos(theta));
-        const z = sphereRadius * Math.sin(phi) * Math.sin(theta);
-        const y = sphereRadius * Math.cos(phi);
-        mesh.position.set(x, y, z);
-        mesh.lookAt(0, 0, 0);
-        return mesh;
-    }
-
-    getRegionColor(temp, stability, envDamage) {
-        const minTemp = -50;
-        const maxTemp = 40;
-        const normalizedTemp =
-            (Math.max(minTemp, Math.min(maxTemp, temp)) - minTemp) /
-            (maxTemp - minTemp);
-        const tempHue = 0.7 * (1 - normalizedTemp);
-        const stabilityHue = 0;
-        const finalHue = tempHue * stability + stabilityHue * (1 - stability);
-        const saturation = Math.max(0, 1.0 - envDamage * 0.5);
-        const color = new THREE.Color();
-        color.setHSL(finalHue, saturation, 0.5);
-        return color;
-    }
-
-    createWeatherMesh() {
-        const sphereRadius = 5;
-        const regionRadiusOnSphere =
-            (this.radius / EARTH_RADIUS_KM) * sphereRadius;
-
-        const geometry = new THREE.SphereGeometry(
-            regionRadiusOnSphere * 1.1,
-            32,
-            32
-        );
-        const material = new THREE.MeshBasicMaterial({
-            color: 0xffffff,
-            transparent: true,
-            opacity: 0.2,
-            side: THREE.DoubleSide,
-        });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.visible = false;
-        return mesh;
-    }
 
     investInEducation(faction) {
         const cost = PlayerActions.invest_in_education.resourceCost;
