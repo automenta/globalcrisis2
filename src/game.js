@@ -4,7 +4,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { UIManager } from './ui_manager.js';
-// import { WorldState } from './world.js';
+import { WorldView } from './view.js';
 import { VoxelWorld, Chunk } from './voxel.js';
 import { ClimateGrid } from './climate.js';
 import { AudioManager } from './audio.js';
@@ -25,7 +25,6 @@ import { ArenaMode } from './arena_mode.js';
 
 export class Game {
     constructor() {
-        this.threatMeshes = new Map();
         this.initEngine();
         this.initManagers();
         this.initEventListeners();
@@ -86,75 +85,18 @@ export class Game {
     }
 
     initManagers() {
-        // Managers that are purely for the client-side (rendering, UI, input)
         this.audioManager = new AudioManager();
-        this.actionService = new ActionService(); // This might need refactoring if actions are triggered from the UI
-        this.narrativeManager = new NarrativeManager(); // For now, narrative logs are on the main thread
+        this.actionService = new ActionService();
+        this.narrativeManager = new NarrativeManager();
+        this.worldView = new WorldView(this.scene);
 
-        // The simulation managers are now in the worker.
-        // this.eventBus = new EventBus();
-        // this.regionManager = new RegionManager(this.scene);
-        // this.factionManager = new FactionManager(true);
-        // this.threatManager = new ThreatManager(
-        //     this.scene,
-        //     this.narrativeManager,
-        //     true
-        // );
-        // this.aiManager = new AIManager(this.factionManager.aiFaction, true);
-        // this.worldState = new WorldState(
-        //     this.scene,
-        //     this.narrativeManager,
-        //     true
-        // );
-        // this.worldState.regionManager = this.regionManager;
-        // this.worldState.factionManager = this.factionManager;
-        // this.worldState.threatManager = this.threatManager;
-        // this.worldState.aiManager = this.aiManager;
-
-        this.climateGrid = new ClimateGrid(128, 128);
-        this.climateGrid.generate();
-        this.voxelWorld = new VoxelWorld();
-
-        const chunk = new Chunk(new THREE.Vector3(0, 0, 0));
-        this.voxelWorld.generateChunk(chunk, this.climateGrid);
-        this.voxelWorld.addChunk(chunk);
-
-        for (let lod = 0; lod < this.voxelWorld.numLods; lod++) {
-            this.voxelWorld.createMeshForChunk(chunk, lod);
-            if (chunk.meshes[lod]) {
-                this.scene.add(chunk.meshes[lod]);
-            }
-        }
-        this.voxelWorld.updateLods(this.camera.position);
-
-        // This will also move to the worker
-        // this.eventManager = new EventManager(this.worldState);
-        // this.goalManager = new GoalManager(this.worldState);
-
-        this.controls = new OrbitControls(
-            this.camera,
-            this.renderer.domElement
-        );
+        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.04;
         this.controls.rotateSpeed = 1.2;
 
-        this.uiManager = new UIManager(
-            null, // worldState is in the worker
-            this.actionService,
-            this.audioManager,
-            null, // goalManager is in the worker
-            this.selectionIndicator
-        );
-        this.inputManager = new InputManager(
-            this.camera,
-            this.scene,
-            this.renderer,
-            this.threatMeshes,
-            this.uiManager,
-            this.audioManager,
-            this.controls
-        );
+        this.uiManager = new UIManager(null, this.actionService, this.audioManager, null, this.selectionIndicator);
+        this.inputManager = new InputManager(this.camera, this.scene, this.renderer, this.worldView, this.uiManager, this.audioManager, this.controls);
         this.testRunner = new TestRunner(this.uiManager);
     }
 
@@ -188,31 +130,8 @@ export class Game {
         });
     }
 
-    handleWorkerUpdate(delta, dt) {
-        // Remove threats
-        delta.removedThreatIds.forEach(id => {
-            if (this.threatMeshes.has(id)) {
-                this.scene.remove(this.threatMeshes.get(id).mesh);
-                this.threatMeshes.delete(id);
-            }
-        });
-
-        // Update threats
-        delta.updatedThreats.forEach(threatData => {
-            if (this.threatMeshes.has(threatData.id)) {
-                const threatMesh = this.threatMeshes.get(threatData.id);
-                threatMesh.update(dt, threatData);
-            }
-        });
-
-        // Add new threats
-        delta.newThreats.forEach(threatData => {
-            if (!this.threatMeshes.has(threatData.id)) {
-                const newThreatMesh = new ThreatMesh(threatData);
-                this.threatMeshes.set(threatData.id, newThreatMesh);
-                this.scene.add(newThreatMesh.mesh);
-            }
-        });
+    handleWorkerUpdate(simulationState, dt) {
+        this.worldView.update(simulationState);
     }
 
     initEventListeners() {
@@ -288,9 +207,9 @@ export class Game {
         this.uiManager.update(deltaTime);
         this.inputManager.update();
 
-        if (this.uiManager.currentFPS > 0) {
-            // Avoid adjusting on the first frames
-            this.voxelWorld.dynamicAdjustLOD(this.uiManager.currentFPS);
+        if (this.uiManager.currentFPS > 0 && this.worldView.chunkMeshes.size > 0) {
+            // A bit of a hack, we need a better way to get the voxelWorld from the view
+            // this.worldView.voxelWorld.dynamicAdjustLOD(this.uiManager.currentFPS);
         }
 
         this.controls.update();
