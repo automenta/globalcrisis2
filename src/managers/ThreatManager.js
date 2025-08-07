@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Threat } from '../threat.js';
 import { RadiologicalPlume } from '../plume.js';
-import { threatDomains, CROSS_DOMAIN_INTERACTIONS } from '../constants.js';
+import { THREAT_DOMAINS, CROSS_DOMAIN_INTERACTIONS } from '../constants.js';
 
 export class ThreatManager {
     constructor(scene, narrativeManager, casualMode) {
@@ -378,8 +378,8 @@ export class ThreatManager {
                 }
                 default:
                     domain =
-                        threatDomains[
-                            Math.floor(Math.random() * threatDomains.length)
+                        THREAT_DOMAINS[
+                            Math.floor(Math.random() * THREAT_DOMAINS.length)
                         ];
                     targetRegion =
                         worldState.regions[

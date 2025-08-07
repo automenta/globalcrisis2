@@ -6,7 +6,7 @@ export const CAVE_THRESHOLD = 0.6;
 export const PLANET_RADIUS = 60;
 export const GAME_GRAVITY_CONSTANT = 1000;
 
-export const threatDomains = [
+export const THREAT_DOMAINS = [
     'CYBER',
     'BIO',
     'GEO',

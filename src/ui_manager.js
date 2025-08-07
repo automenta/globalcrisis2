@@ -68,8 +68,6 @@ export class UIManager {
         this.researchPanel = document.getElementById('research-panel');
         this.buildPanel = document.getElementById('build-panel');
         this.aiAlertDiv = document.getElementById('ai-alert-level');
-        this.testPanel = document.getElementById('test-panel');
-        this.testResults = document.getElementById('test-results');
 
         this.fpsCounter = document.getElementById('fps-counter');
 
@@ -80,7 +78,6 @@ export class UIManager {
         };
 
         // Buttons
-        this.runTestsButton = document.getElementById('run-tests-button');
         this.togglePlumesButton = document.getElementById(
             'toggle-plumes-button'
         );
@@ -358,18 +355,6 @@ export class UIManager {
             //     }
             // }
         });
-    }
-
-    showTestPanel() {
-        this.testPanel.style.display = 'block';
-    }
-
-    hideTestPanel() {
-        this.testPanel.style.display = 'none';
-    }
-
-    setTestResults(results) {
-        this.testResults.innerHTML = results;
     }
 
     update(deltaTime) {

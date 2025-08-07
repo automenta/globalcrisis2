@@ -13,7 +13,6 @@ import { NarrativeManager } from './narrative.js';
 // import { EventManager } from './events.js';
 // import { GoalManager } from './domain_logic.js';
 import { InputManager } from './input_manager.js';
-import { TestRunner } from './test_runner.js';
 // import { RegionManager } from './managers/RegionManager.js';
 // import { FactionManager } from './managers/FactionManager.js';
 // import { ThreatManager } from './managers/ThreatManager.js';
@@ -97,7 +96,6 @@ export class Game {
 
         this.uiManager = new UIManager(null, this.actionService, this.audioManager, null, this.selectionIndicator);
         this.inputManager = new InputManager(this.camera, this.scene, this.renderer, this.worldView, this.uiManager, this.audioManager, this.controls, this.worker);
-        this.testRunner = new TestRunner(this.uiManager);
     }
 
     initWorker() {
@@ -138,10 +136,6 @@ export class Game {
     }
 
     initEventListeners() {
-        this.uiManager.runTestsButton.addEventListener('click', () => {
-            this.testRunner.runTests();
-        });
-
         const roboticArenaButton = document.getElementById('robotic-arena-button');
         roboticArenaButton.addEventListener('click', () => {
             this.stop();
