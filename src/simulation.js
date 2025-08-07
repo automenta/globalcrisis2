@@ -58,13 +58,16 @@ export class Simulation {
     }
 
     initializeVoxelWorld() {
-        const worldSize = 4;
-        for (let cx = -worldSize / 2; cx < worldSize / 2; cx++) {
-            for (let cy = -worldSize / 2; cy < worldSize / 2; cy++) {
-                for (let cz = -worldSize / 2; cz < worldSize / 2; cz++) {
-                    const chunk = new Chunk({ x: cx, y: cy, z: cz });
-                    this.voxelWorld.generateChunk(chunk, this.climateGrid);
-                    this.voxelWorld.addChunk(chunk);
+        const planetChunkRadius = 5; // Planet radius in chunks, includes some buffer for terrain noise
+        for (let cx = -planetChunkRadius; cx <= planetChunkRadius; cx++) {
+            for (let cy = -planetChunkRadius; cy <= planetChunkRadius; cy++) {
+                for (let cz = -planetChunkRadius; cz <= planetChunkRadius; cz++) {
+                    const chunkPos = new THREE.Vector3(cx, cy, cz);
+                    if (chunkPos.length() <= planetChunkRadius) {
+                        const chunk = new Chunk({ x: cx, y: cy, z: cz });
+                        this.voxelWorld.generateChunk(chunk, this.climateGrid);
+                        this.voxelWorld.addChunk(chunk);
+                    }
                 }
             }
         }
