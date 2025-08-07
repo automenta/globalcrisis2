@@ -74,6 +74,10 @@ export const PlayerActions = {
                 comparison: 'gte',
                 value: 1.0,
             },
+            {
+                type: 'faction_has_capability',
+                capability: 'radiologicalContainment',
+            }
         ],
         effects: [
             {
@@ -102,6 +106,10 @@ export const PlayerActions = {
                 comparison: 'gte',
                 value: 1.0,
             },
+            {
+                type: 'faction_has_capability',
+                capability: 'radiologicalContainment',
+            }
         ],
         effects: [
             {
@@ -171,6 +179,50 @@ export const PlayerActions = {
             {
                 type: 'call_method',
                 method: 'induceDecoherence',
+                params: ['playerFaction'],
+            },
+        ],
+    },
+    swarm_command: {
+        id: 'swarm_command',
+        name: 'Swarm Command',
+        description: 'Issue coordinated commands to robotic swarms, boosting their intelligence.',
+        targetType: 'THREAT',
+        resourceCost: { funds: 400, intel: 300, tech: 200 },
+        availability: [
+            {
+                type: 'threat_property',
+                property: 'domain',
+                comparison: 'eq',
+                value: 'ROBOT',
+            },
+        ],
+        effects: [
+            {
+                type: 'call_method',
+                method: 'swarmCommand',
+                params: ['playerFaction'],
+            },
+        ],
+    },
+    autonomy_override: {
+        id: 'autonomy_override',
+        name: 'Autonomy Override',
+        description: 'Attempt to override the autonomy of a robotic threat, reducing its decision-making capabilities.',
+        targetType: 'THREAT',
+        resourceCost: { tech: 600, intel: 400 },
+        availability: [
+            {
+                type: 'threat_property',
+                property: 'domain',
+                comparison: 'eq',
+                value: 'ROBOT',
+            },
+        ],
+        effects: [
+            {
+                type: 'call_method',
+                method: 'autonomyOverride',
                 params: ['playerFaction'],
             },
         ],
@@ -427,6 +479,52 @@ export const PlayerActions = {
             },
         ],
     },
+    quantum_entangle: {
+        id: 'quantum_entangle',
+        name: 'Entangle Systems',
+        description: 'Create quantum entanglement for coordinated attacks.',
+        targetType: 'THREAT',
+        resourceCost: { funds: 500, intel: 300, tech: 400 },
+        availability: [
+            {
+                type: 'threat_property',
+                property: 'domain',
+                comparison: 'eq',
+                value: 'QUANTUM',
+            },
+            {
+                type: 'faction_has_capability',
+                capability: 'quantumOperations',
+            }
+        ],
+        effects: [
+            {
+                type: 'call_method',
+                method: 'quantumEntangle',
+                params: ['playerFaction'],
+            },
+        ],
+    },
+    quantum_decrypt: {
+        id: 'quantum_decrypt',
+        name: 'Quantum Decryption',
+        description: 'Break encryption using quantum computing power.',
+        targetType: 'GLOBAL', // This is a global action
+        resourceCost: { funds: 800, intel: 500, tech: 700 },
+        availability: [
+            {
+                type: 'faction_has_capability',
+                capability: 'quantumOperations',
+            }
+        ],
+        effects: [
+            {
+                type: 'call_method_on_world',
+                method: 'quantumDecrypt',
+                params: ['playerFaction'],
+            },
+        ],
+    },
 
     // ENVIRONMENTAL (Region Target)
     weather_control: {
@@ -653,7 +751,8 @@ export const AgentActions = {
             const wmdThreats = worldState.threatManager.threats.filter(
                 (t) =>
                     t.domain === 'WMD' &&
-                    worldState.regionManager.getRegionForThreat(t) === agent.region
+                    worldState.regionManager.getRegionForThreat(t) ===
+                        agent.region
             );
             if (wmdThreats.length > 0) {
                 wmdThreats.forEach((t) => (t.severity *= 0.5)); // Halve severity

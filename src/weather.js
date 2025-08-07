@@ -8,7 +8,6 @@ const WEATHER_TYPES = [
     'RADIOLOGICAL_FALLOUT',
 ];
 
-
 const WEATHER_EFFECTS = {
     STORM: {
         movementPenalty: 0.5,

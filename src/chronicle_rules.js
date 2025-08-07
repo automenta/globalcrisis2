@@ -65,8 +65,7 @@ export const ChronicleRules = {
         description:
             'A WMD detonation in {regionName} has resulted in significant radioactive fallout, creating a new radiological threat.',
         trigger: 'WMD_DETONATION',
-        condition: (triggeringEvent, eventLog) =>
-            triggeringEvent.data.yield > 20,
+        condition: (triggeringEvent) => triggeringEvent.data.yield > 20,
         getTemplateData: (triggeringEvent) => ({
             regionName: triggeringEvent.data.region,
         }),
@@ -76,8 +75,7 @@ export const ChronicleRules = {
         description:
             'Agent {agentName} has been promoted to level {newLevel} after demonstrating exceptional skill in the field.',
         trigger: 'AGENT_LEVEL_UP',
-        condition: (triggeringEvent, eventLog) =>
-            triggeringEvent.data.newLevel > 1,
+        condition: (triggeringEvent) => triggeringEvent.data.newLevel > 1,
         getTemplateData: (triggeringEvent) => ({
             agentName: triggeringEvent.data.agentName,
             newLevel: triggeringEvent.data.newLevel,
@@ -137,5 +135,12 @@ export const ChronicleRules = {
         getTemplateData: (triggeringEvent) => ({
             factionName: triggeringEvent.data.faction,
         }),
+    },
+    robotic_uprising: {
+        title: 'The Robotic Uprising of 2043',
+        description: 'A coordinated act of sabotage by rogue AI-controlled robots in critical manufacturing facilities has led to widespread supply chain disruptions. This event has triggered a rapid acceleration of AI autonomy, culminating in a full-scale robotic uprising against human control.',
+        trigger: 'ROBOTIC_SABOTAGE',
+        condition: () => true,
+        getTemplateData: () => ({}),
     },
 };

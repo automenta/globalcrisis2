@@ -8,12 +8,18 @@ export class ThreatManager {
         this.narrativeManager = narrativeManager;
         this.casualMode = casualMode;
         this.threats = [];
+        this.newThreats = [];
+        this.removedThreatIds = [];
         this.plumes = [];
     }
 
     addThreat(threat) {
         this.threats.push(threat);
-        this.scene.add(threat.mesh);
+        this.newThreats.push(threat);
+
+        if (this.scene) { // scene is null in the worker
+            this.scene.add(threat.mesh);
+        }
 
         if (threat.domain === 'RAD') {
             const plume = new RadiologicalPlume(threat, this.scene);
@@ -26,7 +32,7 @@ export class ThreatManager {
 
         // Update all threats and their impact on regions
         this.threats.forEach((threat) => {
-            threat.update(dt);
+            threat.update(dt, worldState);
 
             const region = worldState.regionManager.getRegionForThreat(threat);
             if (
@@ -82,22 +88,24 @@ export class ThreatManager {
         // Remove mitigated threats
         if (threatsToRemove.length > 0) {
             threatsToRemove.forEach((threat) => {
-                this.scene.remove(threat.mesh);
-                const plumeToRemove = this.plumes.find(
-                    (p) => p.threat === threat
-                );
-                if (plumeToRemove) {
-                    this.scene.remove(plumeToRemove.mesh);
-                    this.plumes = this.plumes.filter(
-                        (p) => p.threat !== threat
+                this.removedThreatIds.push(threat.id);
+                if (this.scene) { // scene is null in the worker
+                    this.scene.remove(threat.mesh);
+                    const plumeToRemove = this.plumes.find(
+                        (p) => p.threat === threat
                     );
+                    if (plumeToRemove) {
+                        this.scene.remove(plumeToRemove.mesh);
+                        this.plumes = this.plumes.filter(
+                            (p) => p.threat !== threat
+                        );
+                    }
                 }
             });
             this.threats = this.threats.filter((t) => !t.isMitigated);
         }
 
         this.handleThreatSpreading(dt, worldState);
-        this.handleThreatEnvironmentInteractions(dt, worldState);
         this.handleCrossDomainInteractions(dt, worldState);
 
         this.plumes.forEach((plume) => {
@@ -184,33 +192,6 @@ export class ThreatManager {
                     }
                     threat.isSpreading = false;
                 }
-            }
-        });
-    }
-
-    handleThreatEnvironmentInteractions(dt, worldState) {
-        this.threats.forEach((threat) => {
-            if (threat.isMitigated) return;
-
-            const region = worldState.regionManager.getRegionForThreat(threat);
-            if (!region || !region.weather) return;
-
-            if (
-                threat.domain === 'RAD' &&
-                region.weather.type === 'RADIOLOGICAL_FALLOUT'
-            ) {
-                threat.spreadRate = Math.min(
-                    1,
-                    threat.spreadRate + (1.5 * dt) / 60
-                );
-                threat.severity = Math.min(
-                    1,
-                    threat.severity + (0.3 * dt) / 60
-                );
-                this.narrativeManager.logEvent('RAD_FALLOUT_AMPLIFY', {
-                    threatId: threat.id,
-                    region: region.id,
-                });
             }
         });
     }
@@ -352,9 +333,11 @@ export class ThreatManager {
                     domain = ['CYBER', 'INFO', 'WMD'][
                         Math.floor(Math.random() * 3)
                     ];
-                    const playerRegions = worldState.regionManager.regions.filter(
-                        (r) => r.owner === 'PLAYER' || r.owner === 'mitigators'
-                    );
+                    const playerRegions =
+                        worldState.regionManager.regions.filter(
+                            (r) =>
+                                r.owner === 'PLAYER' || r.owner === 'mitigators'
+                        );
                     if (playerRegions.length > 0) {
                         const frontierRegions = playerRegions.filter((pr) =>
                             worldState.regionManager.travelRoutes.some(
@@ -479,5 +462,23 @@ export class ThreatManager {
             lon: threat.lon,
             isFromAI: options.isFromAI || false,
         });
+    }
+
+    getDelta() {
+        const updatedThreats = this.threats.filter(t => t.dirty && !this.newThreats.includes(t));
+        const newThreats = [...this.newThreats];
+        const removedThreatIds = [...this.removedThreatIds];
+
+        // Reset flags and lists
+        updatedThreats.forEach(t => t.dirty = false);
+        this.newThreats.forEach(t => t.dirty = false);
+        this.newThreats = [];
+        this.removedThreatIds = [];
+
+        return {
+            newThreats,
+            updatedThreats,
+            removedThreatIds,
+        };
     }
 }

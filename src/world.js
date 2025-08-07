@@ -82,6 +82,20 @@ export class WorldState {
         return false;
     }
 
+    quantumDecrypt() {
+        if (!this.activeBuffs.some((b) => b.type === 'CYBER_DEFENSE_DOWN'))) {
+            this.activeBuffs.push({
+                type: 'CYBER_DEFENSE_DOWN',
+                duration: 60, // Lasts for 60 seconds
+            });
+            this.narrativeManager.logEvent('QUANTUM_DECRYPTION', {
+                duration: 60,
+            });
+            return true;
+        }
+        return false;
+    }
+
     // --- END NEW METHODS ---
 
     updateWorldClimate() {

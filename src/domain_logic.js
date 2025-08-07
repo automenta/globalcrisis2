@@ -9,7 +9,7 @@
 import { NarrativeManager } from './narrative.js';
 
 export const DomainLogic = {
-    QUANTUM: (threat, dt, worldState) => {
+    QUANTUM: (threat, dt) => {
         const props = threat.quantumProperties;
         if (!props || props.coherenceTime === undefined) {
             return;
@@ -47,7 +47,7 @@ export const DomainLogic = {
         }
     },
 
-    ROBOT: (threat, dt, worldState) => {
+    ROBOT: (threat, dt) => {
         const props = threat.roboticProperties;
         if (!props || !props.adaptationRate) {
             return;
@@ -103,9 +103,22 @@ export const DomainLogic = {
                 behavior: 'CoordinatedAssault',
             });
         }
+
+        // --- Robotic Uprising Trigger ---
+        if (
+            props.collectiveIntelligence > 0.8 &&
+            props.failureModes.includes('ETHICS_OVERRIDE') &&
+            !threat.uprisingTriggered
+        ) {
+            threat.uprisingTriggered = true; // Prevent multiple triggers
+            NarrativeManager.logEvent('ROBOTIC_SABOTAGE', {
+                threatId: threat.id,
+                severity: threat.severity,
+            });
+        }
     },
 
-    SPACE: (threat, dt, worldState) => {
+    SPACE: (threat, dt) => {
         if (!threat.spaceProperties) {
             return;
         }
@@ -164,7 +177,11 @@ export const DomainLogic = {
             threat.severity = Math.max(0, threat.severity - 0.05 * dt);
         } else {
             // Its severity grows as it infects more systems
-            threat.severity = Math.min(1, threat.severity + 0.02 * dt);
+            let severityIncrease = 0.02 * dt;
+            if (worldState.activeBuffs.some((b) => b.type === 'CYBER_DEFENSE_DOWN')) {
+                severityIncrease *= 3; // 3x faster severity increase
+            }
+            threat.severity = Math.min(1, threat.severity + severityIncrease);
         }
 
         // Ransomware subtype logic
@@ -218,7 +235,7 @@ export const DomainLogic = {
         }
     },
 
-    GEO: (threat, dt, worldState) => {
+    GEO: (threat, worldState) => {
         // Geological events are typically instantaneous.
         // This logic will apply a one-time effect and then the threat should be removed.
         const region = worldState.getRegionForThreat(threat);
@@ -247,7 +264,7 @@ export const DomainLogic = {
         props.areaOfEffect += 0.5 * threat.severity * dt;
     },
 
-    WMD: (threat, dt, worldState) => {
+    WMD: (threat, worldState) => {
         // WMDs are instantaneous events.
         const region = worldState.getRegionForThreat(threat);
         if (region && !threat.hasHadInitialImpact) {
@@ -278,7 +295,7 @@ export const DomainLogic = {
         }
     },
 
-    RAD: (threat, dt) => {
+    RAD: (threat, dt, worldState) => {
         const props = threat.radiologicalProperties;
         if (!props) return;
 
@@ -291,6 +308,32 @@ export const DomainLogic = {
             props.contaminationLevel - decayPerTick * dt
         );
         threat.severity = props.contaminationLevel; // Severity is directly tied to contamination
+
+        // Radiological-Weather Interaction
+        const region = worldState.regionManager.getRegionForThreat(threat);
+        if (region && region.weather && region.weather.type === 'RADIOLOGICAL_FALLOUT') {
+            threat.spreadRate = Math.min(
+                1,
+                threat.spreadRate + (1.5 * dt) / 60
+            );
+            threat.severity = Math.min(
+                1,
+                threat.severity + (0.3 * dt) / 60
+            );
+            NarrativeManager.logEvent('RAD_FALLOUT_AMPLIFY', {
+                threatId: threat.id,
+                region: region.id,
+            });
+        }
+
+        // Population damage
+        if (region) {
+            let popDamage = threat.severity * 0.01 * dt;
+            if (props.radiationType === 'NEUTRON' || props.radiationType === 'GAMMA') {
+                popDamage *= 2;
+            }
+            region.population.total = Math.max(0, region.population.total - popDamage);
+        }
     },
 };
 

@@ -17,6 +17,48 @@ export class Unit {
         // --- NEW: Physics and Movement Component Setup ---
         let physicsOptions;
         switch (this.type) {
+            case 'QUANTUM_NODE':
+                physicsOptions = {
+                    mass: 10,
+                    movementType: 'static', // Quantum nodes are stationary
+                };
+                break;
+            case 'RAD_DISPERSAL':
+                physicsOptions = {
+                    mass: 2,
+                    maxSpeed: 1.0,
+                    maxForce: 8,
+                    frictionCoefficient: 0.3,
+                    movementType: 'ground',
+                };
+                break;
+            case 'DRONE':
+                physicsOptions = {
+                    mass: 0.2,
+                    maxSpeed: 8,
+                    maxForce: 15,
+                    frictionCoefficient: 0.1,
+                    movementType: 'air',
+                };
+                break;
+            case 'AUTONOMOUS_GROUND':
+                physicsOptions = {
+                    mass: 4,
+                    maxSpeed: 2.0,
+                    maxForce: 12,
+                    frictionCoefficient: 0.4,
+                    movementType: 'ground',
+                };
+                break;
+            case 'ROBOTIC_SWARM':
+                physicsOptions = {
+                    mass: 10, // The mass of the whole swarm
+                    maxSpeed: 5,
+                    maxForce: 25,
+                    frictionCoefficient: 0.2,
+                    movementType: 'air',
+                };
+                break;
             case 'GROUND_VEHICLE':
                 physicsOptions = {
                     mass: 5,
@@ -86,6 +128,26 @@ export class Unit {
         let spawnRadius;
 
         switch (this.type) {
+            case 'QUANTUM_NODE':
+                geometry = new THREE.TorusKnotGeometry(0.2, 0.05, 100, 16);
+                spawnRadius = 63.5;
+                break;
+            case 'RAD_DISPERSAL':
+                geometry = new THREE.CylinderGeometry(0.1, 0.1, 0.5, 16);
+                spawnRadius = 63.5;
+                break;
+            case 'DRONE':
+                geometry = new THREE.SphereGeometry(0.1, 8, 8);
+                spawnRadius = 70;
+                break;
+            case 'AUTONOMOUS_GROUND':
+                geometry = new THREE.BoxGeometry(0.4, 0.2, 0.3);
+                spawnRadius = 63.5;
+                break;
+            case 'ROBOTIC_SWARM':
+                geometry = new THREE.SphereGeometry(0.5, 16, 16);
+                spawnRadius = 70;
+                break;
             case 'GROUND_VEHICLE':
                 geometry = new THREE.BoxGeometry(0.3, 0.1, 0.2);
                 spawnRadius = 63.5;

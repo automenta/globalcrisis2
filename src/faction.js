@@ -7,14 +7,38 @@ export class Faction {
      * @param {number} options.resources.funds - Monetary resources.
      * @param {number} options.resources.intel - Intelligence points.
      * @param {number} options.resources.tech - Technological resources.
+     * @param {object} [options.capabilities={}] - The faction's capabilities.
      */
-    constructor({ id, name, resources }) {
+    constructor({ id, name, resources, capabilities = {} }) {
         this.id = id;
         this.name = name;
         this.resources = {
             funds: resources.funds || 0,
             intel: resources.intel || 0,
             tech: resources.tech || 0,
+        };
+        this.capabilities = {
+            threatDeployment: capabilities.threatDeployment || false,
+            investigation: capabilities.investigation || true, // All factions can investigate
+            influence: capabilities.influence || false,
+            economicWarfare: capabilities.economicWarfare || false,
+            cyberOperations: capabilities.cyberOperations || false,
+            environmentalManipulation: capabilities.environmentalManipulation || false,
+            spaceDominance: capabilities.spaceDominance || false,
+            geoengineering: capabilities.geoengineering || false,
+            spaceWeatherControl: capabilities.spaceWeatherControl || false,
+            aiAssistedDesign: capabilities.aiAssistedDesign || false,
+            mediaPropaganda: capabilities.mediaPropaganda || false,
+            whistleblowerNetworks: capabilities.whistleblowerNetworks || false,
+            diplomaticImmunity: capabilities.diplomaticImmunity || false,
+            quantumOperations: capabilities.quantumOperations || false,
+            radiologicalContainment: capabilities.radiologicalContainment || false,
+            roboticCommand: capabilities.roboticCommand || false,
+            misinformationCampaigns: capabilities.misinformationCampaigns || false,
+            economicSanctions: capabilities.economicSanctions || false,
+            neuroManipulation: capabilities.neuroManipulation || false,
+            planetaryEngineering: capabilities.planetaryEngineering || false,
+            temporalOperations: capabilities.temporalOperations || false,
         };
         // Base counter-intelligence strength. Can be modified by tech, events, etc.
         this.counterIntel = 0.1;

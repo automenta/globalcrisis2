@@ -19,6 +19,12 @@ export class FactionManager {
             id: 'mitigators',
             name: 'Hero Mitigators',
             resources: playerResources,
+            capabilities: {
+                investigation: true,
+                radiologicalContainment: true,
+                quantumOperations: true,
+                whistleblowerNetworks: true,
+            }
         });
         this.factions.push(this.playerFaction);
 
@@ -31,6 +37,12 @@ export class FactionManager {
                 intel: 10000,
                 tech: 10000,
             },
+            capabilities: {
+                threatDeployment: true,
+                roboticCommand: true,
+                cyberOperations: true,
+                aiAssistedDesign: true,
+            }
         });
         if (casualMode) {
             this.aiFaction.counterIntel = 0.05; // Lower base counter-intel

@@ -30,6 +30,10 @@ export class UIManager {
         };
         this.lastChronicleCount = 0;
 
+        this.frames = 0;
+        this.lastFPSTime = 0;
+        this.currentFPS = 0;
+
         this.initUI();
         this.bindEventListeners();
     }
@@ -66,6 +70,14 @@ export class UIManager {
         this.aiAlertDiv = document.getElementById('ai-alert-level');
         this.testPanel = document.getElementById('test-panel');
         this.testResults = document.getElementById('test-results');
+
+        this.fpsCounter = document.getElementById('fps-counter');
+
+        this.quantumViewer = {
+            panel: document.getElementById('quantum-viewer'),
+            entanglement: document.getElementById('quantum-entanglement'),
+            coherence: document.getElementById('quantum-coherence'),
+        };
 
         // Buttons
         this.runTestsButton = document.getElementById('run-tests-button');
@@ -360,7 +372,17 @@ export class UIManager {
         this.testResults.innerHTML = results;
     }
 
-    update() {
+    update(deltaTime) {
+        this.frames++;
+        this.lastFPSTime += deltaTime;
+
+        if (this.lastFPSTime >= 1.0) {
+            this.currentFPS = Math.round(this.frames / this.lastFPSTime);
+            this.fpsCounter.textContent = this.currentFPS;
+            this.frames = 0;
+            this.lastFPSTime = 0;
+        }
+
         // this.updatePlayerPanel();
         // this.updateWeatherPanel();
         // this.updateNarrativeLog();
@@ -386,10 +408,24 @@ export class UIManager {
     }
 
     updateOnSelectionChange() {
+        this.updateQuantumViewer();
         // this.updateThreatPanel();
         // this.updateWeatherPanel();
         // this.updateSelectionIndicator();
         // this.updateRightPanelButtons();
+    }
+
+    updateQuantumViewer() {
+        if (this.selectedThreat && this.selectedThreat.domain === 'QUANTUM') {
+            this.quantumViewer.panel.style.display = 'block';
+            const qProps = this.selectedThreat.quantumProperties;
+            if (qProps) {
+                this.quantumViewer.entanglement.textContent = qProps.entanglementLevel.toFixed(2);
+                this.quantumViewer.coherence.textContent = qProps.coherenceTime.toFixed(2);
+            }
+        } else {
+            this.quantumViewer.panel.style.display = 'none';
+        }
     }
 
     updateSelectionIndicator() {

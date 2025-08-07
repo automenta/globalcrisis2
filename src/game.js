@@ -4,28 +4,32 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { UIManager } from './ui_manager.js';
-import { WorldState } from './world.js';
+// import { WorldState } from './world.js';
 import { VoxelWorld, Chunk } from './voxel.js';
 import { ClimateGrid } from './climate.js';
 import { AudioManager } from './audio.js';
 import { ActionService } from './action_service.js';
 import { NarrativeManager } from './narrative.js';
-import { EventManager } from './events.js';
-import { GoalManager } from './domain_logic.js';
+// import { EventManager } from './events.js';
+// import { GoalManager } from './domain_logic.js';
 import { InputManager } from './input_manager.js';
 import { TestRunner } from './test_runner.js';
-import { RegionManager } from './managers/RegionManager.js';
-import { FactionManager } from './managers/FactionManager.js';
-import { ThreatManager } from './managers/ThreatManager.js';
-import { AIManager } from './managers/AIManager.js';
-import { EventBus } from './event_bus.js';
+// import { RegionManager } from './managers/RegionManager.js';
+// import { FactionManager } from './managers/FactionManager.js';
+// import { ThreatManager } from './managers/ThreatManager.js';
+// import { AIManager } from './managers/AIManager.js';
+// import { EventBus } from './event_bus.js';
 import TWEEN from '@tweenjs/tween.js';
+import { ThreatMesh } from './threat_mesh.js';
+import { ArenaMode } from './arena_mode.js';
 
 export class Game {
     constructor() {
+        this.threatMeshes = new Map();
         this.initEngine();
         this.initManagers();
         this.initEventListeners();
+        this.initWorker();
     }
 
     initEngine() {
@@ -82,28 +86,30 @@ export class Game {
     }
 
     initManagers() {
-        this.eventBus = new EventBus();
+        // Managers that are purely for the client-side (rendering, UI, input)
         this.audioManager = new AudioManager();
-        this.actionService = new ActionService();
-        this.narrativeManager = new NarrativeManager();
-        this.regionManager = new RegionManager(this.scene);
-        this.factionManager = new FactionManager(true);
-        this.threatManager = new ThreatManager(
-            this.scene,
-            this.narrativeManager,
-            true
-        );
-        this.aiManager = new AIManager(this.factionManager.aiFaction, true);
+        this.actionService = new ActionService(); // This might need refactoring if actions are triggered from the UI
+        this.narrativeManager = new NarrativeManager(); // For now, narrative logs are on the main thread
 
-        this.worldState = new WorldState(
-            this.scene,
-            this.narrativeManager,
-            true
-        );
-        this.worldState.regionManager = this.regionManager;
-        this.worldState.factionManager = this.factionManager;
-        this.worldState.threatManager = this.threatManager;
-        this.worldState.aiManager = this.aiManager;
+        // The simulation managers are now in the worker.
+        // this.eventBus = new EventBus();
+        // this.regionManager = new RegionManager(this.scene);
+        // this.factionManager = new FactionManager(true);
+        // this.threatManager = new ThreatManager(
+        //     this.scene,
+        //     this.narrativeManager,
+        //     true
+        // );
+        // this.aiManager = new AIManager(this.factionManager.aiFaction, true);
+        // this.worldState = new WorldState(
+        //     this.scene,
+        //     this.narrativeManager,
+        //     true
+        // );
+        // this.worldState.regionManager = this.regionManager;
+        // this.worldState.factionManager = this.factionManager;
+        // this.worldState.threatManager = this.threatManager;
+        // this.worldState.aiManager = this.aiManager;
 
         this.climateGrid = new ClimateGrid(128, 128);
         this.climateGrid.generate();
@@ -121,28 +127,30 @@ export class Game {
         }
         this.voxelWorld.updateLods(this.camera.position);
 
-        this.eventManager = new EventManager(this.worldState);
-        this.goalManager = new GoalManager(this.worldState);
+        // This will also move to the worker
+        // this.eventManager = new EventManager(this.worldState);
+        // this.goalManager = new GoalManager(this.worldState);
 
         this.controls = new OrbitControls(
             this.camera,
             this.renderer.domElement
         );
         this.controls.enableDamping = true;
-        this.controls.dampingFactor = 0.05;
+        this.controls.dampingFactor = 0.04;
+        this.controls.rotateSpeed = 1.2;
 
         this.uiManager = new UIManager(
-            this.worldState,
+            null, // worldState is in the worker
             this.actionService,
             this.audioManager,
-            this.goalManager,
+            null, // goalManager is in the worker
             this.selectionIndicator
         );
         this.inputManager = new InputManager(
             this.camera,
             this.scene,
             this.renderer,
-            this.worldState,
+            this.threatMeshes,
             this.uiManager,
             this.audioManager,
             this.controls
@@ -150,10 +158,76 @@ export class Game {
         this.testRunner = new TestRunner(this.uiManager);
     }
 
+    initWorker() {
+        this.worker = new Worker('src/simulation_worker.js', {
+            type: 'module',
+        });
+
+        this.worker.onmessage = (e) => {
+            const { type, payload } = e.data;
+            switch (type) {
+                case 'init_complete':
+                    console.log('Main: Worker initialization complete.');
+                    this.worker.postMessage({ type: 'start' });
+                    break;
+                case 'update':
+                    // We need to pass deltaTime to the update function for animations
+                    this.handleWorkerUpdate(
+                        payload,
+                        this.clock.getDelta() * this.gameSpeed
+                    );
+                    break;
+            }
+        };
+
+        this.worker.postMessage({
+            type: 'init',
+            payload: {
+                /* config if any */
+            },
+        });
+    }
+
+    handleWorkerUpdate(delta, dt) {
+        // Remove threats
+        delta.removedThreatIds.forEach(id => {
+            if (this.threatMeshes.has(id)) {
+                this.scene.remove(this.threatMeshes.get(id).mesh);
+                this.threatMeshes.delete(id);
+            }
+        });
+
+        // Update threats
+        delta.updatedThreats.forEach(threatData => {
+            if (this.threatMeshes.has(threatData.id)) {
+                const threatMesh = this.threatMeshes.get(threatData.id);
+                threatMesh.update(dt, threatData);
+            }
+        });
+
+        // Add new threats
+        delta.newThreats.forEach(threatData => {
+            if (!this.threatMeshes.has(threatData.id)) {
+                const newThreatMesh = new ThreatMesh(threatData);
+                this.threatMeshes.set(threatData.id, newThreatMesh);
+                this.scene.add(newThreatMesh.mesh);
+            }
+        });
+    }
+
     initEventListeners() {
         this.uiManager.runTestsButton.addEventListener('click', () => {
             this.testRunner.runTests();
         });
+
+        const roboticArenaButton = document.getElementById('robotic-arena-button');
+        roboticArenaButton.addEventListener('click', () => {
+            this.stop();
+            const arena = new ArenaMode(this);
+            arena.init();
+            arena.start();
+        });
+
         window.addEventListener(
             'resize',
             () => {
@@ -193,21 +267,31 @@ export class Game {
     }
 
     start() {
-        this.animate();
+        this.animationFrameId = requestAnimationFrame(this.animate.bind(this));
+    }
+
+    stop() {
+        cancelAnimationFrame(this.animationFrameId);
     }
 
     animate() {
         requestAnimationFrame(this.animate.bind(this));
         const deltaTime = this.clock.getDelta() * this.gameSpeed;
 
-        this.worldState.update(deltaTime, this.camera.position);
-        this.regionManager.update(deltaTime, this.worldState);
-        this.factionManager.update(deltaTime, this.worldState);
-        this.threatManager.update(deltaTime, this.worldState);
-        this.aiManager.update(deltaTime, this.worldState);
+        // The simulation is now updated in the worker.
+        // this.worldState.update(deltaTime, this.camera.position);
+        // this.regionManager.update(deltaTime, this.worldState);
+        // this.factionManager.update(deltaTime, this.worldState);
+        // this.threatManager.update(deltaTime, this.worldState);
+        // this.aiManager.update(deltaTime, this.worldState);
 
-        this.uiManager.update();
+        this.uiManager.update(deltaTime);
         this.inputManager.update();
+
+        if (this.uiManager.currentFPS > 0) {
+            // Avoid adjusting on the first frames
+            this.voxelWorld.dynamicAdjustLOD(this.uiManager.currentFPS);
+        }
 
         this.controls.update();
         this.composer.render(deltaTime);

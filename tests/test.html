@@ -15,7 +15,9 @@
         </script>
         <script type="module" src="run.js"></script>
         <script>
-            mocha.run();
+            mocha.run().on('end', function() {
+                window.testsAreComplete = true;
+            });
         </script>
     </body>
 </html>

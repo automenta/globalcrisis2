@@ -5,6 +5,8 @@ const MATERIAL_ICE = 3;
 const MATERIAL_SAND = 4;
 const MATERIAL_GRASS = 5;
 
+const seaLevel = 62;
+
 /**
  * Represents a chunk of voxels.
  * A chunk is a cube of voxels of size CHUNK_SIZE x CHUNK_SIZE x CHUNK_SIZE.
@@ -155,11 +157,12 @@ import { MarchingCubes } from './marching_cubes.js';
 import SimplexNoise from 'simplex-noise';
 
 export class VoxelWorld {
-    constructor(seed = 'default-seed', numLods = 3) {
+    constructor(seed = 'default-seed', numLods = 4) {
         this.chunks = new Map(); // Use a map for sparse storage of chunks.
         this.noise = new SimplexNoise(seed);
         this.numLods = numLods;
         this.powerMode = 'medium';
+        this.baseLodDistances = [];
         this.lodDistances = [];
         this.setPowerMode(this.powerMode);
     }
@@ -168,14 +171,39 @@ export class VoxelWorld {
         this.powerMode = mode;
         switch (mode) {
             case 'high':
-                this.lodDistances = [100, 200, 300]; // Distances for LOD 0, 1, 2
+                this.baseLodDistances = [100, 200, 300, 400];
                 break;
             case 'medium':
-                this.lodDistances = [80, 160, 240];
+                this.baseLodDistances = [80, 160, 240, 320];
                 break;
             case 'low':
-                this.lodDistances = [60, 120, 180];
+                this.baseLodDistances = [60, 120, 180, 240];
                 break;
+        }
+        this.lodDistances = [...this.baseLodDistances];
+    }
+
+    dynamicAdjustLOD(fps) {
+        const LOW_FPS_THRESHOLD = 45;
+        const HIGH_FPS_THRESHOLD = 55;
+        const ADJUSTMENT_SPEED = 0.005; // Smaller value for slower adjustment
+
+        if (fps < LOW_FPS_THRESHOLD) {
+            // Decrease LOD distances to improve performance
+            for (let i = 0; i < this.lodDistances.length; i++) {
+                this.lodDistances[i] = Math.max(
+                    this.baseLodDistances[i] * 0.5, // Don't go below 50% of base
+                    this.lodDistances[i] * (1 - ADJUSTMENT_SPEED)
+                );
+            }
+        } else if (fps > HIGH_FPS_THRESHOLD) {
+            // Increase LOD distances back towards the base
+            for (let i = 0; i < this.lodDistances.length; i++) {
+                this.lodDistances[i] = Math.min(
+                    this.baseLodDistances[i],
+                    this.lodDistances[i] * (1 + ADJUSTMENT_SPEED)
+                );
+            }
         }
     }
 
@@ -400,7 +428,6 @@ export class VoxelWorld {
         let materialsChanged = false;
 
         const planetRadius = 60;
-        const seaLevel = 62;
         const noiseScale = 0.05;
 
         for (let z = 0; z < CHUNK_SIZE; z++) {

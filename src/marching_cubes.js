@@ -13,7 +13,6 @@ export const MarchingCubes = (function () {
     // Marching Cubes Definition
     // This is a static lookup table.
 
-
     const triTable = new Int32Array([
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 8, 3,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 1, 9, -1, -1, -1,
@@ -246,12 +245,7 @@ export const MarchingCubes = (function () {
         },
 
         add_ball: function (ball, data, normal_subtract) {
-            var ix,
-                jy,
-                kz,
-                x,
-                y,
-                z,
+            var i, j, k, x, y, z,
                 d,
                 d2,
                 dens,
@@ -266,9 +260,9 @@ export const MarchingCubes = (function () {
             ball_z = ball.z * data_size;
             ball_s = ball.s;
 
-            ix = Math.floor(ball_x - ball_s);
-            jy = Math.floor(ball_y - ball_s);
-            kz = Math.floor(ball_z - ball_s);
+            i = Math.floor(ball_x - ball_s);
+            j = Math.floor(ball_y - ball_s);
+            k = Math.floor(ball_z - ball_s);
 
             x = Math.floor(ball_x + ball_s);
             y = Math.floor(ball_y + ball_s);

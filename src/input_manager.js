@@ -6,7 +6,7 @@ export class InputManager {
         camera,
         scene,
         renderer,
-        voxelWorld,
+        threatMeshes,
         uiManager,
         audioManager,
         controls
@@ -14,7 +14,7 @@ export class InputManager {
         this.camera = camera;
         this.scene = scene;
         this.renderer = renderer;
-        this.voxelWorld = voxelWorld;
+        this.threatMeshes = threatMeshes;
         this.uiManager = uiManager;
         this.audioManager = audioManager;
         this.controls = controls;
@@ -70,32 +70,28 @@ export class InputManager {
             return;
         }
 
-        // const allThreats = this.voxelWorld.getThreats();
-        // const threatMeshes = allThreats.map(t => t.mesh);
-        // const allUnits = this.voxelWorld.units;
-        // const unitMeshes = allUnits.map(u => u.mesh);
-        // const intersects = this.raycaster.intersectObjects([...threatMeshes, ...unitMeshes]);
+        const allThreatMeshes = [...this.threatMeshes.values()].map(tm => tm.mesh);
+        const intersects = this.raycaster.intersectObjects(allThreatMeshes);
 
-        // if (intersects.length > 0) {
-        //     const intersectedMesh = intersects[0].object;
-        //     this.audioManager.playSound('click');
-        //     this.uiManager.hideLocationInfo();
+        if (intersects.length > 0) {
+            const intersectedMesh = intersects[0].object;
+            this.audioManager.playSound('click');
+            this.uiManager.hideLocationInfo();
 
-        //     const newlySelectedThreat = allThreats.find(t => t.mesh === intersectedMesh);
-        //     const newlySelectedAgent = this.voxelWorld.agents.find(a => a.mesh === intersectedMesh);
-        //     const newlySelectedUnit = allUnits.find(u => u.mesh === intersectedMesh && u.mesh.userData.unit);
+            const threatId = intersectedMesh.name;
+            const threatMesh = this.threatMeshes.get(threatId);
 
-        //     this.selectedThreat = newlySelectedThreat || null;
-        //     this.selectedUnit = newlySelectedAgent || newlySelectedUnit || null;
+            if (threatMesh) {
+                this.selectedThreat = threatMesh.threatData;
+                this.uiManager.setSelectedThreat(this.selectedThreat);
+            }
 
-        //     this.uiManager.setSelectedThreat(this.selectedThreat);
-        //     this.uiManager.setSelectedUnit(this.selectedUnit);
-        // } else {
-        this.selectedThreat = null;
-        this.selectedUnit = null;
-        this.uiManager.clearSelection();
+        } else {
+            this.selectedThreat = null;
+            this.selectedUnit = null;
+            this.uiManager.clearSelection();
 
-        const planetIntersects = this.raycaster.intersectObjects(chunkMeshes);
+            const planetIntersects = this.raycaster.intersectObjects(chunkMeshes);
         if (planetIntersects.length > 0) {
             // const point = planetIntersects[0].point;
             // this.uiManager.showLocationInfo(point);
