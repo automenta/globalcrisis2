@@ -193,6 +193,8 @@ export class WorldView {
         }
     }
 
+
+
     addChunkMesh(payload) {
         const { chunkId, chunkPosition, geometry: geometryData } = payload;
 
@@ -250,5 +252,8 @@ export class WorldView {
 
         this.chunkMeshes.set(chunkId, mesh);
         this.scene.add(mesh);
+// Add debug logging for chunk mesh addition
+console.log('Adding chunk mesh:', payload.chunkId);
     }
+
 }

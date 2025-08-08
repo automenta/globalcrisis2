@@ -69,6 +69,8 @@ async function init() {
             0
         );
         if (geometryData) {
+// Add debug logging for chunk geometry generation
+console.log('Generated chunk geometry for chunk:', chunk.id);
             const transferable = [
                 geometryData.positions.buffer,
                 geometryData.normals.buffer,

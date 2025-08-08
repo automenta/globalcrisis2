@@ -38,7 +38,11 @@ export class Game {
             0.1,
             1000
         );
-        this.camera.position.z = 150;
+
+        // Adjust camera position to better view the planet
+        this.camera.position.setZ(100); // Reduced from 150 to get closer to the planet
+
+        this.camera.position.z = 100;
 
         this.renderer = new THREE.WebGLRenderer();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -208,6 +212,8 @@ export class Game {
 
     stop() {
         cancelAnimationFrame(this.animationFrameId);
+// Add debug check for animation loop
+console.log('Starting animation loop...');
     }
 
     animate() {
