@@ -154,12 +154,14 @@ export class Chunk {
 import * as THREE from 'three';
 import { CHUNK_SIZE } from './constants.js';
 import { MarchingCubes } from './marching_cubes.js';
-import SimplexNoise from 'simplex-noise';
+import { createNoise3D } from 'simplex-noise';
+import alea from 'alea';
 
 export class VoxelWorld {
     constructor(seed = 'default-seed', numLods = 4) {
         this.chunks = new Map(); // Use a map for sparse storage of chunks.
-        this.noise = new SimplexNoise(seed);
+        const prng = alea(seed);
+        this.noise = createNoise3D(prng);
         this.numLods = numLods;
         this.powerMode = 'medium';
         this.baseLodDistances = [];
@@ -255,7 +257,7 @@ export class VoxelWorld {
                     const posVec = new THREE.Vector3(worldX, worldY, worldZ);
                     const distance = posVec.length();
 
-                    const noiseValue = this.noise.noise3D(
+                    const noiseValue = this.noise(
                         worldX * noiseScale,
                         worldY * noiseScale,
                         worldZ * noiseScale
@@ -467,7 +469,7 @@ export class VoxelWorld {
 
                     const terrainHeight =
                         planetRadius +
-                        this.noise.noise3D(
+                        this.noise(
                             worldX * noiseScale,
                             worldY * noiseScale,
                             worldZ * noiseScale
