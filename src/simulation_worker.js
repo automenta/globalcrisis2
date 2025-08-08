@@ -45,53 +45,58 @@ self.onmessage = function (e) {
 };
 
 async function init() {
-    console.log('Worker: Initializing simulation...');
+    try {
+        console.log('Worker: Initializing simulation...');
 
-    const narrativeManagerMock = { logEvent: () => {} };
+        const narrativeManagerMock = { logEvent: () => {} };
 
-    regionManager = new RegionManager();
-    factionManager = new FactionManager(true);
-    threatManager = new ThreatManager(null, narrativeManagerMock, true);
-    aiManager = new AIManager(factionManager.aiFaction, true);
+        regionManager = new RegionManager();
+        factionManager = new FactionManager(true);
+        threatManager = new ThreatManager(null, narrativeManagerMock, true);
+        aiManager = new AIManager(factionManager.aiFaction, true);
 
-    simulation = new Simulation(narrativeManagerMock, true);
-    await simulation.init(); // This now loads region data
-    simulation.regionManager = regionManager;
-    simulation.factionManager = factionManager;
-    simulation.threatManager = threatManager;
-    simulation.aiManager = aiManager;
+        simulation = new Simulation(narrativeManagerMock, true);
+        await simulation.init(); // This now loads region data
+        simulation.regionManager = regionManager;
+        simulation.factionManager = factionManager;
+        simulation.threatManager = threatManager;
+        simulation.aiManager = aiManager;
 
-    // Generate and post chunk geometry
-    simulation.voxelWorld.chunks.forEach((chunk) => {
-        // For now, only generate LOD 0
-        const geometryData = simulation.voxelWorld.generateChunkGeometry(
-            chunk,
-            0
-        );
-        if (geometryData) {
-// Add debug logging for chunk geometry generation
-console.log('Generated chunk geometry for chunk:', chunk.id);
-            const transferable = [
-                geometryData.positions.buffer,
-                geometryData.normals.buffer,
-                geometryData.colors.buffer,
-            ];
-            self.postMessage(
-                {
-                    type: 'chunk_geometry',
-                    payload: {
-                        chunkId: chunk.id,
-                        chunkPosition: chunk.position,
-                        geometry: geometryData,
-                    },
-                },
-                transferable
+        // Generate and post chunk geometry
+        simulation.voxelWorld.chunks.forEach((chunk) => {
+            // For now, only generate LOD 0
+            const geometryData = simulation.voxelWorld.generateChunkGeometry(
+                chunk,
+                0
             );
-        }
-    });
+            if (geometryData) {
+    // Add debug logging for chunk geometry generation
+    console.log('Generated chunk geometry for chunk:', chunk.id);
+                const transferable = [
+                    geometryData.positions.buffer,
+                    geometryData.normals.buffer,
+                    geometryData.colors.buffer,
+                ];
+                self.postMessage(
+                    {
+                        type: 'chunk_geometry',
+                        payload: {
+                            chunkId: chunk.id,
+                            chunkPosition: chunk.position,
+                            geometry: geometryData,
+                        },
+                    },
+                    transferable
+                );
+            }
+        });
 
-    console.log('Worker: Simulation initialized and geometry generated.');
-    self.postMessage({ type: 'init_complete' });
+        console.log('Worker: Simulation initialized and geometry generated.');
+        self.postMessage({ type: 'init_complete' });
+    } catch (err) {
+        console.error('Worker initialization failed:', err);
+        self.postMessage({ type: 'error', error: err.message });
+    }
 }
 
 function start() {

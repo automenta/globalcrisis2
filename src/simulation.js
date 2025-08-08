@@ -57,7 +57,7 @@ export class Simulation {
 
     async initializeRegions() {
         // This is running in a worker, so we need to specify the path
-        const response = await fetch('../../data/regions.json');
+        const response = await fetch('/data/regions.json');
         const regionsData = await response.json();
         this.regions = regionsData.map((data) => new Region(data));
     }
