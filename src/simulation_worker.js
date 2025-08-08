@@ -16,7 +16,10 @@ self.onmessage = function (e) {
 
     switch (type) {
         case 'init':
-            init(payload);
+            init(payload).catch((err) => {
+                console.error('Worker initialization failed:', err);
+                self.postMessage({ type: 'error', error: err.message });
+            });
             break;
         case 'start':
             start();
