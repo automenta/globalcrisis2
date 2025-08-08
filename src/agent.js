@@ -8,24 +8,31 @@ fetch('data/abilities.json')
 import { Unit } from './unit.js';
 
 export class Agent extends Unit {
-    constructor(
-        {
-            id,
-            factionId,
-            region, // The region the agent is currently in
-            name = 'Rook', // Default name
-            level = 1,
-            experience = 0,
-            abilities = [],
-            status = 'IDLE', // IDLE, ON_MISSION, CAPTURED, KIA
-            position,
-            name = 'Rook', // Default name
-            level = 1,
-            experience = 0,
-            abilities = [],
-            status = 'IDLE', // IDLE, ON_MISSION, CAPTURED, KIA
-        }
-    ) {
+    constructor({
+        id,
+        factionId,
+        region,
+        name = 'Rook',
+        level = 1,
+        experience = 0,
+        abilities = [],
+        status = 'IDLE',
+        position,
+        id,
+        factionId,
+        region, // The region the agent is currently in
+        name = 'Rook', // Default name
+        level = 1,
+        experience = 0,
+        abilities = [],
+        status = 'IDLE', // IDLE, ON_MISSION, CAPTURED, KIA
+        position,
+        name = 'Rook', // Default name
+        level = 1,
+        experience = 0,
+        abilities = [],
+        status = 'IDLE', // IDLE, ON_MISSION, CAPTURED, KIA
+    }) {
         // Call the parent Unit constructor
         super({ region, type: 'AGENT', position });
 

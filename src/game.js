@@ -89,13 +89,31 @@ export class Game {
         this.narrativeManager = new NarrativeManager();
         this.worldView = new WorldView(this.scene);
 
-        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.controls = new OrbitControls(
+            this.camera,
+            this.renderer.domElement
+        );
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.04;
         this.controls.rotateSpeed = 1.2;
 
-        this.uiManager = new UIManager(null, this.actionService, this.audioManager, null, this.selectionIndicator);
-        this.inputManager = new InputManager(this.camera, this.scene, this.renderer, this.worldView, this.uiManager, this.audioManager, this.controls, this.worker);
+        this.uiManager = new UIManager(
+            null,
+            this.actionService,
+            this.audioManager,
+            null,
+            this.selectionIndicator
+        );
+        this.inputManager = new InputManager(
+            this.camera,
+            this.scene,
+            this.renderer,
+            this.worldView,
+            this.uiManager,
+            this.audioManager,
+            this.controls,
+            this.worker
+        );
     }
 
     initWorker() {
@@ -136,7 +154,9 @@ export class Game {
     }
 
     initEventListeners() {
-        const roboticArenaButton = document.getElementById('robotic-arena-button');
+        const roboticArenaButton = document.getElementById(
+            'robotic-arena-button'
+        );
         roboticArenaButton.addEventListener('click', () => {
             this.stop();
             const arena = new ArenaMode(this);
@@ -204,7 +224,10 @@ export class Game {
         this.uiManager.update(deltaTime);
         this.inputManager.update();
 
-        if (this.uiManager.currentFPS > 0 && this.worldView.chunkMeshes.size > 0) {
+        if (
+            this.uiManager.currentFPS > 0 &&
+            this.worldView.chunkMeshes.size > 0
+        ) {
             // A bit of a hack, we need a better way to get the voxelWorld from the view
             // this.worldView.voxelWorld.dynamicAdjustLOD(this.uiManager.currentFPS);
         }

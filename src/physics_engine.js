@@ -47,8 +47,12 @@ export class UnifiedPhysicsEngine {
         // Apply central gravity
         const distanceSq = unit.position.lengthSq();
         if (distanceSq > 0) {
-            const gravityMagnitude = (GAME_GRAVITY_CONSTANT * physics.mass) / distanceSq;
-            const gravityForce = unit.position.clone().normalize().multiplyScalar(-gravityMagnitude);
+            const gravityMagnitude =
+                (GAME_GRAVITY_CONSTANT * physics.mass) / distanceSq;
+            const gravityForce = unit.position
+                .clone()
+                .normalize()
+                .multiplyScalar(-gravityMagnitude);
             physics.applyForce(gravityForce);
         }
 
@@ -103,9 +107,7 @@ export class UnifiedPhysicsEngine {
         physics.velocity.add(physics.acceleration.clone().multiplyScalar(dt));
 
         // Update position
-        satellite.position.add(
-            physics.velocity.clone().multiplyScalar(dt)
-        );
+        satellite.position.add(physics.velocity.clone().multiplyScalar(dt));
 
         // Reset acceleration for the next frame
         physics.acceleration.set(0, 0, 0);

@@ -15,7 +15,11 @@ export class Region {
         this.id = id;
         this.name = name;
         this.centroid = centroid; // [lat, lon]
-        this.position = Region.latLonToVector3(centroid[0], centroid[1], PLANET_RADIUS);
+        this.position = Region.latLonToVector3(
+            centroid[0],
+            centroid[1],
+            PLANET_RADIUS
+        );
         this.radius = radius; // km
         this.attributes = attributes; // { climateVulnerability, temperature, economy: 1.0 }
         this.stability = 1.0; // Initial stability
@@ -163,7 +167,6 @@ export class Region {
         );
         return false;
     }
-
 
     investInEducation(faction) {
         const cost = PlayerActions.invest_in_education.resourceCost;

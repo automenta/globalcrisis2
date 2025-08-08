@@ -23,7 +23,8 @@ export class Faction {
             influence: capabilities.influence || false,
             economicWarfare: capabilities.economicWarfare || false,
             cyberOperations: capabilities.cyberOperations || false,
-            environmentalManipulation: capabilities.environmentalManipulation || false,
+            environmentalManipulation:
+                capabilities.environmentalManipulation || false,
             spaceDominance: capabilities.spaceDominance || false,
             geoengineering: capabilities.geoengineering || false,
             spaceWeatherControl: capabilities.spaceWeatherControl || false,
@@ -32,9 +33,11 @@ export class Faction {
             whistleblowerNetworks: capabilities.whistleblowerNetworks || false,
             diplomaticImmunity: capabilities.diplomaticImmunity || false,
             quantumOperations: capabilities.quantumOperations || false,
-            radiologicalContainment: capabilities.radiologicalContainment || false,
+            radiologicalContainment:
+                capabilities.radiologicalContainment || false,
             roboticCommand: capabilities.roboticCommand || false,
-            misinformationCampaigns: capabilities.misinformationCampaigns || false,
+            misinformationCampaigns:
+                capabilities.misinformationCampaigns || false,
             economicSanctions: capabilities.economicSanctions || false,
             neuroManipulation: capabilities.neuroManipulation || false,
             planetaryEngineering: capabilities.planetaryEngineering || false,

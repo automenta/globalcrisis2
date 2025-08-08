@@ -28,9 +28,15 @@ self.onmessage = function (e) {
             break;
         case 'move_unit':
             if (simulation) {
-                const unit = simulation.units.find(u => u.id === payload.unitId) || simulation.agents.find(a => a.id === payload.unitId);
+                const unit =
+                    simulation.units.find((u) => u.id === payload.unitId) ||
+                    simulation.agents.find((a) => a.id === payload.unitId);
                 if (unit) {
-                    const destination = new THREE.Vector3(payload.destination.x, payload.destination.y, payload.destination.z);
+                    const destination = new THREE.Vector3(
+                        payload.destination.x,
+                        payload.destination.y,
+                        payload.destination.z
+                    );
                     unit.moveTo(destination, simulation);
                 }
             }
@@ -55,25 +61,30 @@ async function init() {
     simulation.threatManager = threatManager;
     simulation.aiManager = aiManager;
 
-
     // Generate and post chunk geometry
-    simulation.voxelWorld.chunks.forEach(chunk => {
+    simulation.voxelWorld.chunks.forEach((chunk) => {
         // For now, only generate LOD 0
-        const geometryData = simulation.voxelWorld.generateChunkGeometry(chunk, 0);
+        const geometryData = simulation.voxelWorld.generateChunkGeometry(
+            chunk,
+            0
+        );
         if (geometryData) {
             const transferable = [
                 geometryData.positions.buffer,
                 geometryData.normals.buffer,
-                geometryData.colors.buffer
+                geometryData.colors.buffer,
             ];
-            self.postMessage({
-                type: 'chunk_geometry',
-                payload: {
-                    chunkId: chunk.id,
-                    chunkPosition: chunk.position,
-                    geometry: geometryData
-                }
-            }, transferable);
+            self.postMessage(
+                {
+                    type: 'chunk_geometry',
+                    payload: {
+                        chunkId: chunk.id,
+                        chunkPosition: chunk.position,
+                        geometry: geometryData,
+                    },
+                },
+                transferable
+            );
         }
     });
 

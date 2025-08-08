@@ -7,7 +7,8 @@ describe('E2E: Application Loading', () => {
         document.body.appendChild(iframe);
 
         iframe.onload = () => {
-            const canvas = iframe.contentWindow.document.querySelector('canvas');
+            const canvas =
+                iframe.contentWindow.document.querySelector('canvas');
             expect(canvas).to.not.be.null;
             done();
         };

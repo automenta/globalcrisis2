@@ -178,7 +178,11 @@ export const DomainLogic = {
         } else {
             // Its severity grows as it infects more systems
             let severityIncrease = 0.02 * dt;
-            if (worldState.activeBuffs.some((b) => b.type === 'CYBER_DEFENSE_DOWN')) {
+            if (
+                worldState.activeBuffs.some(
+                    (b) => b.type === 'CYBER_DEFENSE_DOWN'
+                )
+            ) {
                 severityIncrease *= 3; // 3x faster severity increase
             }
             threat.severity = Math.min(1, threat.severity + severityIncrease);
@@ -311,15 +315,16 @@ export const DomainLogic = {
 
         // Radiological-Weather Interaction
         const region = worldState.regionManager.getRegionForThreat(threat);
-        if (region && region.weather && region.weather.type === 'RADIOLOGICAL_FALLOUT') {
+        if (
+            region &&
+            region.weather &&
+            region.weather.type === 'RADIOLOGICAL_FALLOUT'
+        ) {
             threat.spreadRate = Math.min(
                 1,
                 threat.spreadRate + (1.5 * dt) / 60
             );
-            threat.severity = Math.min(
-                1,
-                threat.severity + (0.3 * dt) / 60
-            );
+            threat.severity = Math.min(1, threat.severity + (0.3 * dt) / 60);
             NarrativeManager.logEvent('RAD_FALLOUT_AMPLIFY', {
                 threatId: threat.id,
                 region: region.id,
@@ -329,10 +334,16 @@ export const DomainLogic = {
         // Population damage
         if (region) {
             let popDamage = threat.severity * 0.01 * dt;
-            if (props.radiationType === 'NEUTRON' || props.radiationType === 'GAMMA') {
+            if (
+                props.radiationType === 'NEUTRON' ||
+                props.radiationType === 'GAMMA'
+            ) {
                 popDamage *= 2;
             }
-            region.population.total = Math.max(0, region.population.total - popDamage);
+            region.population.total = Math.max(
+                0,
+                region.population.total - popDamage
+            );
         }
     },
 };

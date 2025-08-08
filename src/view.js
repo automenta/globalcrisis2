@@ -13,22 +13,47 @@ export class WorldView {
     }
 
     update(simulationState) {
-        this.updateObjects(simulationState.threats, this.threatMeshes, this.addThreat.bind(this), this.updateThreat.bind(this));
-        this.updateObjects(simulationState.buildings, this.buildingMeshes, this.addBuilding.bind(this), this.updateBuilding.bind(this));
-        this.updateObjects(simulationState.units, this.unitMeshes, this.addUnit.bind(this), this.updateUnit.bind(this));
-        this.updateObjects(simulationState.agents, this.agentMeshes, this.addAgent.bind(this), this.updateAgent.bind(this));
-        this.updateObjects(simulationState.satellites, this.satelliteMeshes, this.addSatellite.bind(this), this.updateSatellite.bind(this));
+        this.updateObjects(
+            simulationState.threats,
+            this.threatMeshes,
+            this.addThreat.bind(this),
+            this.updateThreat.bind(this)
+        );
+        this.updateObjects(
+            simulationState.buildings,
+            this.buildingMeshes,
+            this.addBuilding.bind(this),
+            this.updateBuilding.bind(this)
+        );
+        this.updateObjects(
+            simulationState.units,
+            this.unitMeshes,
+            this.addUnit.bind(this),
+            this.updateUnit.bind(this)
+        );
+        this.updateObjects(
+            simulationState.agents,
+            this.agentMeshes,
+            this.addAgent.bind(this),
+            this.updateAgent.bind(this)
+        );
+        this.updateObjects(
+            simulationState.satellites,
+            this.satelliteMeshes,
+            this.addSatellite.bind(this),
+            this.updateSatellite.bind(this)
+        );
     }
 
     updateObjects(objects, meshes, addFn, updateFn) {
-        const allIds = new Set(objects.map(o => o.id));
+        const allIds = new Set(objects.map((o) => o.id));
         meshes.forEach((mesh, id) => {
             if (!allIds.has(id)) {
                 this.scene.remove(mesh);
                 meshes.delete(id);
             }
         });
-        objects.forEach(obj => {
+        objects.forEach((obj) => {
             if (meshes.has(obj.id)) {
                 updateFn(obj);
             } else {
@@ -41,7 +66,13 @@ export class WorldView {
         const domainInfo = THREAT_DOMAINS[threat.domain] || {};
         const color = domainInfo.color || 0xffffff;
         const geometry = new THREE.OctahedronGeometry(2, 0);
-        const material = new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.5, transparent: true, opacity: 0.8 });
+        const material = new THREE.MeshPhongMaterial({
+            color,
+            emissive: color,
+            emissiveIntensity: 0.5,
+            transparent: true,
+            opacity: 0.8,
+        });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.copy(threat.position);
         mesh.userData = { simObject: threat, type: 'threat' };
@@ -60,12 +91,20 @@ export class WorldView {
     addBuilding(building) {
         let geometry;
         switch (building.type) {
-            case 'BASE': geometry = new THREE.BoxGeometry(0.2, 0.2, 0.4); break;
-            case 'SENSOR': geometry = new THREE.CylinderGeometry(0.1, 0.2, 0.5, 8); break;
-            case 'RESEARCH_OUTPOST': geometry = new THREE.DodecahedronGeometry(0.2); break;
-            default: geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+            case 'BASE':
+                geometry = new THREE.BoxGeometry(0.2, 0.2, 0.4);
+                break;
+            case 'SENSOR':
+                geometry = new THREE.CylinderGeometry(0.1, 0.2, 0.5, 8);
+                break;
+            case 'RESEARCH_OUTPOST':
+                geometry = new THREE.DodecahedronGeometry(0.2);
+                break;
+            default:
+                geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
         }
-        const ownerColor = building.owner === 'mitigators' ? 0x0000ff : 0xff0000;
+        const ownerColor =
+            building.owner === 'mitigators' ? 0x0000ff : 0xff0000;
         const material = new THREE.MeshPhongMaterial({ color: ownerColor });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.copy(building.position);
@@ -81,10 +120,17 @@ export class WorldView {
     addUnit(unit) {
         let geometry;
         switch (unit.type) {
-            case 'AGENT': geometry = new THREE.ConeGeometry(0.1, 0.4, 8); break;
-            case 'GROUND_VEHICLE': geometry = new THREE.BoxGeometry(0.3, 0.1, 0.2); break;
-            case 'AIRCRAFT': geometry = new THREE.TetrahedronGeometry(0.2, 0); break;
-            default: geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+            case 'AGENT':
+                geometry = new THREE.ConeGeometry(0.1, 0.4, 8);
+                break;
+            case 'GROUND_VEHICLE':
+                geometry = new THREE.BoxGeometry(0.3, 0.1, 0.2);
+                break;
+            case 'AIRCRAFT':
+                geometry = new THREE.TetrahedronGeometry(0.2, 0);
+                break;
+            default:
+                geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
         }
         const material = new THREE.MeshPhongMaterial({ color: 0xffff00 });
         const mesh = new THREE.Mesh(geometry, material);
@@ -97,7 +143,11 @@ export class WorldView {
     updateUnit(unit) {
         const mesh = this.unitMeshes.get(unit.id);
         if (mesh) {
-            mesh.position.set(unit.position.x, unit.position.y, unit.position.z);
+            mesh.position.set(
+                unit.position.x,
+                unit.position.y,
+                unit.position.z
+            );
         }
     }
 
@@ -117,9 +167,16 @@ export class WorldView {
 
     addSatellite(satellite) {
         const geometry = new THREE.OctahedronGeometry(0.15, 0);
-        const material = new THREE.MeshPhongMaterial({ color: 0xcccccc, emissive: 0xaaaaaa });
+        const material = new THREE.MeshPhongMaterial({
+            color: 0xcccccc,
+            emissive: 0xaaaaaa,
+        });
         const mesh = new THREE.Mesh(geometry, material);
-        mesh.position.set(satellite.position.x, satellite.position.y, satellite.position.z);
+        mesh.position.set(
+            satellite.position.x,
+            satellite.position.y,
+            satellite.position.z
+        );
         mesh.userData = { simObject: satellite, type: 'satellite' };
         this.satelliteMeshes.set(satellite.id, mesh);
         this.scene.add(mesh);
@@ -128,7 +185,11 @@ export class WorldView {
     updateSatellite(satellite) {
         const mesh = this.satelliteMeshes.get(satellite.id);
         if (mesh) {
-            mesh.position.set(satellite.position.x, satellite.position.y, satellite.position.z);
+            mesh.position.set(
+                satellite.position.x,
+                satellite.position.y,
+                satellite.position.z
+            );
         }
     }
 

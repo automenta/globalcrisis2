@@ -3,7 +3,7 @@ describe('Simulation Web Worker Delta Updates', () => {
 
     beforeEach((done) => {
         worker = new Worker('../src/simulation_worker.js', { type: 'module' });
-        worker.onmessage = function(e) {
+        worker.onmessage = function (e) {
             if (e.data.type === 'init_complete') {
                 worker.postMessage({ type: 'start' });
                 done();
@@ -17,7 +17,7 @@ describe('Simulation Web Worker Delta Updates', () => {
     });
 
     it('should receive a delta update with a new threat', (done) => {
-        worker.onmessage = function(e) {
+        worker.onmessage = function (e) {
             const { type, payload } = e.data;
             if (type === 'update') {
                 if (payload.newThreats.length > 0) {
@@ -30,7 +30,13 @@ describe('Simulation Web Worker Delta Updates', () => {
 
         worker.postMessage({
             type: 'DEBUG_CREATE_THREAT',
-            payload: { domain: 'CYBER', type: 'REAL', severity: 0.5, lat: 0, lon: 0 }
+            payload: {
+                domain: 'CYBER',
+                type: 'REAL',
+                severity: 0.5,
+                lat: 0,
+                lon: 0,
+            },
         });
     });
 });

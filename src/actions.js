@@ -77,7 +77,7 @@ export const PlayerActions = {
             {
                 type: 'faction_has_capability',
                 capability: 'radiologicalContainment',
-            }
+            },
         ],
         effects: [
             {
@@ -109,7 +109,7 @@ export const PlayerActions = {
             {
                 type: 'faction_has_capability',
                 capability: 'radiologicalContainment',
-            }
+            },
         ],
         effects: [
             {
@@ -186,7 +186,8 @@ export const PlayerActions = {
     swarm_command: {
         id: 'swarm_command',
         name: 'Swarm Command',
-        description: 'Issue coordinated commands to robotic swarms, boosting their intelligence.',
+        description:
+            'Issue coordinated commands to robotic swarms, boosting their intelligence.',
         targetType: 'THREAT',
         resourceCost: { funds: 400, intel: 300, tech: 200 },
         availability: [
@@ -208,7 +209,8 @@ export const PlayerActions = {
     autonomy_override: {
         id: 'autonomy_override',
         name: 'Autonomy Override',
-        description: 'Attempt to override the autonomy of a robotic threat, reducing its decision-making capabilities.',
+        description:
+            'Attempt to override the autonomy of a robotic threat, reducing its decision-making capabilities.',
         targetType: 'THREAT',
         resourceCost: { tech: 600, intel: 400 },
         availability: [
@@ -495,7 +497,7 @@ export const PlayerActions = {
             {
                 type: 'faction_has_capability',
                 capability: 'quantumOperations',
-            }
+            },
         ],
         effects: [
             {
@@ -515,7 +517,7 @@ export const PlayerActions = {
             {
                 type: 'faction_has_capability',
                 capability: 'quantumOperations',
-            }
+            },
         ],
         effects: [
             {

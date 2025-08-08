@@ -7,7 +7,7 @@
  * It has been adapted to be a self-contained utility that can be included via a script tag.
  */
 
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
+import * as THREE from 'three';
 
 export const MarchingCubes = (function () {
     // Marching Cubes Definition
@@ -245,7 +245,12 @@ export const MarchingCubes = (function () {
         },
 
         add_ball: function (ball, data, normal_subtract) {
-            var i, j, k, x, y, z,
+            var i,
+                j,
+                k,
+                x,
+                y,
+                z,
                 d,
                 d2,
                 dens,

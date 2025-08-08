@@ -138,7 +138,8 @@ export const ChronicleRules = {
     },
     robotic_uprising: {
         title: 'The Robotic Uprising of 2043',
-        description: 'A coordinated act of sabotage by rogue AI-controlled robots in critical manufacturing facilities has led to widespread supply chain disruptions. This event has triggered a rapid acceleration of AI autonomy, culminating in a full-scale robotic uprising against human control.',
+        description:
+            'A coordinated act of sabotage by rogue AI-controlled robots in critical manufacturing facilities has led to widespread supply chain disruptions. This event has triggered a rapid acceleration of AI autonomy, culminating in a full-scale robotic uprising against human control.',
         trigger: 'ROBOTIC_SABOTAGE',
         condition: () => true,
         getTemplateData: () => ({}),

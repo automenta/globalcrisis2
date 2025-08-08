@@ -18,7 +18,8 @@ export class ThreatManager {
         this.threats.push(threat);
         this.newThreats.push(threat);
 
-        if (this.scene) { // scene is null in the worker
+        if (this.scene) {
+            // scene is null in the worker
             this.scene.add(threat.mesh);
         }
 
@@ -90,7 +91,8 @@ export class ThreatManager {
         if (threatsToRemove.length > 0) {
             threatsToRemove.forEach((threat) => {
                 this.removedThreatIds.push(threat.id);
-                if (this.scene) { // scene is null in the worker
+                if (this.scene) {
+                    // scene is null in the worker
                     this.scene.remove(threat.mesh);
                     const plumeToRemove = this.plumes.find(
                         (p) => p.threat === threat
@@ -394,11 +396,17 @@ export class ThreatManager {
             }
 
             const randomOffset = new THREE.Vector3(
-                (Math.random() - 0.5),
-                (Math.random() - 0.5),
-                (Math.random() - 0.5)
-            ).normalize().multiplyScalar(5); // 5 units of random offset
-            const threatPosition = new THREE.Vector3().copy(targetRegion.position).add(randomOffset).normalize().multiplyScalar(60);
+                Math.random() - 0.5,
+                Math.random() - 0.5,
+                Math.random() - 0.5
+            )
+                .normalize()
+                .multiplyScalar(5); // 5 units of random offset
+            const threatPosition = new THREE.Vector3()
+                .copy(targetRegion.position)
+                .add(randomOffset)
+                .normalize()
+                .multiplyScalar(60);
 
             threatProps = {
                 id,
@@ -418,7 +426,7 @@ export class ThreatManager {
                 domain: options.domain,
                 type: options.type,
                 severity: options.severity,
-                position: position
+                position: position,
             };
         }
 
@@ -473,13 +481,15 @@ export class ThreatManager {
     }
 
     getDelta() {
-        const updatedThreats = this.threats.filter(t => t.dirty && !this.newThreats.includes(t));
+        const updatedThreats = this.threats.filter(
+            (t) => t.dirty && !this.newThreats.includes(t)
+        );
         const newThreats = [...this.newThreats];
         const removedThreatIds = [...this.removedThreatIds];
 
         // Reset flags and lists
-        updatedThreats.forEach(t => t.dirty = false);
-        this.newThreats.forEach(t => t.dirty = false);
+        updatedThreats.forEach((t) => (t.dirty = false));
+        this.newThreats.forEach((t) => (t.dirty = false));
         this.newThreats = [];
         this.removedThreatIds = [];
 

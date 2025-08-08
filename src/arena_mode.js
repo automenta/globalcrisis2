@@ -24,7 +24,12 @@ export class ArenaMode {
         this.scene.background = new THREE.Color(0x222222);
 
         // Set up camera
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
         this.camera.position.set(0, 5, 10);
 
         // Use the same renderer as the main game
@@ -39,13 +44,20 @@ export class ArenaMode {
 
         // Add a ground plane
         const groundGeometry = new THREE.PlaneGeometry(20, 20);
-        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.5, roughness: 0.5 });
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x444444,
+            metalness: 0.5,
+            roughness: 0.5,
+        });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         this.scene.add(ground);
 
         // Set up controls
-        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.controls = new OrbitControls(
+            this.camera,
+            this.renderer.domElement
+        );
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
 
@@ -57,7 +69,11 @@ export class ArenaMode {
         this.selectionBox.visible = false;
         this.scene.add(this.selectionBox);
 
-        this.renderer.domElement.addEventListener('click', this.onMouseClick.bind(this), false);
+        this.renderer.domElement.addEventListener(
+            'click',
+            this.onMouseClick.bind(this),
+            false
+        );
 
         console.log('Arena initialized.');
     }
@@ -75,13 +91,19 @@ export class ArenaMode {
             this.selectionBox.visible = true;
         } else {
             // Deselect if clicking on the ground
-            const ground = this.scene.children.find(c => c.geometry instanceof THREE.PlaneGeometry);
+            const ground = this.scene.children.find(
+                (c) => c.geometry instanceof THREE.PlaneGeometry
+            );
             const groundIntersects = this.raycaster.intersectObject(ground);
             if (groundIntersects.length > 0 && this.selectedRobot) {
                 // Move the robot
                 const targetPoint = groundIntersects[0].point;
                 // For now, just move it instantly. We'll add smooth movement later.
-                this.selectedRobot.position.set(targetPoint.x, this.selectedRobot.position.y, targetPoint.z);
+                this.selectedRobot.position.set(
+                    targetPoint.x,
+                    this.selectedRobot.position.y,
+                    targetPoint.z
+                );
             }
             this.selectedRobot = null;
             this.selectionBox.visible = false;

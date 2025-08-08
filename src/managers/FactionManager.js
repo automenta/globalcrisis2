@@ -24,7 +24,7 @@ export class FactionManager {
                 radiologicalContainment: true,
                 quantumOperations: true,
                 whistleblowerNetworks: true,
-            }
+            },
         });
         this.factions.push(this.playerFaction);
 
@@ -42,7 +42,7 @@ export class FactionManager {
                 roboticCommand: true,
                 cyberOperations: true,
                 aiAssistedDesign: true,
-            }
+            },
         });
         if (casualMode) {
             this.aiFaction.counterIntel = 0.05; // Lower base counter-intel

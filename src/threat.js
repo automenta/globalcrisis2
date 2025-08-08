@@ -82,9 +82,13 @@ export class Threat {
                     physicalHarmProbability: 0.1,
                 },
                 adaptationRate: this._roboticProperties.adaptationRate || 0.1,
-                collectiveIntelligence: this._roboticProperties.collectiveIntelligence || 0,
+                collectiveIntelligence:
+                    this._roboticProperties.collectiveIntelligence || 0,
             };
-            this._roboticProperties = { ...defaults, ...this._roboticProperties };
+            this._roboticProperties = {
+                ...defaults,
+                ...this._roboticProperties,
+            };
         }
 
         if (this.domain === 'QUANTUM') {
@@ -93,7 +97,10 @@ export class Threat {
                 entanglementLevel: 0,
                 coherenceTime: 10.0,
             };
-            this._quantumProperties = { ...defaults, ...this._quantumProperties };
+            this._quantumProperties = {
+                ...defaults,
+                ...this._quantumProperties,
+            };
         }
 
         // (other domains omitted for brevity, but would follow the same pattern)
@@ -101,18 +108,55 @@ export class Threat {
 
     // --- Getters and Setters for Dirty Flagging ---
 
-    get severity() { return this._severity; }
-    set severity(value) { if (this._severity !== value) { this._severity = value; this.dirty = true; } }
-    get visibility() { return this._visibility; }
-    set visibility(value) { if (this._visibility !== value) { this._visibility = value; this.dirty = true; } }
-    get spreadRate() { return this._spreadRate; }
-    set spreadRate(value) { if (this._spreadRate !== value) { this._spreadRate = value; this.dirty = true; } }
-    get investigationCompleted() { return this._investigationCompleted; }
-    set investigationCompleted(value) { if (this._investigationCompleted !== value) { this._investigationCompleted = value; this.dirty = true; } }
-    get isMitigated() { return this._isMitigated; }
-    set isMitigated(value) { if (this._isMitigated !== value) { this._isMitigated = value; this.dirty = true; } }
+    get severity() {
+        return this._severity;
+    }
+    set severity(value) {
+        if (this._severity !== value) {
+            this._severity = value;
+            this.dirty = true;
+        }
+    }
+    get visibility() {
+        return this._visibility;
+    }
+    set visibility(value) {
+        if (this._visibility !== value) {
+            this._visibility = value;
+            this.dirty = true;
+        }
+    }
+    get spreadRate() {
+        return this._spreadRate;
+    }
+    set spreadRate(value) {
+        if (this._spreadRate !== value) {
+            this._spreadRate = value;
+            this.dirty = true;
+        }
+    }
+    get investigationCompleted() {
+        return this._investigationCompleted;
+    }
+    set investigationCompleted(value) {
+        if (this._investigationCompleted !== value) {
+            this._investigationCompleted = value;
+            this.dirty = true;
+        }
+    }
+    get isMitigated() {
+        return this._isMitigated;
+    }
+    set isMitigated(value) {
+        if (this._isMitigated !== value) {
+            this._isMitigated = value;
+            this.dirty = true;
+        }
+    }
 
-    get quantumProperties() { return this._quantumProperties; }
+    get quantumProperties() {
+        return this._quantumProperties;
+    }
     set quantumProperties(value) {
         if (JSON.stringify(this._quantumProperties) !== JSON.stringify(value)) {
             this._quantumProperties = JSON.parse(JSON.stringify(value));
@@ -120,7 +164,9 @@ export class Threat {
         }
     }
 
-    get roboticProperties() { return this._roboticProperties; }
+    get roboticProperties() {
+        return this._roboticProperties;
+    }
     set roboticProperties(value) {
         if (JSON.stringify(this._roboticProperties) !== JSON.stringify(value)) {
             this._roboticProperties = JSON.parse(JSON.stringify(value));
@@ -149,7 +195,10 @@ export class Threat {
 
         if (cheat || faction.canAfford(cost)) {
             if (!cheat) faction.spend(cost);
-            this.investigationProgress = Math.min(1.0, this.investigationProgress + (cheat ? 1.0 : 0.2));
+            this.investigationProgress = Math.min(
+                1.0,
+                this.investigationProgress + (cheat ? 1.0 : 0.2)
+            );
             this.visibility = this.investigationProgress;
             if (this.investigationProgress >= 1.0) {
                 this.investigationCompleted = true;
@@ -164,7 +213,10 @@ export class Threat {
         if (faction.canAfford(cost)) {
             faction.spend(cost);
             const qProps = { ...this.quantumProperties };
-            qProps.entanglementLevel = Math.min(1, qProps.entanglementLevel + 0.2);
+            qProps.entanglementLevel = Math.min(
+                1,
+                qProps.entanglementLevel + 0.2
+            );
             this.quantumProperties = qProps;
             return true;
         }
@@ -173,7 +225,8 @@ export class Threat {
 
     mitigate(faction, worldState, cheat = false) {
         const cost = { funds: 500, tech: 200 };
-        if (this.investigationProgress < 1.0 || this.type !== 'REAL') return false;
+        if (this.investigationProgress < 1.0 || this.type !== 'REAL')
+            return false;
 
         if (cheat || faction.canAfford(cost)) {
             if (!cheat) faction.spend(cost);
@@ -194,7 +247,8 @@ export class Threat {
 
     deployCounterIntel(faction) {
         const cost = { intel: 250, funds: 100 };
-        if (this.domain !== 'INFO' || this.investigationProgress < 1.0) return false;
+        if (this.domain !== 'INFO' || this.investigationProgress < 1.0)
+            return false;
         if (faction.canAfford(cost)) {
             faction.spend(cost);
             this.spreadRate = Math.max(0, this.spreadRate - 0.2);
@@ -205,7 +259,8 @@ export class Threat {
 
     stabilizeMarkets(faction) {
         const cost = { funds: 1000 };
-        if (this.domain !== 'ECON' || this.investigationProgress < 1.0) return false;
+        if (this.domain !== 'ECON' || this.investigationProgress < 1.0)
+            return false;
         if (faction.canAfford(cost)) {
             faction.spend(cost);
             this.severity = Math.max(0, this.severity - 0.15);
@@ -219,7 +274,10 @@ export class Threat {
         if (faction.canAfford(cost)) {
             faction.spend(cost);
             const rProps = { ...this.roboticProperties };
-            rProps.collectiveIntelligence = Math.max(0, rProps.collectiveIntelligence - 0.25);
+            rProps.collectiveIntelligence = Math.max(
+                0,
+                rProps.collectiveIntelligence - 0.25
+            );
             this.roboticProperties = rProps;
             return true;
         }
@@ -231,7 +289,10 @@ export class Threat {
         if (faction.canAfford(cost)) {
             faction.spend(cost);
             const rProps = { ...this.roboticProperties };
-            rProps.collectiveIntelligence = Math.min(1, rProps.collectiveIntelligence + 0.1);
+            rProps.collectiveIntelligence = Math.min(
+                1,
+                rProps.collectiveIntelligence + 0.1
+            );
             this.roboticProperties = rProps;
             return true;
         }
@@ -244,7 +305,10 @@ export class Threat {
             faction.spend(cost);
             const rProps = { ...this.roboticProperties };
             if (rProps.autonomyDegrees) {
-                rProps.autonomyDegrees.decisionLevel = Math.max(0, rProps.autonomyDegrees.decisionLevel - 0.2);
+                rProps.autonomyDegrees.decisionLevel = Math.max(
+                    0,
+                    rProps.autonomyDegrees.decisionLevel - 0.2
+                );
                 this.roboticProperties = rProps;
             }
             return true;

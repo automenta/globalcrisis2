@@ -20,7 +20,6 @@ export class RegionManager {
         });
     }
 
-
     getRegionForThreat(threat) {
         // This is an approximation. A better method would be to check if the point is inside a spherical cap.
         // For now, we use simple 3D distance. The region's "radius" is in km, which doesn't map directly to 3D units.

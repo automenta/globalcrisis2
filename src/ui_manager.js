@@ -405,8 +405,10 @@ export class UIManager {
             this.quantumViewer.panel.style.display = 'block';
             const qProps = this.selectedThreat.quantumProperties;
             if (qProps) {
-                this.quantumViewer.entanglement.textContent = qProps.entanglementLevel.toFixed(2);
-                this.quantumViewer.coherence.textContent = qProps.coherenceTime.toFixed(2);
+                this.quantumViewer.entanglement.textContent =
+                    qProps.entanglementLevel.toFixed(2);
+                this.quantumViewer.coherence.textContent =
+                    qProps.coherenceTime.toFixed(2);
             }
         } else {
             this.quantumViewer.panel.style.display = 'none';
